@@ -10,11 +10,16 @@ export function useChat() {
   const [status, setStatus] = useState<ChatStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const activeRequest = useRef<string | null>(null);
-
   useEffect(() => {
+
     const handler = (ev: ChatEvent) => {
       if (ev.conversationId !== CONVERSATION_ID) return;
-      if (ev.requestId !== activeRequest.current) return;
+      // Started dikirim backend sebelum requestId tiba di frontend, adopsi di sini.
+      if (ev.type === "started" && activeRequest.current === null) {
+        activeRequest.current = ev.requestId;
+      } else if (ev.requestId !== activeRequest.current) {
+        return;
+      }
       switch (ev.type) {
         case "started":
           setStatus("streaming");
