@@ -1,0 +1,10 @@
+build/bin
+node_modules
+frontend/dist
+*.db
+*.db-journal
+*.log
+logs/
+*.exe
+.env
+.env.local

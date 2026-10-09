@@ -1,0 +1,72 @@
+# Wortel AI — Rencana Produk dan Teknis
+
+> **Status:** Draft perencanaan MVP  
+> **Nama proyek:** Wortel AI (nama sementara; boleh diganti)  
+> **Platform target:** Windows 10/11 x64  
+> **Bahasa dokumentasi:** Indonesia  
+> **Tujuan:** Membuat desktop companion berkarakter 2D yang ringan, modern, dan dapat bercakap-cakap dengan AI melalui endpoint OpenAI-compatible.
+
+Dokumen ini adalah sumber acuan awal untuk implementasi. Detail teknis yang belum terbukti di prototipe ditandai sebagai **perlu divalidasi**; jangan menganggapnya sebagai kemampuan yang sudah selesai.
+
+## Ringkasan konsep
+
+Wortel AI adalah aplikasi desktop Windows berbentuk karakter kecil yang mengambang di atas desktop. Pengguna mengeklik karakter untuk membuka panel chat. Aplikasi tidak menjalankan model AI secara lokal pada MVP; ia mengirim permintaan ke endpoint AI yang dipilih pengguna.
+
+Prinsip utamanya:
+
+- **Ringan saat idle:** tidak melakukan polling, tidak menjalankan loop kerja yang terus-menerus, dan tidak memuat model lokal.
+- **Provider bebas:** endpoint, model, dan API key dapat dikonfigurasi selama provider mendukung kontrak API yang kompatibel.
+- **Local-first:** pengaturan dan riwayat disimpan secara lokal; percakapan hanya dikirim saat pengguna menekan tombol kirim.
+- **MVP terukur:** mulai dari satu karakter, satu panel chat, satu provider yang dikonfigurasi pengguna, lalu perluas setelah alur dasarnya stabil.
+- **Aman secara default:** rahasia tidak disimpan sebagai teks biasa, tidak ditulis ke log, dan respons AI tidak diperlakukan sebagai perintah sistem.
+
+## Dokumen
+
+1. [Product brief](docs/01-product-brief.md) — visi, pengguna, prinsip produk, dan batas scope.
+2. [Kebutuhan MVP](docs/02-mvp-requirements.md) — kebutuhan fungsional/nonfungsional dan acceptance criteria.
+3. [Arsitektur teknis](docs/03-architecture.md) — komponen, alur data, keputusan arsitektur, risiko teknis.
+4. [Struktur project](docs/04-project-structure.md) — tata letak direktori dan tanggung jawab paket.
+5. [Integrasi AI provider](docs/05-ai-provider-integration.md) — konfigurasi provider, streaming, error handling, dan kontrak API.
+6. [UI/UX companion](docs/06-ui-ux.md) — mode karakter, chat, pengaturan, dan perilaku interaksi.
+7. [Penyimpanan, keamanan, dan privasi](docs/07-storage-security-privacy.md) — data lokal, API key, batas keamanan, dan retensi.
+8. [Roadmap dan pengujian](docs/08-roadmap-testing.md) — tahapan implementasi, strategi tes, serta kriteria rilis.
+9. [Keputusan teknis](docs/09-decisions.md) — keputusan yang sudah diambil dan hal yang masih perlu dibuktikan.
+10. [Panduan implementasi untuk coding agent](AGENTS.md) — cara bekerja di repo, urutan implementasi, dan aturan kualitas.
+
+## Keputusan awal
+
+| Area | Pilihan awal | Catatan |
+|---|---|---|
+| Desktop framework | Wails v2.16.0 | Versi dikunci 2026-10-09; jangan pakai v3 beta. Validasi API Windows yang dibutuhkan. |
+| Backend | Go 1.26.4 | Syarat Wails v2: Go 1.21+. Versi terpasang 1.26.4, dikunci untuk M0. |
+| Frontend | React 19.1.0 + TS 5.6.3 + Vite 7.3.7 | Dari template `wails init` react-ts M0, dikunci 2026-10-09. |
+| Styling | Tailwind CSS | UI konsisten dan cepat dibuat. |
+| Chat API | OpenAI-compatible Chat Completions | Tidak semua provider mendukung seluruh parameter dengan cara yang sama. |
+| Streaming | SSE yang diparse di backend Go | Frontend menerima token/chunk melalui event Wails. |
+| Penyimpanan | SQLite | Percakapan dan preferensi nonrahasia. |
+| Secret | Windows Credential Manager atau mekanisme OS yang sesuai | Jangan simpan API key dalam SQLite atau JSON biasa. |
+| Model lokal | Tidak pada MVP | Mengurangi kompleksitas dan kebutuhan RAM. |
+| Jendela | Satu jendela yang berpindah mode karakter/chat | Transparansi, resize, hit-testing, dan drag perlu prototipe Windows. |
+
+## Cara memakai dokumen ini
+
+- Baca `01-product-brief.md` dan `02-mvp-requirements.md` sebelum mengerjakan UI.
+- Gunakan `03-architecture.md` dan `04-project-structure.md` sebagai batas modul, bukan alasan untuk membuat abstraksi berlebihan.
+- Implementasikan milestone pada `08-roadmap-testing.md` secara berurutan.
+- Perbarui `09-decisions.md` saat keputusan penting berubah.
+- Jika ada konflik antar-dokumen, dahulukan requirements MVP dan catat keputusan baru di decision log.
+
+## Definisi MVP selesai
+
+MVP dianggap layak diuji ketika pengguna dapat membuka aplikasi Windows, melihat dan memindahkan karakter, membuka chat, mengirim pesan ke provider OpenAI-compatible, menerima jawaban streaming, membatalkan respons, menyimpan/membuka percakapan lokal, mengatur provider dengan aman, serta menutup aplikasi tanpa proses menggantung. Kriteria rinci berada di `02-mvp-requirements.md`.
+
+## Referensi teknis resmi
+
+- Wails: <https://wails.io/>
+- Dokumentasi Wails v2: <https://wails.io/docs/v2.0/introduction>
+- Go: <https://go.dev/doc/>
+- React: <https://react.dev/>
+- SQLite: <https://www.sqlite.org/docs.html>
+- OpenAI API reference: <https://platform.openai.com/docs/api-reference/chat>
+
+Endpoint dan format spesifik harus dikonfirmasi terhadap dokumentasi provider yang benar-benar digunakan. Istilah “OpenAI-compatible” bukan jaminan bahwa semua parameter, endpoint, tool calls, atau streaming identik.
