@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import type {CSSProperties} from 'react';
 import './App.css';
 import {
@@ -9,6 +9,8 @@ import {
     WindowSetAlwaysOnTop,
     WindowSetSize,
 } from '../wailsjs/runtime/runtime';
+import {ChatPanel} from './components/chat/ChatPanel';
+import {useChat} from './hooks/useChat';
 
 type Mode = 'pet' | 'chat';
 
@@ -19,6 +21,17 @@ function App() {
     const [mode, setMode] = useState<Mode>('pet');
     const [info, setInfo] = useState<string>('probe belum jalan');
     const [top, setTop] = useState<boolean>(true);
+    const chat = useChat();
+    const lastUser = useRef<string>('');
+
+    const send = useCallback((text: string) => {
+        lastUser.current = text.trim();
+        chat.send(text);
+    }, [chat]);
+
+    const retry = useCallback(() => {
+        if (lastUser.current) chat.send(lastUser.current);
+    }, [chat]);
 
     const toggle = useCallback(() => {
         const next: Mode = mode === 'pet' ? 'chat' : 'pet';
@@ -62,8 +75,8 @@ function App() {
                     <button onClick={Quit}>Quit</button>
                 </span>
             </div>
+            <ChatPanel messages={chat.messages} status={chat.status} error={chat.error} busy={chat.busy} onSend={send} onCancel={chat.cancel} onRetry={retry} />
             <div id="chat-body">
-                <p>Panel chat placeholder. Chat nyata masuk M2; M1 hanya toggle pet/chat + drag.</p>
                 <div id="chat-actions">
                     <button onClick={probe}>Probe</button>
                     <button onClick={flipTop}>Top:{top ? 'on' : 'off'}</button>
