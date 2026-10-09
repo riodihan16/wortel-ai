@@ -87,6 +87,16 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Error mapping teruji via httptest:** 429/500/408/400, `Retry-After` dihormati (cap 600s), putus tengah stream pertahankan parsial, timeout jadi `PublicError` retryable.
 - **Verifikasi:** `go test ./...` ok, `gofmt` bersih, `tsc` bersih, `wails build` ok.
 
+## ADR-014 — M3 provider settings + credential storage (2026-10-09)
+
+- **Status:** Implemented, perlu smoke manual Windows.
+- **Credential:** `go-keyring v0.2.6` (Credential Manager via wincred), service `WortelAI`, ref `wortel-provider-<uuid>`. Secret tulis saat Save, ambil tepat sebelum request, wipe best-effort, tidak pernah ke frontend/log/DB.
+- **Storage:** `modernc.org/sqlite v1.46.0` (pure Go, tanpa CGO), DB `%LOCALAPPDATA%\WortelAI\wortel.db`, migration `schema_version`, tabel `provider_profiles` + `app_settings` tanpa kolom secret.
+- **Chat wiring:** `Service.resolve` pakai provider aktif; tanpa provider aktif kirim gagal aman `no_provider` dengan pesan Settings. Mock tetap fallback saat storage belum wired (dev/test).
+- **Test connection:** non-stream `max_tokens:1`, timeout 15s, mapping 401/429/5xx reuse `MapHTTPError`, flag HTTP non-loopback sebagai insecure.
+- **Delete guard:** tolak hapus provider aktif (`ErrActiveDelete`); kredensial dibersihkan setelah profil dihapus.
+- **Verifikasi:** `go test ./internal/...` ok (config/credentials/storage/app baru), `tsc` bersih, `wails build` ok 15MB.
+- **Sisa:** smoke manual tambah/uji/hapus provider + kirim chat live; markdown aman tetap ke M4.
 ## Pertanyaan terbuka yang perlu dijawab selama implementasi
 
 - Versi Windows minimum yang resmi didukung: Windows 10 22H2 dan/atau Windows 11? Tentukan sesuai lingkungan build dan kebutuhan pengguna.

@@ -6,6 +6,26 @@ export function CancelGeneration(arg1) {
   return window['go']['main']['App']['CancelGeneration'](arg1);
 }
 
+export function DeleteProvider(arg1) {
+  return window['go']['main']['App']['DeleteProvider'](arg1);
+}
+
+export function ListProviders() {
+  return window['go']['main']['App']['ListProviders']();
+}
+
+export function SaveProvider(arg1) {
+  return window['go']['main']['App']['SaveProvider'](arg1);
+}
+
 export function SendMessage(arg1, arg2) {
   return window['go']['main']['App']['SendMessage'](arg1, arg2);
+}
+
+export function SetActiveProvider(arg1) {
+  return window['go']['main']['App']['SetActiveProvider'](arg1);
+}
+
+export function TestProvider(arg1) {
+  return window['go']['main']['App']['TestProvider'](arg1);
 }

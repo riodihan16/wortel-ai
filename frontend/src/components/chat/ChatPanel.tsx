@@ -55,7 +55,7 @@ export function ChatPanel({ messages, status, error, busy, onSend, onCancel, onR
     <div id="chat-main">
       <div id="chat-list" ref={listRef}>
         {messages.length === 0 && (
-          <p id="chat-empty">Halo! Kirim pesan untuk mulai. Mock provider, tanpa biaya.</p>
+          <p id="chat-empty">Halo! Tambahkan provider di Settings, lalu kirim pesan.</p>
         )}
         {messages.map((m) => (
           <div key={m.id} className={`msg msg-${m.role}`}>
