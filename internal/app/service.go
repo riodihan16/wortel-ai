@@ -169,3 +169,17 @@ func (s *Service) CancelGeneration(conversationID string) {
 		cancel()
 	}
 }
+
+// CancelAll stops every active stream. Called on shutdown so no
+// goroutine/request lingers after exit (FR-011).
+func (s *Service) CancelAll() {
+	s.mu.Lock()
+	cancels := make([]context.CancelFunc, 0, len(s.active))
+	for _, cancel := range s.active {
+		cancels = append(cancels, cancel)
+	}
+	s.mu.Unlock()
+	for _, cancel := range cancels {
+		cancel()
+	}
+}

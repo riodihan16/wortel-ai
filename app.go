@@ -9,6 +9,9 @@ import (
 	"companion/internal/config"
 	"companion/internal/credentials"
 	"companion/internal/storage"
+	"companion/internal/tray"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -35,6 +38,32 @@ func (a *App) startup(ctx context.Context) {
 			a.svc.SetProviders(a.provs)
 		}
 	}
+	// M5 tray. Failure is non-fatal: app keeps running without tray.
+	_ = tray.Start(tray.Callbacks{
+		OnShow:     func() { runtime.WindowShow(ctx); runtime.EventsEmit(ctx, "app:show") },
+		OnSettings: func() { runtime.WindowShow(ctx); runtime.EventsEmit(ctx, "app:settings") },
+		OnHide:     func() { runtime.WindowHide(ctx) },
+		OnExit:     func() { runtime.Quit(ctx) },
+	})
+}
+
+// shutdown cancels active streams and removes the tray icon.
+// Runs synchronously: streams stop, no goroutine lingers (FR-011).
+func (a *App) shutdown(ctx context.Context) {
+	if a.svc != nil {
+		a.svc.CancelAll()
+	}
+	tray.Stop()
+}
+
+// Show brings the window up from tray-hidden state.
+func (a *App) Show() {
+	runtime.WindowShow(a.ctx)
+}
+
+// HideWindow sends the window to the tray (M5 hide to tray).
+func (a *App) HideWindow() {
+	runtime.WindowHide(a.ctx)
 }
 
 // History returns recent messages oldest-first. Empty when none.

@@ -125,6 +125,15 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Frontend:** `useChat` kelola daftar + `conversationId` aktif, `ChatPanel` dropdown + baru/rename/hapus (konfirmasi), `SafeMarkdown` tanpa deps: paragraf/list/code/`code`/bold/italic/link, raw HTML tak render, link allowlist http/https saja.
 - **Verifikasi:** `go test ./...` ok, `tsc` bersih, `gofmt` bersih, `wails build` ok → `build/bin/companion.exe`. Tes `TestConversationCRUD` (rename/cascade/missing).
 - **Sisa M4:** smoke manual Windows (baru/buka/rename/hapus + restart persist + markdown render + hapus saat streaming ditolak).
+## ADR-018 — M5 tray Win32 murni + exit bersih (2026-10-10)
+
+- **Status:** Implemented, perlu smoke manual Windows.
+- **Keputusan:** tray via Win32 langsung (`Shell_NotifyIcon` + popup menu) di `internal/tray`, tanpa CGO. Wails v2.16 tidak punya runtime tray; `fyne.io/getlantern systray` butuh CGO + gcc yang tidak tersedia (CGO_ENABLED=0).
+- **Menu:** Buka (show chat) / Settings / Sembunyikan / Keluar. Klik kiri = Buka. Explorer restart ditangani (TaskbarCreated → re-add icon).
+- **Exit:** `OnShutdown` → `Service.CancelAll` + `tray.Stop`. Frontend ikut event `app:show`/`app:settings`, tombol Hide di pet + chat.
+- **Verifikasi:** `go test ./...` ok (termasuk `TestCancelAllStopsStreams` + tray mapping 3 tes), `gofmt` bersih, `tsc+vite` ok, `wails build` ok → `build/bin/companion.exe`.
+- **Sisa M5:** smoke manual (icon muncul, menu 4 aksi, hide/show, exit saat streaming → cancel + proses bersih) + shortcut global, startup opsional, appearance, installer.
+
 
 
 - Versi Windows minimum yang resmi didukung: Windows 10 22H2 dan/atau Windows 11? Tentukan sesuai lingkungan build dan kebutuhan pengguna.

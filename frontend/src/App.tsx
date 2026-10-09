@@ -1,7 +1,9 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import type {CSSProperties} from 'react';
 import './App.css';
 import {
+    EventsOff,
+    EventsOn,
     Quit,
     WindowCenter,
     WindowGetPosition,
@@ -9,6 +11,7 @@ import {
     WindowSetAlwaysOnTop,
     WindowSetSize,
 } from '../wailsjs/runtime/runtime';
+import {HideWindow} from '../wailsjs/go/main/App';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {SettingsPanel} from './components/settings/SettingsPanel';
 import {useChat} from './hooks/useChat';
@@ -31,6 +34,22 @@ function App() {
         lastUser.current = text.trim();
         chat.send(text);
     }, [chat]);
+
+    // M5: tray menu intents. Show -> chat mode, Settings -> settings mode.
+    useEffect(() => {
+        EventsOn('app:show', () => {
+            WindowSetSize(CHAT.w, CHAT.h);
+            setMode('chat');
+        });
+        EventsOn('app:settings', () => {
+            WindowSetSize(CHAT.w, CHAT.h);
+            setMode('settings');
+        });
+        return () => {
+            EventsOff('app:show');
+            EventsOff('app:settings');
+        };
+    }, []);
 
     const retry = useCallback(() => {
         if (lastUser.current) chat.send(lastUser.current);
@@ -62,6 +81,7 @@ function App() {
                 <div id="pet-actions">
                     <button onClick={probe}>Probe</button>
                     <button onClick={() => WindowCenter()}>Center</button>
+                    <button onClick={() => HideWindow()}>Hide</button>
                     <button onClick={Quit}>Quit</button>
                 </div>
                 <div id="pet-info">{info}</div>
@@ -84,6 +104,7 @@ function App() {
                 <span>
                     <button onClick={() => setMode('settings')}>Settings</button>
                     <button onClick={toggle}>Pet</button>
+                    <button onClick={() => HideWindow()}>Hide</button>
                     <button onClick={Quit}>Quit</button>
                 </span>
             </div>

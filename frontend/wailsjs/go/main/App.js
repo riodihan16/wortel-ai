@@ -14,6 +14,10 @@ export function DeleteProvider(arg1) {
   return window['go']['main']['App']['DeleteProvider'](arg1);
 }
 
+export function HideWindow() {
+  return window['go']['main']['App']['HideWindow']();
+}
+
 export function History(arg1, arg2) {
   return window['go']['main']['App']['History'](arg1, arg2);
 }
@@ -40,6 +44,10 @@ export function SendMessage(arg1, arg2) {
 
 export function SetActiveProvider(arg1) {
   return window['go']['main']['App']['SetActiveProvider'](arg1);
+}
+
+export function Show() {
+  return window['go']['main']['App']['Show']();
 }
 
 export function TestProvider(arg1) {

@@ -46,3 +46,32 @@ func TestEmptyRejected(t *testing.T) {
 		t.Fatal("expected empty rejection")
 	}
 }
+
+func TestCancelAllStopsStreams(t *testing.T) {
+	var events []ai.ChatEvent
+	svc := NewService(&ai.MockProvider{Delay: 50 * time.Millisecond}, func(_ string, e ai.ChatEvent) {
+		events = append(events, e)
+	})
+	ctx, stop := context.WithCancel(context.Background())
+	defer stop()
+	for _, c := range []string{"c1", "c2"} {
+		if _, err := svc.SendMessage(ctx, c, "halo"); err != nil {
+			t.Fatalf("send %s: %v", c, err)
+		}
+	}
+	svc.CancelAll()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		n := 0
+		for _, e := range events {
+			if e.Type == "cancelled" || e.Type == "completed" {
+				n++
+			}
+		}
+		if n >= 2 {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("expected 2 terminal events: %+v", events)
+}
