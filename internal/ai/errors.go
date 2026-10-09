@@ -1,24 +1,79 @@
 package ai
 
-import "net/http"
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strconv"
+)
+
+func isCtx(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
 
 // MapHTTPError converts provider status to a safe PublicError.
 func MapHTTPError(status int) *PublicError {
+	return MapHTTPErrorWithHeaders(status, nil)
+}
+
+// MapHTTPErrorWithHeaders honors Retry-After on 429/503.
+func MapHTTPErrorWithHeaders(status int, h http.Header) *PublicError {
+	mk := func(code, msg string, retry bool) *PublicError {
+		return &PublicError{Code: code, Message: msg, Retryable: retry, StatusCode: status, RetryAfterSec: retryAfter(h)}
+	}
 	switch status {
+	case http.StatusBadRequest:
+		return mk("bad_request", "Request/parameter ditolak provider.", false)
 	case http.StatusUnauthorized:
-		return &PublicError{Code: "unauthorized", Message: "API key ditolak. Cek key dan endpoint.", Retryable: false, StatusCode: status}
+		return mk("unauthorized", "API key ditolak. Cek key dan endpoint.", false)
 	case http.StatusForbidden:
-		return &PublicError{Code: "forbidden", Message: "Akses ditolak. Mungkin permission/quota.", Retryable: false, StatusCode: status}
+		return mk("forbidden", "Akses ditolak. Mungkin permission/quota.", false)
 	case http.StatusNotFound:
-		return &PublicError{Code: "not_found", Message: "Endpoint atau model tidak ditemukan.", Retryable: false, StatusCode: status}
+		return mk("not_found", "Endpoint atau model tidak ditemukan.", false)
 	case http.StatusTooManyRequests:
-		return &PublicError{Code: "rate_limited", Message: "Rate limit. Tunggu lalu coba lagi.", Retryable: true, StatusCode: status}
+		return mk("rate_limited", "Rate limit. Tunggu lalu coba lagi.", true)
 	case http.StatusRequestTimeout:
-		return &PublicError{Code: "timeout", Message: "Request timeout. Coba lagi.", Retryable: true, StatusCode: status}
+		return mk("timeout", "Request timeout. Coba lagi.", true)
 	default:
 		if status >= 500 {
-			return &PublicError{Code: "provider_server", Message: "Gangguan provider. Coba lagi.", Retryable: true, StatusCode: status}
+			return mk("provider_server", "Gangguan provider. Coba lagi.", true)
 		}
-		return &PublicError{Code: "provider_error", Message: "Request ditolak provider.", Retryable: false, StatusCode: status}
+		return mk("provider_error", "Request ditolak provider.", false)
 	}
+}
+
+// retryAfter parses Retry-After seconds, 0 when absent/invalid.
+// HTTP-date form ignored on purpose: MVP shows manual retry.
+func retryAfter(h http.Header) int {
+	if h == nil {
+		return 0
+	}
+	v := h.Get("Retry-After")
+	if v == "" {
+		return 0
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 0 {
+		return 0
+	}
+	if n > 600 {
+		n = 600
+	}
+	return n
+}
+
+// toNetError wraps transport errors safe for UI. Ctx cancel stays raw
+// so service can tell cancelled apart from failed.
+func toNetError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if isCtx(err) {
+		return err
+	}
+	var te interface{ Timeout() bool }
+	if errors.As(err, &te) && te.Timeout() {
+		return &PublicError{Code: "timeout", Message: "Request timeout. Coba lagi.", Retryable: true}
+	}
+	return &PublicError{Code: "network", Message: "Koneksi gagal. Cek URL dan internet.", Retryable: true}
 }

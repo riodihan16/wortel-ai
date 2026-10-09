@@ -13,10 +13,11 @@ type ChatEvent struct {
 
 // PublicError is safe to show in UI. Never carries secrets.
 type PublicError struct {
-	Code       string `json:"code"`
-	Message    string `json:"message"`
-	Retryable  bool   `json:"retryable"`
-	StatusCode int    `json:"statusCode,omitempty"`
+	Code          string `json:"code"`
+	Message       string `json:"message"`
+	Retryable     bool   `json:"retryable"`
+	StatusCode    int    `json:"statusCode,omitempty"`
+	RetryAfterSec int    `json:"retryAfterSec,omitempty"`
 }
 
 func (e *PublicError) Error() string { return e.Code + ": " + e.Message }

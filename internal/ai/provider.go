@@ -114,11 +114,11 @@ func (o *OpenAICompatible) StreamChat(ctx context.Context, req ChatRequest, onCh
 	}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return err
+		return toNetError(err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return MapHTTPError(resp.StatusCode)
+		return MapHTTPErrorWithHeaders(resp.StatusCode, resp.Header)
 	}
 	return ScanSSE(ctx, bufio.NewReader(resp.Body), func(c StreamChunk) error {
 		if c.Done || c.Text == "" {

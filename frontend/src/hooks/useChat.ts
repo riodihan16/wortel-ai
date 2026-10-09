@@ -10,6 +10,9 @@ export function useChat() {
   const [status, setStatus] = useState<ChatStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const activeRequest = useRef<string | null>(null);
+  // Guard sync: activeRequest baru terisi setelah SendMessage resolve,
+  // klik ganda sebelum itu harus ditolak di sini.
+  const sendingRef = useRef(false);
   useEffect(() => {
 
     const handler = (ev: ChatEvent) => {
@@ -41,6 +44,7 @@ export function useChat() {
             prev.map((m) => (m.id === ev.messageId ? { ...m, status: "complete" } : m))
           );
           activeRequest.current = null;
+          sendingRef.current = false;
           break;
         case "cancelled":
           setStatus("cancelled");
@@ -48,6 +52,7 @@ export function useChat() {
             prev.map((m) => (m.id === ev.messageId ? { ...m, status: "cancelled" } : m))
           );
           activeRequest.current = null;
+          sendingRef.current = false;
           break;
         case "failed":
           setStatus("error");
@@ -56,6 +61,7 @@ export function useChat() {
             prev.map((m) => (m.id === ev.messageId ? { ...m, status: "error" } : m))
           );
           activeRequest.current = null;
+          sendingRef.current = false;
           break;
       }
     };
@@ -67,7 +73,8 @@ export function useChat() {
 
   const send = useCallback(async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || activeRequest.current) return;
+    if (!trimmed || sendingRef.current || activeRequest.current) return;
+    sendingRef.current = true;
     setError(null);
     setStatus("sending");
     setMessages((prev) => [
@@ -80,12 +87,14 @@ export function useChat() {
     } catch (e) {
       setStatus("error");
       setError(e instanceof Error ? e.message : "Gagal mengirim.");
+      sendingRef.current = false;
     }
   }, []);
 
   const cancel = useCallback(async () => {
-    if (!activeRequest.current) return;
+    // Saat sending, requestId belum ada: batalkan via backend lalu lepas guard.
     await CancelGeneration(CONVERSATION_ID);
+    sendingRef.current = false;
   }, []);
 
   const busy = status === "sending" || status === "streaming";
