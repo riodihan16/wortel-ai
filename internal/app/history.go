@@ -24,7 +24,7 @@ func (s *Service) History(conversationID string, n int) []ChatMessage {
 		return []ChatMessage{}
 	}
 	if conversationID == "" {
-		conversationID = "default"
+		return []ChatMessage{}
 	}
 	rows, err := db.RecentRows(conversationID, n)
 	if err != nil {

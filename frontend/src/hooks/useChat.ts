@@ -15,11 +15,18 @@ export interface ConversationItem {
   title: string;
 }
 
+function freshId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `conv-${Date.now()}`;
+}
+
 // useChat owns conversation list + send/cancel + streaming state.
-// Matches deltas by requestId.
+// Matches deltas by requestId. No special "default" id: startup picks
+// the most recent conversation, or a fresh empty one when none exist.
 export function useChat() {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [conversationId, setConversationId] = useState<string>("default");
+  const [conversationId, setConversationId] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<ChatStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -30,12 +37,15 @@ export function useChat() {
   const convRef = useRef(conversationId);
   convRef.current = conversationId;
 
-  const refreshList = useCallback(async () => {
+  const refreshList = useCallback(async (): Promise<ConversationItem[]> => {
     try {
       const rows = (await ListConversations()) as ConversationItem[] | null;
-      setConversations(rows ?? []);
+      const list = rows ?? [];
+      setConversations(list);
+      return list;
     } catch {
       // List gagal: biarkan daftar lama.
+      return [];
     }
   }, []);
 
@@ -68,9 +78,24 @@ export function useChat() {
     }
   }, []);
 
+  const loadEmpty = useCallback((id: string) => {
+    setConversationId(id);
+    setMessages([]);
+    setError(null);
+    setStatus("idle");
+    activeRequest.current = null;
+    sendingRef.current = false;
+  }, []);
+
   useEffect(() => {
-    refreshList().then(() => loadConversation("default"));
-  }, [refreshList, loadConversation]);
+    refreshList().then((rows) => {
+      if (rows.length > 0) {
+        loadConversation(rows[0].id);
+      } else {
+        loadEmpty(freshId());
+      }
+    });
+  }, [refreshList, loadConversation, loadEmpty]);
 
   useEffect(() => {
     const handler = (ev: ChatEvent) => {
@@ -131,29 +156,31 @@ export function useChat() {
     };
   }, [refreshList]);
 
-  const send = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed || sendingRef.current || activeRequest.current) return;
-      sendingRef.current = true;
-      setError(null);
-      setStatus("sending");
-      const conv = convRef.current;
-      setMessages((prev) => [
-        ...prev,
-        { id: `user-${Date.now()}`, role: "user", content: trimmed, status: "complete" },
-      ]);
-      try {
-        const requestId = (await SendMessage(conv, trimmed)) as string;
-        activeRequest.current = requestId;
-      } catch (e) {
-        setStatus("error");
-        setError(e instanceof Error ? e.message : "Gagal mengirim.");
-        sendingRef.current = false;
-      }
-    },
-    []
-  );
+  const send = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || sendingRef.current || activeRequest.current) return;
+    let conv = convRef.current;
+    if (!conv) {
+      conv = freshId();
+      convRef.current = conv;
+      setConversationId(conv);
+    }
+    sendingRef.current = true;
+    setError(null);
+    setStatus("sending");
+    setMessages((prev) => [
+      ...prev,
+      { id: `user-${Date.now()}`, role: "user", content: trimmed, status: "complete" },
+    ]);
+    try {
+      const requestId = (await SendMessage(conv, trimmed)) as string;
+      activeRequest.current = requestId;
+    } catch (e) {
+      setStatus("error");
+      setError(e instanceof Error ? e.message : "Gagal mengirim.");
+      sendingRef.current = false;
+    }
+  }, []);
 
   const cancel = useCallback(async () => {
     // Saat sending, requestId belum ada: batalkan via backend lalu lepas guard.
@@ -161,40 +188,59 @@ export function useChat() {
     sendingRef.current = false;
   }, []);
 
+  const busyNow = useCallback(
+    () => sendingRef.current || activeRequest.current !== null,
+    []
+  );
+
   const newConversation = useCallback(async () => {
-    const id =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `conv-${Date.now()}`;
-    await loadConversation(id);
-    await refreshList();
-  }, [loadConversation, refreshList]);
+    if (busyNow()) return;
+    loadEmpty(freshId());
+  }, [loadEmpty, busyNow]);
 
   const switchConversation = useCallback(
     async (id: string) => {
-      if (id === convRef.current) return;
+      if (id === convRef.current || busyNow()) return;
       await loadConversation(id);
     },
-    [loadConversation]
+    [loadConversation, busyNow]
   );
 
   const renameConversation = useCallback(
     async (id: string, title: string) => {
-      await RenameConversation(id, title);
-      await refreshList();
+      try {
+        await RenameConversation(id, title);
+        await refreshList();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Gagal mengubah judul.");
+      }
     },
     [refreshList]
   );
 
   const deleteConversation = useCallback(
     async (id: string) => {
-      await DeleteConversation(id);
-      await refreshList();
+      try {
+        await DeleteConversation(id);
+      } catch (e) {
+        // Row belum ada (percakapan baru kosong): anggap sudah bersih.
+        const msg = e instanceof Error ? e.message : "";
+        if (!/no rows|tidak ditemukan/i.test(msg)) {
+          setError(msg || "Gagal menghapus percakapan.");
+          return;
+        }
+      }
+      const rows = await refreshList();
       if (id === convRef.current) {
-        await loadConversation("default");
+        const next = rows.find((c) => c.id !== id);
+        if (next) {
+          await loadConversation(next.id);
+        } else {
+          loadEmpty(freshId());
+        }
       }
     },
-    [loadConversation, refreshList]
+    [loadConversation, loadEmpty, refreshList]
   );
 
   const busy = status === "sending" || status === "streaming";

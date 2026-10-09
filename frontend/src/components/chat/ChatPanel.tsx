@@ -89,41 +89,40 @@ export function ChatPanel({
           value={conversationId}
           onChange={(e) => onSwitch(e.target.value)}
           title="Pilih percakapan"
+          disabled={busy}
         >
-          <option value="default">Percakapan</option>
-          {conversations
-            .filter((c) => c.id !== "default")
-            .map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title || c.id.slice(0, 8)}
-              </option>
-            ))}
+          {conversations.length === 0 && (
+            <option value={conversationId}>Percakapan baru</option>
+          )}
+          {conversations.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title || c.id.slice(0, 8)}
+            </option>
+          ))}
         </select>
-        <button onClick={onNew} title="Percakapan baru">
+        <button onClick={onNew} title="Percakapan baru" disabled={busy}>
           +
         </button>
-        {conversationId !== "default" && (
-          <>
-            <button
-              onClick={() => {
-                const cur = conversations.find((c) => c.id === conversationId);
-                setRenameDraft(cur?.title ?? "");
-                setRenaming(conversationId);
-              }}
-              title="Ubah judul"
-            >
-              ✎
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm("Hapus percakapan ini?")) onDelete(conversationId);
-              }}
-              title="Hapus percakapan"
-            >
-              🗑
-            </button>
-          </>
-        )}
+        <button
+          onClick={() => {
+            const cur = conversations.find((c) => c.id === conversationId);
+            setRenameDraft(cur?.title ?? "");
+            setRenaming(conversationId);
+          }}
+          title="Ubah judul"
+          disabled={busy || !conversationId}
+        >
+          ✎
+        </button>
+        <button
+          onClick={() => {
+            if (window.confirm("Hapus percakapan ini?")) onDelete(conversationId);
+          }}
+          title="Hapus percakapan"
+          disabled={busy || !conversationId}
+        >
+          🗑
+        </button>
       </div>
       {renaming && (
         <div id="conv-rename">

@@ -77,7 +77,7 @@ func (s *Service) SendMessage(ctx context.Context, conversationID, text string) 
 		return "", errors.New("empty message")
 	}
 	if conversationID == "" {
-		conversationID = "default"
+		return "", errors.New("empty conversation")
 	}
 	s.mu.Lock()
 	if _, ok := s.active[conversationID]; ok {
@@ -160,7 +160,7 @@ func (s *Service) SendMessage(ctx context.Context, conversationID, text string) 
 // CancelGeneration stops the active stream for a conversation.
 func (s *Service) CancelGeneration(conversationID string) {
 	if conversationID == "" {
-		conversationID = "default"
+		return
 	}
 	s.mu.Lock()
 	cancel, ok := s.active[conversationID]
