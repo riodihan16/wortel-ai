@@ -80,6 +80,12 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Key uji:** sekali pakai via env, tidak disimpan di repo; file `live_test.go` dihapus seusai uji; user akan rotate key.
 - **Sisa M2:** guard duplikat klik cepat belum dites; markdown aman belum ada; 429/5xx/timeout belum ketemu di uji ini.
 
+## ADR-013 — Penutupan M2 (2026-10-09)
+
+- **Status:** Done, kecuali markdown aman (pindah ke M3/M4 bersama sanitasi render).
+- **Kirim ganda:** guard `sendingRef` sync tolak klik cepat; Stop jalan saat `sending`; terminal event reset guard.
+- **Error mapping teruji via httptest:** 429/500/408/400, `Retry-After` dihormati (cap 600s), putus tengah stream pertahankan parsial, timeout jadi `PublicError` retryable.
+- **Verifikasi:** `go test ./...` ok, `gofmt` bersih, `tsc` bersih, `wails build` ok.
 
 ## Pertanyaan terbuka yang perlu dijawab selama implementasi
 
