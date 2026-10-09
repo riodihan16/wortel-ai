@@ -18,6 +18,20 @@ export namespace app {
 	        this.status = source["status"];
 	    }
 	}
+	export class Conversation {
+	    id: string;
+	    title: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Conversation(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.title = source["title"];
+	    }
+	}
 	export class SaveInput {
 	    id: string;
 	    name: string;

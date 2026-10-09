@@ -118,6 +118,14 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 
 - **FR-006 8/8:** CRUD + aktif + Test Connection + validasi URL + secret tak kembali + guard hapus aktif + ganti tak hapus riwayat (tes `TestSwitchActiveKeepsHistory`).
 - **Sisa ke M4 penuh:** markdown aman, multi-conversation UI (judul/buka/hapus). Memory + persist sudah di `31bbfda`.
+## ADR-017 — M4 tutup: multi-conversation + markdown aman (2026-10-10)
+
+- **Status:** Done, perlu smoke manual Windows.
+- **Backend:** `ListConversations`/`RenameConversation`/`DeleteConversation` di storage + service + binding; hapus tolak saat streaming aktif, hapus tak ada → `sql.ErrNoRows`.
+- **Frontend:** `useChat` kelola daftar + `conversationId` aktif, `ChatPanel` dropdown + baru/rename/hapus (konfirmasi), `SafeMarkdown` tanpa deps: paragraf/list/code/`code`/bold/italic/link, raw HTML tak render, link allowlist http/https saja.
+- **Verifikasi:** `go test ./...` ok, `tsc` bersih, `gofmt` bersih, `wails build` ok → `build/bin/companion.exe`. Tes `TestConversationCRUD` (rename/cascade/missing).
+- **Sisa M4:** smoke manual Windows (baru/buka/rename/hapus + restart persist + markdown render + hapus saat streaming ditolak).
+
 
 - Versi Windows minimum yang resmi didukung: Windows 10 22H2 dan/atau Windows 11? Tentukan sesuai lingkungan build dan kebutuhan pengguna.
 - Apakah companion harus click-through pada pixel transparan, atau cukup window bounds ketat?

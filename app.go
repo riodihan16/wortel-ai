@@ -45,6 +45,31 @@ func (a *App) History(conversationID string, n int) []app.ChatMessage {
 	return a.svc.History(conversationID, n)
 }
 
+// ListConversations returns id+title ordered by recent activity.
+func (a *App) ListConversations() []app.Conversation {
+	if a.svc == nil {
+		return []app.Conversation{}
+	}
+	return a.svc.ListConversations()
+}
+
+// RenameConversation sets the conversation title.
+func (a *App) RenameConversation(conversationID string, title string) error {
+	if a.svc == nil {
+		return errStorageUnavailable()
+	}
+	return a.svc.RenameConversation(conversationID, title)
+}
+
+// DeleteConversation removes a conversation and its messages.
+// Refuses when a generation is active on it.
+func (a *App) DeleteConversation(conversationID string) error {
+	if a.svc == nil {
+		return errStorageUnavailable()
+	}
+	return a.svc.DeleteConversation(conversationID)
+}
+
 // SendMessage starts a streaming generation. Returns requestId.
 func (a *App) SendMessage(conversationID string, text string) (string, error) {
 	return a.svc.SendMessage(a.ctx, conversationID, text)

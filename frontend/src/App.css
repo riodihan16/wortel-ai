@@ -267,3 +267,75 @@ button {
     display: flex;
     gap: 6px;
 }
+
+#conv-bar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+#conv-select {
+    flex: 1;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: white;
+    font-size: 12px;
+}
+
+#conv-rename {
+    display: flex;
+    gap: 6px;
+}
+
+#conv-rename input {
+    flex: 1;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: white;
+}
+
+.md-para {
+    margin: 0 0 6px 0;
+}
+
+.md-para:last-child {
+    margin-bottom: 0;
+}
+
+.md-list {
+    margin: 0 0 6px 18px;
+    padding: 0;
+}
+
+.md-code {
+    background: #0f172a;
+    border-radius: 6px;
+    padding: 6px 8px;
+    overflow-x: auto;
+    font-size: 12px;
+    margin: 0 0 6px 0;
+}
+
+.msg-body code {
+    background: #0f172a;
+    border-radius: 4px;
+    padding: 0 4px;
+    font-size: 12px;
+}
+
+.msg-body pre code {
+    background: none;
+    padding: 0;
+}
+
+.msg-body a {
+    color: #2dd4bf;
+}
+
+.msg-user {
+    white-space: pre-wrap;
+}

@@ -5,11 +5,17 @@ import {config} from '../models';
 
 export function CancelGeneration(arg1:string):Promise<void>;
 
+export function DeleteConversation(arg1:string):Promise<void>;
+
 export function DeleteProvider(arg1:string):Promise<void>;
 
 export function History(arg1:string,arg2:number):Promise<Array<app.ChatMessage>>;
 
+export function ListConversations():Promise<Array<app.Conversation>>;
+
 export function ListProviders():Promise<Array<config.ProviderProfile>>;
+
+export function RenameConversation(arg1:string,arg2:string):Promise<void>;
 
 export function SaveProvider(arg1:app.SaveInput):Promise<config.ProviderProfile>;
 

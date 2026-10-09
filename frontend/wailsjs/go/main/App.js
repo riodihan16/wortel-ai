@@ -6,6 +6,10 @@ export function CancelGeneration(arg1) {
   return window['go']['main']['App']['CancelGeneration'](arg1);
 }
 
+export function DeleteConversation(arg1) {
+  return window['go']['main']['App']['DeleteConversation'](arg1);
+}
+
 export function DeleteProvider(arg1) {
   return window['go']['main']['App']['DeleteProvider'](arg1);
 }
@@ -14,8 +18,16 @@ export function History(arg1, arg2) {
   return window['go']['main']['App']['History'](arg1, arg2);
 }
 
+export function ListConversations() {
+  return window['go']['main']['App']['ListConversations']();
+}
+
 export function ListProviders() {
   return window['go']['main']['App']['ListProviders']();
+}
+
+export function RenameConversation(arg1, arg2) {
+  return window['go']['main']['App']['RenameConversation'](arg1, arg2);
 }
 
 export function SaveProvider(arg1) {

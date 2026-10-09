@@ -40,6 +40,45 @@ func TestChatHistoryRoundTrip(t *testing.T) {
 	}
 }
 
+func TestConversationCRUD(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "conv.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer db.Close()
+	if err := db.EnsureConversation("c1", "Satu"); err != nil {
+		t.Fatalf("ensure c1: %v", err)
+	}
+	if err := db.EnsureConversation("c2", "Dua"); err != nil {
+		t.Fatalf("ensure c2: %v", err)
+	}
+	if err := db.AppendMessage(MessageRow{
+		ID: "u1", ConversationID: "c1", Role: "user", Content: "halo", Status: "complete",
+	}); err != nil {
+		t.Fatalf("append: %v", err)
+	}
+	list, err := db.ListConversations()
+	if err != nil || len(list) != 2 {
+		t.Fatalf("list: %+v %v", list, err)
+	}
+	if err := db.RenameConversation("c1", "  Judul Baru  "); err != nil {
+		t.Fatalf("rename: %v", err)
+	}
+	if err := db.RenameConversation("c1", "   "); err == nil {
+		t.Fatalf("rename empty should fail")
+	}
+	if err := db.DeleteConversation("c1"); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	rows, err := db.RecentRows("c1", 10)
+	if err != nil || len(rows) != 0 {
+		t.Fatalf("cascade: %+v %v", rows, err)
+	}
+	if err := db.DeleteConversation("missing"); err == nil {
+		t.Fatalf("delete missing should fail")
+	}
+}
+
 func TestMigrationV1toV2(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mig.db")

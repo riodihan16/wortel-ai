@@ -1,10 +1,20 @@
 package storage
 
 import (
+	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"companion/internal/ai"
 )
+
+// ConversationRow maps the conversations table.
+type ConversationRow struct {
+	ID        string
+	Title     string
+	UpdatedAt string
+}
 
 // MessageRow maps the messages table.
 type MessageRow struct {
@@ -128,6 +138,68 @@ func TitleFor(text string) string {
 		r = r[:48]
 	}
 	return string(r)
+}
+
+// ListConversations returns id+title ordered by recent activity.
+func (d *DB) ListConversations() ([]ConversationRow, error) {
+	rows, err := d.inner.Query(`SELECT id, title, updated_at FROM conversations
+		ORDER BY updated_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []ConversationRow{}
+	for rows.Next() {
+		var c ConversationRow
+		if err := rows.Scan(&c.ID, &c.Title, &c.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RenameConversation sets the title. Empty title rejected, max 120 runes.
+func (d *DB) RenameConversation(id, title string) error {
+	title = strings.TrimSpace(title)
+	if r := []rune(title); len(r) > 120 {
+		title = string(r[:120])
+	}
+	if title == "" {
+		return fmt.Errorf("empty title")
+	}
+	res, err := d.inner.Exec(`UPDATE conversations SET title=?, updated_at=? WHERE id=?`,
+		title, time.Now().UTC().Format(time.RFC3339), id)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+// DeleteConversation removes a conversation; messages cascade via FK.
+func (d *DB) DeleteConversation(id string) error {
+	res, err := d.inner.Exec(`DELETE FROM conversations WHERE id=?`, id)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 func nullStr(s string) any {

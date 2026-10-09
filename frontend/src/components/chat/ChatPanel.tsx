@@ -1,15 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { ChatMessage, ChatStatus } from "../../types/chat";
+import type { ConversationItem } from "../../hooks/useChat";
+import { SafeMarkdown } from "./SafeMarkdown";
 
 interface Props {
   messages: ChatMessage[];
   status: ChatStatus;
   error: string | null;
   busy: boolean;
+  conversations: ConversationItem[];
+  conversationId: string;
   onSend: (text: string) => void;
   onCancel: () => void;
   onRetry: () => void;
+  onNew: () => void;
+  onSwitch: (id: string) => void;
+  onRename: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
 }
 
 function statusLabel(s: ChatStatus): string {
@@ -29,8 +37,24 @@ function statusLabel(s: ChatStatus): string {
   }
 }
 
-export function ChatPanel({ messages, status, error, busy, onSend, onCancel, onRetry }: Props) {
+export function ChatPanel({
+  messages,
+  status,
+  error,
+  busy,
+  conversations,
+  conversationId,
+  onSend,
+  onCancel,
+  onRetry,
+  onNew,
+  onSwitch,
+  onRename,
+  onDelete,
+}: Props) {
   const [draft, setDraft] = useState("");
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,15 +75,77 @@ export function ChatPanel({ messages, status, error, busy, onSend, onCancel, onR
     }
   };
 
+  const commitRename = (id: string) => {
+    const t = renameDraft.trim();
+    if (t) onRename(id, t);
+    setRenaming(null);
+  };
+
   return (
     <div id="chat-main">
+      <div id="conv-bar">
+        <select
+          id="conv-select"
+          value={conversationId}
+          onChange={(e) => onSwitch(e.target.value)}
+          title="Pilih percakapan"
+        >
+          <option value="default">Percakapan</option>
+          {conversations
+            .filter((c) => c.id !== "default")
+            .map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title || c.id.slice(0, 8)}
+              </option>
+            ))}
+        </select>
+        <button onClick={onNew} title="Percakapan baru">
+          +
+        </button>
+        {conversationId !== "default" && (
+          <>
+            <button
+              onClick={() => {
+                const cur = conversations.find((c) => c.id === conversationId);
+                setRenameDraft(cur?.title ?? "");
+                setRenaming(conversationId);
+              }}
+              title="Ubah judul"
+            >
+              ✎
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm("Hapus percakapan ini?")) onDelete(conversationId);
+              }}
+              title="Hapus percakapan"
+            >
+              🗑
+            </button>
+          </>
+        )}
+      </div>
+      {renaming && (
+        <div id="conv-rename">
+          <input
+            value={renameDraft}
+            onChange={(e) => setRenameDraft(e.target.value)}
+            placeholder="Judul baru…"
+            maxLength={120}
+          />
+          <button onClick={() => commitRename(renaming)}>OK</button>
+          <button onClick={() => setRenaming(null)}>Batal</button>
+        </div>
+      )}
       <div id="chat-list" ref={listRef}>
         {messages.length === 0 && (
           <p id="chat-empty">Halo! Tambahkan provider di Settings, lalu kirim pesan.</p>
         )}
         {messages.map((m) => (
           <div key={m.id} className={`msg msg-${m.role}`}>
-            <div className="msg-body">{m.content}</div>
+            <div className="msg-body">
+              {m.role === "assistant" ? <SafeMarkdown text={m.content} /> : m.content}
+            </div>
             {statusLabel(m.status) && <div className="msg-status">{statusLabel(m.status)}</div>}
           </div>
         ))}
