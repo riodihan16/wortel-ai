@@ -108,6 +108,17 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Batas:** 20 pesan terakhir per request, tanpa token counting (sesuai docs 03 §8: klaim estimasi saja bila perlu).
 - **Verifikasi:** `go test ./internal/...` ok, `tsc` bersih, `wails build` ok.
 
+## ADR-016 — M2 tutup: error live terverifikasi (2026-10-10)
+
+- **Status:** Done.
+- **Bukti:** probe live `kenari.id/v1` key salah → `unauthorized/401` tepat 0.6s (probe dibuang, bukan test permanen). httptest sudah cover 400/408/429/5xx + Retry-After + putus tengah + timeout di `ce25195`.
+- **Sisa M2:** tidak ada. Chat live + cancel + error mapping nyata selesai.
+
+## Status M3 (2026-10-10)
+
+- **FR-006 8/8:** CRUD + aktif + Test Connection + validasi URL + secret tak kembali + guard hapus aktif + ganti tak hapus riwayat (tes `TestSwitchActiveKeepsHistory`).
+- **Sisa ke M4 penuh:** markdown aman, multi-conversation UI (judul/buka/hapus). Memory + persist sudah di `31bbfda`.
+
 - Versi Windows minimum yang resmi didukung: Windows 10 22H2 dan/atau Windows 11? Tentukan sesuai lingkungan build dan kebutuhan pengguna.
 - Apakah companion harus click-through pada pixel transparan, atau cukup window bounds ketat?
 - Apakah posisi karakter perlu disimpan per monitor?

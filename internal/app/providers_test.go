@@ -117,3 +117,40 @@ func TestTestConnectionMapping(t *testing.T) {
 		t.Fatalf("expected missing key message, got %+v", got)
 	}
 }
+
+func TestSwitchActiveKeepsHistory(t *testing.T) {
+	ctx := context.Background()
+	p := testProviders(t)
+	first, err := p.Save(ctx, SaveInput{
+		Name: "one", BaseURL: "https://a.id/v1", Model: "m1", APIKey: "k1",
+	})
+	if err != nil {
+		t.Fatalf("save one: %v", err)
+	}
+	second, err := p.Save(ctx, SaveInput{
+		Name: "two", BaseURL: "https://b.id/v1", Model: "m2", APIKey: "k2",
+	})
+	if err != nil {
+		t.Fatalf("save two: %v", err)
+	}
+	// Chat history under "default" with first provider active.
+	if err := p.db.EnsureConversation("default", "t"); err != nil {
+		t.Fatalf("ensure: %v", err)
+	}
+	if err := p.db.AppendMessage(storage.MessageRow{
+		ID: "u1", ConversationID: "default", Role: "user", Content: "halo", Status: "complete",
+	}); err != nil {
+		t.Fatalf("append: %v", err)
+	}
+	if err := p.SetActive(second.ID); err != nil {
+		t.Fatalf("switch: %v", err)
+	}
+	if p.ActiveID() != second.ID {
+		t.Fatalf("active not switched: %q", p.ActiveID())
+	}
+	rows, err := p.db.RecentRows("default", 10)
+	if err != nil || len(rows) != 1 || rows[0].Content != "halo" {
+		t.Fatalf("history must survive switch: %+v %v", rows, err)
+	}
+	_ = first
+}
