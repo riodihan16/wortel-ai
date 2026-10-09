@@ -1,5 +1,23 @@
 export namespace app {
 	
+	export class ChatMessage {
+	    id: string;
+	    role: string;
+	    content: string;
+	    status: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ChatMessage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.role = source["role"];
+	        this.content = source["content"];
+	        this.status = source["status"];
+	    }
+	}
 	export class SaveInput {
 	    id: string;
 	    name: string;

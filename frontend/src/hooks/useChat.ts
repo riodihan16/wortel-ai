@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EventsOff, EventsOn } from "../../wailsjs/runtime/runtime";
-import { CancelGeneration, SendMessage } from "../../wailsjs/go/main/App";
+import { CancelGeneration, History, SendMessage } from "../../wailsjs/go/main/App";
 import type { ChatEvent, ChatMessage, ChatStatus } from "../types/chat";
 const CONVERSATION_ID = "default";
 
@@ -13,6 +13,21 @@ export function useChat() {
   // Guard sync: activeRequest baru terisi setelah SendMessage resolve,
   // klik ganda sebelum itu harus ditolak di sini.
   const sendingRef = useRef(false);
+  useEffect(() => {
+    History(CONVERSATION_ID, 100).then((rows) => {
+      const list = (rows ?? []) as { id: string; role: string; content: string; status: string }[];
+      setMessages(
+        list
+          .filter((r) => r.role === "user" || r.role === "assistant")
+          .map((r) => ({
+            id: r.id,
+            role: r.role as "user" | "assistant",
+            content: r.content,
+            status: (r.status === "cancelled" ? "cancelled" : r.status === "failed" || r.status === "error" ? "error" : "complete") as ChatStatus,
+          }))
+      );
+    }).catch(() => {});
+  }, []);
   useEffect(() => {
 
     const handler = (ev: ChatEvent) => {

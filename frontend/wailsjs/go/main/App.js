@@ -10,6 +10,10 @@ export function DeleteProvider(arg1) {
   return window['go']['main']['App']['DeleteProvider'](arg1);
 }
 
+export function History(arg1, arg2) {
+  return window['go']['main']['App']['History'](arg1, arg2);
+}
+
 export function ListProviders() {
   return window['go']['main']['App']['ListProviders']();
 }

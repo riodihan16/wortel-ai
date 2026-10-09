@@ -99,6 +99,15 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Sisa:** smoke manual tambah/uji/hapus provider + kirim chat live; markdown aman tetap ke M4.
 ## Pertanyaan terbuka yang perlu dijawab selama implementasi
 
+## ADR-015 — M4 memory: kirim riwayat ke provider (2026-10-09)
+
+- **Status:** Implemented, perlu smoke manual.
+- **Masalah:** tiap `SendMessage` hanya kirim 1 pesan user terakhir; model jawab tanpa konteks sehingga "lupa" chat sebelumnya.
+- **Fix:** migration v2 (`conversations` + `messages` + index), `EnsureConversation` + `AppendMessage` saat kirim, `RecentMessages(20)` oldest-first sebagai `ChatRequest.Messages`, `UpdateMessage` simpan final + status complete/cancelled/failed.
+- **History UI:** binding `History(conv, n)` + load 100 pesan saat mount; restart tetap tampil.
+- **Batas:** 20 pesan terakhir per request, tanpa token counting (sesuai docs 03 §8: klaim estimasi saja bila perlu).
+- **Verifikasi:** `go test ./internal/...` ok, `tsc` bersih, `wails build` ok.
+
 - Versi Windows minimum yang resmi didukung: Windows 10 22H2 dan/atau Windows 11? Tentukan sesuai lingkungan build dan kebutuhan pengguna.
 - Apakah companion harus click-through pada pixel transparan, atau cukup window bounds ketat?
 - Apakah posisi karakter perlu disimpan per monitor?

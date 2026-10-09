@@ -37,6 +37,14 @@ func (a *App) startup(ctx context.Context) {
 	}
 }
 
+// History returns recent messages oldest-first. Empty when none.
+func (a *App) History(conversationID string, n int) []app.ChatMessage {
+	if a.svc == nil {
+		return []app.ChatMessage{}
+	}
+	return a.svc.History(conversationID, n)
+}
+
 // SendMessage starts a streaming generation. Returns requestId.
 func (a *App) SendMessage(conversationID string, text string) (string, error) {
 	return a.svc.SendMessage(a.ctx, conversationID, text)

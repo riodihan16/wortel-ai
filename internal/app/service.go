@@ -7,18 +7,19 @@ import (
 	"sync"
 
 	"companion/internal/ai"
+	"companion/internal/storage"
 
 	"github.com/google/uuid"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// Service orchestrates one generation per conversation. Chat history DB lands in M4.
+// Service orchestrates one generation per conversation with SQLite history (M4).
 type Service struct {
 	mu       sync.Mutex
 	active   map[string]context.CancelFunc // conversationID -> cancel
 	requests map[string]string             // requestID -> conversationID
 	provider ai.Provider                   // fallback (mock in dev)
-	provs    *Providers                    // set when M3 wiring lands; nil = fallback
+	provs    *Providers                    // nil = fallback only
 	emit     func(event string, payload ai.ChatEvent)
 }
 
@@ -36,6 +37,16 @@ func (s *Service) SetProviders(p *Providers) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.provs = p
+}
+
+// db returns the SQLite handle via providers, nil when unwired (mock/test).
+func (s *Service) db() *storage.DB {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.provs == nil {
+		return nil
+	}
+	return s.provs.db
 }
 
 // resolve picks the live provider when M3 is wired, else the fallback.
@@ -96,16 +107,45 @@ func (s *Service) SendMessage(ctx context.Context, conversationID, text string) 
 			s.emit("chat:event", ai.ChatEvent{Type: "failed", RequestID: requestID, ConversationID: conversationID, MessageID: messageID, Error: &ai.PublicError{Code: "no_provider", Message: resolveErr.Error()}})
 			return
 		}
-		err := live.StreamChat(genCtx, ai.ChatRequest{Model: model, Messages: []ai.Message{{Role: "user", Content: text}}}, func(chunk string) error {
+		db := s.db()
+		userMsgID := uuid.NewString()
+		if db != nil {
+			_ = db.EnsureConversation(conversationID, storage.TitleFor(text))
+			_ = db.AppendMessage(storage.MessageRow{ID: userMsgID, ConversationID: conversationID, Role: "user", Content: text, Status: "complete", Model: model})
+			_ = db.AppendMessage(storage.MessageRow{ID: messageID, ConversationID: conversationID, Role: "assistant", Content: "", Status: "streaming", Model: model})
+		}
+		msgs := []ai.Message{{Role: "user", Content: text}}
+		if db != nil {
+			if hist, err := db.RecentMessages(conversationID, 20); err == nil && len(hist) > 0 {
+				// hist already includes the just-saved user msg; drop dup tail then cap.
+				msgs = hist
+				if len(msgs) > 20 {
+					msgs = msgs[len(msgs)-20:]
+				}
+			}
+		}
+		var sb strings.Builder
+		err := live.StreamChat(genCtx, ai.ChatRequest{Model: model, Messages: msgs}, func(chunk string) error {
+			sb.WriteString(chunk)
 			s.emit("chat:event", ai.ChatEvent{Type: "delta", RequestID: requestID, ConversationID: conversationID, MessageID: messageID, Delta: chunk})
 			return nil
 		})
+		final := sb.String()
 		switch {
 		case err == nil:
+			if db != nil {
+				_ = db.UpdateMessage(messageID, final, "complete")
+			}
 			s.emit("chat:event", ai.ChatEvent{Type: "completed", RequestID: requestID, ConversationID: conversationID, MessageID: messageID})
 		case errors.Is(err, context.Canceled):
+			if db != nil {
+				_ = db.UpdateMessage(messageID, final, "cancelled")
+			}
 			s.emit("chat:event", ai.ChatEvent{Type: "cancelled", RequestID: requestID, ConversationID: conversationID, MessageID: messageID})
 		default:
+			if db != nil {
+				_ = db.UpdateMessage(messageID, final, "failed")
+			}
 			var pub *ai.PublicError
 			if errors.As(err, &pub) {
 				s.emit("chat:event", ai.ChatEvent{Type: "failed", RequestID: requestID, ConversationID: conversationID, MessageID: messageID, Error: pub})

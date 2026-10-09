@@ -11,7 +11,7 @@ import (
 )
 
 // Current schema version. Bump when adding migrations.
-const currentVersion = 1
+const currentVersion = 2
 
 // DB wraps the SQLite handle.
 type DB struct {
@@ -127,5 +127,25 @@ var migrations = map[int][]string{
 			key TEXT PRIMARY KEY,
 			value TEXT NOT NULL
 		)`,
+	},
+	2: {
+		`CREATE TABLE conversations (
+			id TEXT PRIMARY KEY,
+			title TEXT NOT NULL DEFAULT '',
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
+		`CREATE TABLE messages (
+			id TEXT PRIMARY KEY,
+			conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+			role TEXT NOT NULL,
+			content TEXT NOT NULL DEFAULT '',
+			status TEXT NOT NULL DEFAULT 'complete',
+			provider_id TEXT,
+			model TEXT,
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
+		`CREATE INDEX idx_messages_conv ON messages(conversation_id, created_at)`,
 	},
 }
