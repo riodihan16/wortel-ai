@@ -71,6 +71,14 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Uji manual user 2026-10-09:** drag mulus, klik M0 buka chat, Center pindah tengah, Probe tampil ukuran/posisi, Quit keluar bersih, tombol Pet kembali ke chat.
 - **Sisa risiko:** click-through pixel transparan, tepi layar, DPI 100/125/150, multi-monitor. Uji saat M1 panel nyata.
 - **Keputusan:** ADR-005 DITERIMA. Satu jendela lanjut ke M1.
+## ADR-012 — Uji nyata M2 kenari.id (2026-10-09)
+
+- **Status:** Measured
+- **Endpoint:** `https://kenari.id/v1`, model `muse-spark-1-3-contributor:free`.
+- **Hasil:** stream 200 `text/event-stream`, delta lalu `[DONE]` cocok; client Go `OpenAICompatible.StreamChat` terima "OK GO".
+- **Error nyata:** 401 key salah; 400 model tak diizinkan; 404 path salah; DNS gagal jadi error network.
+- **Key uji:** sekali pakai via env, tidak disimpan di repo; file `live_test.go` dihapus seusai uji; user akan rotate key.
+- **Sisa M2:** guard duplikat klik cepat belum dites; markdown aman belum ada; 429/5xx/timeout belum ketemu di uji ini.
 
 
 ## Pertanyaan terbuka yang perlu dijawab selama implementasi
