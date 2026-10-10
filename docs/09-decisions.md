@@ -97,6 +97,38 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Delete guard:** tolak hapus provider aktif (`ErrActiveDelete`); kredensial dibersihkan setelah profil dihapus.
 - **Verifikasi:** `go test ./internal/...` ok (config/credentials/storage/app baru), `tsc` bersih, `wails build` ok 15MB.
 - **Sisa:** smoke manual tambah/uji/hapus provider + kirim chat live; markdown aman tetap ke M4.
+## ADR-019 — M5 startup opt-in via HKCU Run (2026-10-10)
+
+- **Status:** Done.
+- **Keputusan:** startup pakai kunci `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, nilai `WortelAI` = path exe. Tidak butuh admin, tidak menyentuh HKLM, mudah dibalik. Default **off** sampai pengguna menyalakan toggle (FR-011).
+- **Perilaku:** toggle di Settings → "Jalankan otomatis saat Windows menyala". `AutostartEnabled()` baca status nyata dari registry, bukan asumsi; `SetAutostart(true)` tulis, `false` hapus nilai.
+- **Bukti:** `TestRoundTrip` menyentuh registry nyata (enable → cek ada → disable → cek kosong → disable ulang idempoten), `TestEnableEmptyPath` tolak path kosong. Setelah smoke, `reg query ... Run` tidak punya entri Wortel (default off benar).
+- **Risiko:** jalur exe berubah (pindah/rename) membuat entri Run basi; perlu update ulang saat pengguna menyalakan lagi.
+
+## ADR-020 — M5 shortcut global Ctrl+Shift+W (2026-10-10)
+
+- **Status:** Done.
+- **Keputusan:** `RegisterHotKey` Win32 langsung di `internal/hotkey`, tanpa CGO. Hotkey `Ctrl+Shift+W` (agar tidak menimpa shortcut sistem umum; `MOD_NOREPEAT` untuk cegah auto-repeat). Loop pesan di goroutine khusus, dihentikan `PostThreadMessage(WM_QUIT)`. Non-Windows stub mengembalikan error.
+- **Toggle:** `App.ToggleChat` menyimpan state `hidden` (Wails tak punya probe visibilitas), sembunyikan bila tampil, tampilkan + emit `app:toggle` bila tersembunyi. Tray callbacks sinkronkan state yang sama.
+- **Gagal registrasi:** error dikembalikan ke frontend lewat `HotkeyError()`, tampil di Settings sebagai peringatan (FR-010). Bukan fatal — aplikasi tetap jalan.
+- **Bukti:** `TestRegisterAndStop` lulus (registrasi + unregister idempoten). Probe konflik dua registrasi combo sama → "Hot key is already registered", jalur peringatan benar. Simulasi tombol via SendKeys tidak memicu hotkey OS (butuh input hardware); verifikasi hotkey nyata diserahkan ke uji manual user.
+- **Sisa:** rebind/disable via UI belum ada; hanya combo tetap. API `RegisterHotKey` mendukung, ditunda sampai diminta.
+
+## ADR-021 — M5 appearance: theme + skala font (2026-10-10)
+
+- **Status:** Done.
+- **Scope dipilih user:** theme dark/light + skala font (bukan slider ukuran window).
+- **Keputusan:** default dark; override `:root[data-theme="light"]` pada blok token CSS. Semua warna hardcoded diganti variabel (`--bg`, `--surface`, `--text`, `--accent`, `--danger*`, `--ok-bg`, dst). Skala font lewat `--font-scale` → `font-size: calc(14px * var(--font-scale))` di root; opsi 0.9 / 1.0 / 1.2.
+- **Persist:** key `appearance_theme` + `appearance_font_scale` di `app_settings` (nonrahasia). Validasi backend menolak theme tak dikenal dan skala di luar 0.85–1.4, jadi UI tidak bisa dibuat tak terbaca.
+- **Bukti:** round-trip + penolakan nilai invalid (`appearance_test.go`). Render CSS nyata di Chromium: dark bg `#1b2636`/text `#ffffff`, light bg `#f1f5f9`/text `#0f172a`; skala 1.2 → font body 16.8px. Kontras teks/latar ≥ 15:1 (dark) dan ≥ 16:1 (light) — lolos WCAG AA (docs 06 §6).
+
+## ADR-022 — M5 bundle portable + dokumentasi (2026-10-10)
+
+- **Status:** Done, installer penuh ditunda.
+- **Keputusan:** rilis MVP = executable tunggal `build/bin/companion.exe` hasil `wails build`. Aset frontend ditanam ke binary (Wails `//go:embed`), jadi tidak perlu Node/Go di mesin pengguna (NFR-006). Installer (MSI/Inno) ditunda sebagai milestone lanjutan; portable executable dinilai cukup untuk MVP.
+- **Data pengguna:** `%LOCALAPPDATA%\WortelAI\wortel.db`, tidak pernah di direktori project/exe.
+- **Bukti:** `frontend/dist` sementara dipindah keluar; `companion.exe` (15.5MB) tetap start ([WebView2] Environment created) — aset benar-benar tertanam. Windows 10/11 x64 didokumentasikan di README; ARM64/versi lama belum diuji.
+
 ## Pertanyaan terbuka yang perlu dijawab selama implementasi
 
 ## ADR-015 — M4 memory: kirim riwayat ke provider (2026-10-09)

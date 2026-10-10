@@ -96,6 +96,8 @@ Definition of done:
 - Startup behavior jelas dan opt-in.
 - Installer/portable build diuji pada Windows target yang bersih.
 
+**Status (2026-10-10):** tray + startup opt-in + shortcut global + appearance selesai (ADR-018…021). Rilis MVP memakai portable executable tunggal, bukan installer (ADR-022). Tersisa: smoke manual user untuk tray/hotkey/appearance dan uji build pada Windows bersih.
+
 ### M6 — RC dan dokumentasi rilis
 
 Tugas:

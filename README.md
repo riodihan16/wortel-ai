@@ -60,6 +60,39 @@ Prinsip utamanya:
 
 MVP dianggap layak diuji ketika pengguna dapat membuka aplikasi Windows, melihat dan memindahkan karakter, membuka chat, mengirim pesan ke provider OpenAI-compatible, menerima jawaban streaming, membatalkan respons, menyimpan/membuka percakapan lokal, mengatur provider dengan aman, serta menutup aplikasi tanpa proses menggantung. Kriteria rinci berada di `02-mvp-requirements.md`.
 
+## Menjalankan dan membangun
+
+Prasyarat untuk **development**: Go 1.26.4, Node.js + npm, Wails CLI v2.16.0 (`go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0`). WebView2 Runtime diperlukan untuk menjalankan aplikasi.
+
+Development (hot reload frontend):
+
+```bash
+wails dev
+```
+
+Verifikasi:
+
+```bash
+go test ./...        # unit test backend
+gofmt -l app.go main.go internal/
+cd frontend && npm run build   # typecheck + bundle frontend
+```
+
+Build release (menghasilkan satu executable):
+
+```bash
+wails build
+```
+
+Hasil: `build/bin/companion.exe`. Aset frontend dibundel ke dalam binary, sehingga **pengguna rilis tidak perlu memasang Go atau Node.js**. Jika WebView2 tidak tersedia, aplikasi menampilkan pesan yang dapat dimengerti.
+
+Lokasi data pengguna: `%LOCALAPPDATA%\WortelAI\wortel.db` (SQLite). API key **tidak** disimpan di file ini; disimpan di Windows Credential Manager.
+
+### Platform yang didukung
+
+- Windows 10/11 x64. Ini satu-satunya target MVP.
+- Belum diuji pada Windows ARM64 atau Windows versi lebih lama.
+
 ## Referensi teknis resmi
 
 - Wails: <https://wails.io/>
