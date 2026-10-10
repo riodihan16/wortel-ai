@@ -25,6 +25,7 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 | ADR-049 | Perbaikan hasil critique UI: Settings, onboarding, retry di tempat, karakter pembawa status | Done 2026-10-10 | Critique dual-agent 22/40; lima masalah prioritas dikerjakan; `RetryMessage` + `PrepareRetry` menghapus duplikasi pesan user saat retry; pip diganti wajah wortel; netral hue 280 → 70. |
 | ADR-050 | Perbaikan critique ulang: form provider, shortcut, konfirmasi Keluar, wortel di chat | Done 2026-10-10 | Critique ulang 27/40; tiga P1 (jebakan ID model, hasil tes basi, shortcut menyembunyikan pet) dan dua P2 diperbaiki. |
 | ADR-051 | Critique delta 32/40: fokus shortcut, salin teks biasa, error per field, pencarian percakapan | Done 2026-10-11 | Satu P2 (shortcut membuka chat tanpa fokus keyboard, dinaikkan ke P1 oleh user) dan tiga P3 diperbaiki, plus celah heuristik yang tersisa. |
+| ADR-052 | Critique delta 36/40: shortcut untuk chat tak fokus, picker, alias, Tes | Done 2026-10-11 | Dua P2 (regresi picker, shortcut menciutkan chat yang tak fokus) dan dua P3 + celah H5 diperbaiki. |
 
 ## ADR-001 — Wails v2
 
@@ -465,6 +466,14 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Bukti:** test-first per langkah; vitest 72/72 (hook + `markdownToText` di-commit; test komponen untracked). `go vet`, `go test ./internal/... .`, `GOOS=linux go vet ./internal/window` bersih. Catatan: empat file test komponen untracked dari ADR-049/050 terhapus di luar sesi ini (bersamaan dengan commit `.gitignore`), tidak dibuat ulang.
 - **Review (cavecrew-reviewer, 0🔴 8🟡 3🔵 1❓), diterapkan dengan test lebih dulu:** `markdownToText` menahan URL, inline code, dan escape backslash sebagai placeholder sebelum pass emphasis, dan emphasis hanya cocok di batas kata (`2*3*4`, `(1)*(2)`, `__init__.py`, `https://x/_a_/` utuh; `\*a\*` → `*a*`); kotak cari dan catatan kosong dipindah keluar `role="menu"`, panah dari kotak cari diteruskan ke daftar, Enter tanpa query tidak berpindah percakapan; menekan label/celah rail "Keluar?" tidak lagi memindah fokus (jadi tidak menutup rail); pilihan aktif (kartu, chip, baris model) memakai garis `ink-3` (≥ 3:1, bukan oranye); `Activate` menyertakan `GetLastError` dan jendela yang diminimalkan di-restore lebih dulu (`WindowUnminimise`); batas combo hint jadi konstanta, combo panjang tetap ada di tooltip. Tidak diterapkan: kursor `grab` pada wortel dipertahankan dengan sengaja (hint mengajarkan klik, kursor mengajarkan geser). Vitest 72/72.
 - **Risiko:** `SetForegroundWindow` bisa ditolak Windows bila aturan foreground lock berlaku (mis. user sedang mengetik di app lain dengan input terakhir di sana); kegagalan hanya dicatat (`LogWarning`), jendela tetap tampil.
+
+## ADR-052 — Perbaikan dari critique delta kedua (2026-10-11)
+
+- **Status:** Done, perlu smoke manual Windows.
+- **Konteks:** critique delta setelah ADR-051 memberi 36/40. Sisa: (P2, regresi) menu percakapan menutup saat padding atau catatan kosongnya ditekan, karena kotak luar yang men-scroll tidak bisa difokus; (P2) shortcut menciutkan chat yang terlihat tetapi tidak fokus (jendela AlwaysOnTop, jadi ini cara umum kembali); (P3) empat gaya "terpilih" di Settings; (P3) alias bisa diisi di dua tempat; H5: `Tes koneksi` bisa jalan tanpa model.
+- **Keputusan:** `toggleFor(hidden, mode, focused)` dengan `window.IsForeground()` (`GetForegroundWindow`): panel di belakang app lain maju dengan caret di composer, hanya panel yang sedang dipakai yang menciut ke pet (unit test 6 kasus). Menu percakapan: daftar yang men-scroll, permukaan menu `tabIndex=-1` sehingga tekanan di padding tetap di dalam picker; ArrowUp dari item pertama kembali ke kotak cari. `Tes koneksi` tanpa model menampilkan alasan di bawah field Model. Alias hanya di baris modelnya (baris tambah = ID + Tambah). Chip preset yang dipilih memakai fill netral seperti pilihan lain.
+- **Bukti:** vitest 76/76; `go vet`, `go test . ./internal/window`, `GOOS=linux go vet ./internal/window` bersih.
+- **Risiko:** `GetForegroundWindow` membandingkan HWND utama; bila Wails membuat jendela anak yang memegang fokus, perbandingan bisa keliru dan shortcut memilih "maju" alih-alih "menciut" (aman, bukan kehilangan data).
 
 ## ADR-018 — M5 tray Win32 murni + exit bersih (2026-10-10)
 

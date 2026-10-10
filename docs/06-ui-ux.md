@@ -29,8 +29,9 @@ Interaksi:
 - Drag: pindahkan posisi.
 - Klik kanan: menu opsional.
 - Escape: tidak boleh membuat aplikasi hilang tanpa cara memulihkan.
-- Shortcut global (P1, ADR-050): jendela tersembunyi atau pet → buka chat; panel
-  terbuka → kembali ke pet. Shortcut tidak pernah menyembunyikan companion.
+- Shortcut global (P1, ADR-050/052): jendela tersembunyi atau pet → buka chat;
+  panel terbuka di belakang app lain → maju; panel yang sedang dipakai →
+  kembali ke pet. Shortcut tidak pernah menyembunyikan companion.
   Hint hover pet menampilkan kombinasinya ("Klik atau Ctrl+Shift+W: chat").
   Shortcut juga mengambil foreground dan menaruh caret di composer: tekan, lalu
   ketik (ADR-051).
