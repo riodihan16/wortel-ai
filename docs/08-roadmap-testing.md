@@ -206,6 +206,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - [x] Semua kontrol header muat di jendela chat 400px. → judul menyusut (`min-width: 0`), `.header-actions` `flex-shrink: 0`, `#btn-model` max 132px; tanpa overflow (ADR-030).
 - [x] Percakapan baru tidak mengunci pemilihan history. → placeholder `<option>` untuk id aktif yang belum tersimpan (ADR-030).
 - [x] Pemilih model di header tampil pada build nyata. → `ActiveProvider()` ganti ke `*config.ProviderProfile` (binding Wails buang return kedua non-error); hook memetakan profile/null apa adanya (ADR-031).
+- [x] Pemilih model dan status ada di baris kedua header, sejajar. → `#chat-subheader` `space-between`; `#model-picker` dan `#chat-state` `--wails-draggable: none` (ADR-032).
 
 ### Keamanan
 - [x] Tidak ada API key di repository, log, SQLite, dan event frontend. → `provider_profiles` tanpa kolom secret; grep pola `sk-` pada DB nyata = tidak ada; `ChatEvent` tanpa secret; tidak ada `log.Printf` pada request/header; secret di-wipe (`secret[i]=0`).
@@ -233,7 +234,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 
 - **File:** `build/bin/companion.exe`
 - **Ukuran:** 15,682,048 byte (~15.0 MB)
-- **SHA-256:** `96fd24ab43aa54fe0533149d0425ec6f15631286d2d32b5c333543fc657463d6`
+- **SHA-256:** `dcf8c6b8ace5a934e338daf8d67fc5e38dcf76d83d5dda6d05f60e285d1a3c37`
 - **Perintah build:** `wails build -ldflags "-X main.Version=0.1.0"` dari clean checkout (setelah `rm -rf frontend/dist build/bin`).
 - **Verifikasi:** versi `0.1.0` tertanam di binary; aplikasi start dan tercatat `[WebView2] Environment created successfully`. Migrasi DB user nyata v2→v3 terverifikasi (kolom `models`/`active_model` bertambah, baris lama di-seed dari `model`).
 

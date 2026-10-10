@@ -174,14 +174,17 @@ function App() {
             <div id="chat-header" style={{'--wails-draggable': 'drag'} as CSSProperties}>
                 <span>Wortel AI <small id="app-version">v{version}</small></span>
                 <span className="header-actions">
-                    <ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />
                     <button onClick={() => setMode('settings')}>Settings</button>
                     <button onClick={toggle}>Pet</button>
                     <button onClick={() => HideWindow()}>Hide</button>
                     <button onClick={Quit}>Quit</button>
                 </span>
             </div>
-            <ChatPanel messages={chat.messages} status={chat.status} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} />
+            <div id="chat-subheader" style={{'--wails-draggable': 'drag'} as CSSProperties}>
+                <ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />
+                <span id="chat-state">status: {chat.status}</span>
+            </div>
+            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} />
         </div>
     );
 }

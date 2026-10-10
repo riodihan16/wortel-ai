@@ -138,6 +138,15 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** hapus `tailwindcss` + `@tailwindcss/vite`, ganti dengan reset CSS eksplisit (`box-sizing`, margin/padding nol, font inherit) di `style.css`. Styling tetap pakai token di `App.css`.
 - **Bukti:** CSS bundle 11.31 kB → 7.02 kB (gzip 2.97 → 1.76 kB). `tsc` dan `npm run build` bersih; UI terverifikasi render (pet mode tombol + header chat).
 
+## ADR-032 — Baris kedua header: pemilih model dipindah ke bawah, status sejajar (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** Setelah pemilih model muncul (ADR-031), baris pertama header terlalu padat: judul + 4 tombol + pemilih. User meminta pemilih dipindah ke bawah.
+- **Perubahan:** Header dipecah dua baris. `#chat-header`: judul + kontrol (Settings, Pet, Hide, Quit). `#chat-subheader` baru: `ModelPicker` di kiri, `#chat-state` (`status: <state>`) di kanan dengan `justify-content: space-between`. `#chat-state` dipindah dari dalam `ChatPanel` ke subheader, sehingga prop `status` panel dihapus (tidak lagi dipakai).
+- **Drag:** `#chat-subheader` juga region drag. `#model-picker` dan `#chat-state` diset `--wails-draggable: none`, karena custom property mewarisi dan klik pertama akan memulai drag window (gotcha ADR-029/ADR-030).
+- **Bukti:** probe browser nyata (dengan stylesheet dimuat) — `subDisplay: flex`, `justifyContent: space-between`, `sameRow: true`, `subOverflow: false`; status di kanan (`statusRight 388` vs `subRight 400`); `#btn-model` `--wails-draggable: none`, klik membuka daftar 3 model; label berubah saat status `streaming`. `tsc`, `go test ./...`, clean release build, app start bersih.
+- **Catatan:** probe harus me-link CSS hasil esbuild (`_s.css`); tanpa itu layout diukur tanpa stylesheet dan hasilnya menyesatkan.
+
 ## ADR-031 — `ActiveProvider` tak pernah muncul di header: bug binding Wails multi-return (2026-10-10)
 
 - **Status:** Done.

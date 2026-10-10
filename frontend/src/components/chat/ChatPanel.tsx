@@ -6,7 +6,6 @@ import { SafeMarkdown } from "./SafeMarkdown";
 
 interface Props {
   messages: ChatMessage[];
-  status: ChatStatus;
   error: string | null;
   busy: boolean;
   conversations: ConversationItem[];
@@ -41,7 +40,6 @@ function statusLabel(s: ChatStatus): string {
 
 export function ChatPanel({
   messages,
-  status,
   error,
   busy,
   conversations,
@@ -180,7 +178,6 @@ export function ChatPanel({
           </button>
         )}
       </div>
-      <div id="chat-state">status: {status}</div>
     </div>
   );
 }

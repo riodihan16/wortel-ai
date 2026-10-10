@@ -127,6 +127,25 @@ html, body, #root {
     font-weight: 400;
 }
 
+/* Second header row: model picker on the left, status on the right. Also a
+   drag region, so #btn-model must keep --wails-draggable: none. */
+#chat-subheader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px 6px;
+    background: var(--surface);
+    cursor: move;
+    --wails-draggable: drag;
+}
+
+#chat-subheader #chat-state {
+    flex-shrink: 0;
+    cursor: default;
+    --wails-draggable: none;
+}
+
 button {
     cursor: pointer;
     background: var(--surface-2);
@@ -467,6 +486,10 @@ button:disabled {
 /* Model picker in the chat header: button + dropdown list. */
 #model-picker {
     position: relative;
+    /* #chat-subheader is a drag region and custom properties inherit; without
+       this the first click on the picker starts a window drag instead of
+       opening the menu (same gotcha as ADR-029). */
+    --wails-draggable: none;
 }
 
 #btn-model {
