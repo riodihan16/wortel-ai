@@ -67,20 +67,6 @@
     min-width: 0;
 }
 
-/* A version is metadata, not a claim: mono keeps it from reading as a wordmark. */
-#chat-header .brand__version,
-#settings-header .brand__version {
-    flex-shrink: 0;
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    color: var(--color-ink-3);
-    background: var(--color-well);
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-pill);
-    padding: 1px 6px;
-    white-space: nowrap;
-}
-
 #chat-header .header-actions,
 #settings-header .header-actions {
     display: flex;

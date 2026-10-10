@@ -212,7 +212,7 @@
     background: var(--color-paper-2);
     border: 1px solid var(--color-rule-strong);
     color: var(--color-ink);
-    font-size: var(--text-2xs);
+    font-size: var(--text-xs);
     font-style: normal;
     white-space: nowrap;
     opacity: 0;

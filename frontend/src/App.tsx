@@ -184,7 +184,6 @@ function App() {
     return (
         <div id="chat">
             <ChatHeader
-                version={version}
                 onSettings={() => setMode('settings')}
                 onPet={showPet}
                 onHide={() => HideWindow()}

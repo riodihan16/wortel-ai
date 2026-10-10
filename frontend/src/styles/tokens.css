@@ -73,11 +73,14 @@
     --space-6: 24px;
     --space-7: 32px;
 
-    /* ---- type (every size scales with the accessibility setting) ---- */
+    /* ---- type (every size scales with the accessibility setting) ----
+       Roles: xs = small chrome and metadata (buttons, badges, footer
+       status); sm = labels and hints; base = body; md = titles and section
+       headings. The two small roles never drop below 11px, even at the
+       "Kecil" scale. */
     --font-scale: 1;
-    --text-2xs: calc(10px * var(--font-scale));
-    --text-xs: calc(11px * var(--font-scale));
-    --text-sm: calc(12px * var(--font-scale));
+    --text-xs: max(11px, calc(11px * var(--font-scale)));
+    --text-sm: max(11px, calc(12px * var(--font-scale)));
     --text-base: calc(13px * var(--font-scale));
     --text-md: calc(14px * var(--font-scale));
     --text-lg: calc(16px * var(--font-scale));

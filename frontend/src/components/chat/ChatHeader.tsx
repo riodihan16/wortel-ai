@@ -1,5 +1,5 @@
-// ChatHeader owns the chat-mode window header: brand mark + wordmark +
-// version pill on the left, four icon actions on the right.
+// ChatHeader owns the chat-mode window header: brand mark + wordmark on the
+// left, four icon actions on the right. The version lives in Settings > Tentang.
 // Invariant: root keeps id="chat-header" + class "drag-handle" so the Wails
 // window drags from the header; all buttons opt out via base.css automatically.
 import type { JSX } from "react";
@@ -11,7 +11,6 @@ import {
 } from "../ui/Icon";
 
 interface Props {
-  version: string;
   onSettings: () => void;
   onPet: () => void;
   onHide: () => void;
@@ -19,7 +18,6 @@ interface Props {
 }
 
 export function ChatHeader({
-  version,
   onSettings,
   onPet,
   onHide,
@@ -53,7 +51,6 @@ export function ChatHeader({
           />
         </svg>
         <span className="brand__name">Wortel AI</span>
-        <span className="brand__version">v{version}</span>
       </div>
       <div className="header-actions">
         <button
