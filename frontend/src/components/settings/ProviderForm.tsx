@@ -10,6 +10,7 @@ import { IconAlert, IconCheck, IconEyeOff, IconKey, IconX } from "../ui/Icon";
 import { PROVIDER_PRESETS, type ProviderPreset } from "./presets";
 
 type SaveInput = app.SaveInput;
+type Field = "name" | "model" | "key";
 
 interface FormState {
   name: string;
@@ -55,9 +56,11 @@ interface Props {
   onSaved: (saved: ProviderProfile) => void;
   /** Absent when the form cannot be dismissed (no provider exists yet). */
   onCancel?: () => void;
+  /** A field a test depends on changed: the last result no longer applies. */
+  onDirty?: () => void;
 }
 
-export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, onCancel }: Props): JSX.Element {
+export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, onCancel, onDirty }: Props): JSX.Element {
   const editing = profile?.id ?? "";
   const [form, setForm] = useState<FormState>(() => (profile ? fromProfile(profile) : EMPTY));
   const [modelDraft, setModelDraft] = useState("");
@@ -66,8 +69,12 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   const [showKey, setShowKey] = useState(false);
   const [preset, setPreset] = useState<ProviderPreset | null>(null);
   const [saving, setSaving] = useState(false);
+  const [invalid, setInvalid] = useState<Field | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
+  const modelRef = useRef<HTMLInputElement>(null);
+  const keyRef = useRef<HTMLInputElement>(null);
+  const errorId = useId();
   const firstPresetRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const keyNoteId = useId();
@@ -108,6 +115,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
     });
     setModelDraft("");
     setAliasDraft("");
+    onDirty?.();
   };
 
   // Renames the display alias of an entry. The id is the identity and never
@@ -126,6 +134,48 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       models,
       activeModel: form.activeModel === id ? (models[0]?.id ?? "") : form.activeModel,
     });
+    onDirty?.();
+  };
+
+  // A model ID typed but never added with Tambah still counts: the user's
+  // intent is plain, and rejecting it with "add at least one model" while the
+  // ID sits in the field is the trap the critique found. Commits it to the
+  // list so the form shows what will be sent.
+  const commitDraft = (): FormState => {
+    const id = modelDraft.trim();
+    if (!id || form.models.some((m) => m.id === id)) return form;
+    const next = {
+      ...form,
+      models: [...form.models, { id, alias: aliasDraft.trim() }],
+      activeModel: form.activeModel || id,
+    };
+    setForm(next);
+    setModelDraft("");
+    setAliasDraft("");
+    return next;
+  };
+
+  const fail = (field: Field, message: string) => {
+    setInvalid(field);
+    setFormError(message);
+    ({ name: nameRef, model: modelRef, key: keyRef })[field].current?.focus();
+  };
+
+  // Field edits clear their own error mark and any test result they outdate.
+  const change = (patch: Partial<FormState>, field?: Field) => {
+    setForm({ ...form, ...patch });
+    if (field && invalid === field) setInvalid(null);
+    if (patch.baseURL !== undefined || patch.apiKey !== undefined || patch.models !== undefined || patch.activeModel !== undefined) {
+      onDirty?.();
+    }
+  };
+
+  const describedBy = (field: Field, extra?: string) =>
+    [extra, invalid === field ? errorId : undefined].filter(Boolean).join(" ") || undefined;
+
+  const runTest = () => {
+    const next = commitDraft();
+    onTest(toSave(next, editing));
   };
 
   const submit = async () => {
@@ -133,21 +183,23 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
     // profile (a new provider has no id yet).
     if (saving) return;
     setFormError(null);
-    if (!form.name.trim()) {
-      setFormError("Nama wajib diisi.");
+    setInvalid(null);
+    const next = commitDraft();
+    if (!next.name.trim()) {
+      fail("name", "Nama wajib diisi.");
       return;
     }
-    if (form.models.length === 0) {
-      setFormError("Tambahkan minimal satu model.");
+    if (next.models.length === 0) {
+      fail("model", "Tulis minimal satu ID model.");
       return;
     }
-    if (!editing && !form.apiKey.trim()) {
-      setFormError("API key wajib diisi untuk provider baru.");
+    if (!editing && !next.apiKey.trim()) {
+      fail("key", "API key wajib diisi untuk provider baru.");
       return;
     }
     setSaving(true);
     try {
-      const saved = await onSave(toSave(form, editing));
+      const saved = await onSave(toSave(next, editing));
       if (saved) onSaved(saved);
     } finally {
       setSaving(false);
@@ -185,11 +237,11 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       )}
       <div className="field">
         <label className="field__label" htmlFor="settings-name">Nama</label>
-        <input id="settings-name" ref={nameRef} className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Provider pribadi" />
+        <input id="settings-name" ref={nameRef} className="input" value={form.name} onChange={(e) => change({ name: e.target.value }, "name")} placeholder="Provider pribadi" aria-invalid={invalid === "name"} aria-describedby={describedBy("name")} />
       </div>
       <div className="field">
         <label className="field__label" htmlFor="settings-baseurl">Base URL</label>
-        <input id="settings-baseurl" className="input" value={form.baseURL} onChange={(e) => setForm({ ...form, baseURL: e.target.value })} placeholder="https://api.example.com/v1" inputMode="url" aria-describedby={urlNoteId} />
+        <input id="settings-baseurl" className="input" value={form.baseURL} onChange={(e) => change({ baseURL: e.target.value })} placeholder="https://api.example.com/v1" inputMode="url" aria-describedby={urlNoteId} />
         <div className="field__hint" id={urlNoteId}>Endpoint yang kompatibel dengan OpenAI, biasanya berakhiran /v1.</div>
       </div>
       <div className="prov-form__models">
@@ -197,10 +249,17 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
           <span className="field__label" id="settings-model-label">Model</span>
           <span className="model-add-row">
             <input
+              ref={modelRef}
               className="input"
               aria-labelledby="settings-model-label"
+              aria-invalid={invalid === "model"}
+              aria-describedby={describedBy("model")}
               value={modelDraft}
-              onChange={(e) => setModelDraft(e.target.value)}
+              onChange={(e) => {
+                setModelDraft(e.target.value);
+                if (invalid === "model") setInvalid(null);
+                onDirty?.();
+              }}
               onKeyDown={enterAdds}
               placeholder={preset?.modelHint ?? "ID model, mis. gpt-4.1-mini"}
             />
@@ -224,7 +283,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
                     type="radio"
                     name={`active-${editing || "new"}`}
                     checked={form.activeModel === m.id}
-                    onChange={() => setForm({ ...form, activeModel: m.id })}
+                    onChange={() => change({ activeModel: m.id })}
                   />
                   <span className="model-pick__label" title={m.id}>{m.alias ? `${m.alias} (${m.id})` : m.id}</span>
                 </label>
@@ -247,7 +306,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       <div className="field">
         <label className="field__label" htmlFor="settings-apikey">API key</label>
         <span className="settings-keyrow">
-          <input id="settings-apikey" className="input" type={showKey ? "text" : "password"} value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} placeholder={editing ? "•••••• (tersimpan)" : (preset?.keyHint ?? "sk-…")} autoComplete="off" aria-describedby={keyNoteId} />
+          <input id="settings-apikey" ref={keyRef} className="input" type={showKey ? "text" : "password"} value={form.apiKey} onChange={(e) => change({ apiKey: e.target.value }, "key")} placeholder={editing ? "•••••• (tersimpan)" : (preset?.keyHint ?? "sk-…")} autoComplete="off" aria-invalid={invalid === "key"} aria-describedby={describedBy("key", keyNoteId)} />
           <button
             type="button"
             className="btn btn--sm"
@@ -265,7 +324,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
           Disimpan di Windows Credential Manager, tidak pernah ditampilkan lagi.
         </div>
       </div>
-      {formError && <div id="settings-form-error" className="banner banner--error" role="alert">
+      {formError && <div id={errorId} className="banner banner--error" role="alert">
         <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
         <span>{formError}</span>
       </div>}
@@ -274,7 +333,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
         <span>{test.message}{test.insecure ? " Koneksi tidak terenkripsi (HTTP)." : ""}</span>
       </div>}
       <div className="prov-form__actions">
-        <button type="button" className="btn" onClick={() => onTest(toSave(form, editing))} disabled={testing}>
+        <button type="button" className="btn" onClick={runTest} disabled={testing}>
           {testing && <span className="spinner" aria-hidden="true" />}
           {testing ? "Mengetes…" : "Tes koneksi"}
         </button>

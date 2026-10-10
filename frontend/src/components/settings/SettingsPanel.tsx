@@ -23,6 +23,8 @@ interface Props {
   onDelete: (id: string) => void;
   onActivate: (id: string) => void;
   onTest: (in_: SaveInput) => Promise<TestResult>;
+  /** Drops the last Tes koneksi result; it belongs to the form that ran it. */
+  onClearTest: () => void;
   onClose: () => void;
   autostart: boolean;
   autostartErr: string | null;
@@ -85,7 +87,12 @@ export function SettingsPanel(p: Props) {
     else map.delete(id);
   };
 
+  const clearTest = () => {
+    if (p.test || p.testing) p.onClearTest();
+  };
+
   const startEdit = (id: string) => {
+    clearTest();
     setSavedNote(null);
     setConfirmDel(null);
     setAdding(false);
@@ -93,6 +100,7 @@ export function SettingsPanel(p: Props) {
   };
 
   const startAdd = () => {
+    clearTest();
     setSavedNote(null);
     setConfirmDel(null);
     setEditing("");
@@ -100,6 +108,7 @@ export function SettingsPanel(p: Props) {
   };
 
   const closeForm = () => {
+    clearTest();
     const id = editing;
     setEditing("");
     setAdding(false);
@@ -138,6 +147,7 @@ export function SettingsPanel(p: Props) {
       onTest={p.onTest}
       onSaved={(saved) => handleSaved(saved, firstRun)}
       onCancel={firstRun ? undefined : closeForm}
+      onDirty={clearTest}
     />
   );
 

@@ -19,6 +19,7 @@ const backend = {
   active: vi.fn(async () => null as ProviderProfile | null),
   remove: vi.fn(async () => {}),
   activate: vi.fn(async () => {}),
+  test: vi.fn(async () => ({ ok: false, message: "401" })),
 };
 
 vi.mock("../../wailsjs/go/main/App", () => ({
@@ -28,7 +29,7 @@ vi.mock("../../wailsjs/go/main/App", () => ({
   SetActiveProvider: (...a: unknown[]) => backend.activate(...(a as [])),
   SaveProvider: vi.fn(),
   SetActiveModel: vi.fn(),
-  TestProvider: vi.fn(),
+  TestProvider: (...a: unknown[]) => backend.test(...(a as [])),
 }));
 
 import { useProviders } from "./useProviders";
@@ -72,5 +73,27 @@ describe("useProviders active provider", () => {
 
     expect(result.current.activeId).toBe("b");
     expect(result.current.error).toBe("provider tidak ditemukan");
+  });
+});
+
+describe("useProviders test result", () => {
+  it("clearTest drops the last result", async () => {
+    const { result } = renderHook(() => useProviders());
+    await act(() => result.current.runTest({} as never));
+    expect(result.current.test?.message).toBe("401");
+    act(() => result.current.clearTest());
+    expect(result.current.test).toBeNull();
+  });
+
+  it("ignores a test that finishes after the form it belonged to was closed", async () => {
+    let finish: (v: { ok: boolean; message: string }) => void = () => {};
+    backend.test.mockImplementationOnce(() => new Promise((r) => { finish = r; }));
+    const { result } = renderHook(() => useProviders());
+    let pending: Promise<unknown> = Promise.resolve();
+    act(() => { pending = result.current.runTest({} as never); });
+    act(() => result.current.clearTest());
+    await act(async () => { finish({ ok: false, message: "basi" }); await pending; });
+    expect(result.current.test).toBeNull();
+    expect(result.current.testing).toBe(false);
   });
 });

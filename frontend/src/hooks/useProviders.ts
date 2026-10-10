@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActiveProvider,
   DeleteProvider,
@@ -22,6 +22,10 @@ export function useProviders() {
   const [error, setError] = useState<string | null>(null);
   const [test, setTest] = useState<TestResult | null>(null);
   const [testing, setTesting] = useState(false);
+  // One test result at a time, owned by the form that ran it. Bumping the
+  // sequence on clearTest() also discards a test still in flight, so a slow
+  // result cannot land in the next form the user opens.
+  const testSeq = useRef(0);
 
   const refresh = useCallback(async () => {
     try {
@@ -102,20 +106,27 @@ export function useProviders() {
   );
 
   const runTest = useCallback(async (in_: SaveInput) => {
+    const seq = ++testSeq.current;
     setTesting(true);
     setTest(null);
+    let r: TestResult;
     try {
-      const r = (await TestProvider(in_)) as TestResult;
-      setTest(r);
-      return r;
+      r = (await TestProvider(in_)) as TestResult;
     } catch (e) {
-      const r = { ok: false, message: e instanceof Error ? e.message : "Tes koneksi gagal." };
+      r = { ok: false, message: e instanceof Error ? e.message : "Tes koneksi gagal." };
+    }
+    if (seq === testSeq.current) {
       setTest(r);
-      return r;
-    } finally {
       setTesting(false);
     }
+    return r;
   }, []);
 
-  return { providers, activeId, activeProvider, loading, error, test, testing, save, remove, activate, setModel, runTest, refresh };
+  const clearTest = useCallback(() => {
+    testSeq.current++;
+    setTest(null);
+    setTesting(false);
+  }, []);
+
+  return { providers, activeId, activeProvider, loading, error, test, testing, save, remove, activate, setModel, runTest, clearTest, refresh };
 }
