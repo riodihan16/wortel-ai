@@ -3,6 +3,8 @@
 import {app} from '../models';
 import {config} from '../models';
 
+export function AutostartEnabled():Promise<boolean>;
+
 export function CancelGeneration(arg1:string):Promise<void>;
 
 export function DeleteConversation(arg1:string):Promise<void>;
@@ -24,6 +26,8 @@ export function SaveProvider(arg1:app.SaveInput):Promise<config.ProviderProfile>
 export function SendMessage(arg1:string,arg2:string):Promise<string>;
 
 export function SetActiveProvider(arg1:string):Promise<void>;
+
+export function SetAutostart(arg1:boolean):Promise<void>;
 
 export function Show():Promise<void>;
 

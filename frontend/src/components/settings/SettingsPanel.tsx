@@ -15,6 +15,9 @@ interface Props {
   onActivate: (id: string) => void;
   onTest: (in_: SaveInput) => Promise<TestResult>;
   onClose: () => void;
+  autostart: boolean;
+  autostartErr: string | null;
+  onToggleAutostart: () => void;
 }
 
 const EMPTY = { name: "", baseURL: "https://", model: "", apiKey: "" };
@@ -67,6 +70,14 @@ export function SettingsPanel(p: Props) {
         <button onClick={p.onClose}>Kembali</button>
       </div>
       {p.listError && <div id="settings-error" role="alert">{p.listError}</div>}
+      <div id="settings-general">
+        <h4>Umum</h4>
+        <label id="settings-autostart" className="checkrow">
+          <input type="checkbox" checked={p.autostart} onChange={p.onToggleAutostart} />
+          Jalankan otomatis saat Windows menyala
+        </label>
+        {p.autostartErr && <div id="settings-general-error" role="alert">{p.autostartErr}</div>}
+      </div>
       <div id="settings-list">
         {p.providers.length === 0 && <p id="settings-empty">Belum ada provider. Tambahkan endpoint di bawah.</p>}
         {p.providers.map((pr) => (

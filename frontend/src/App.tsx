@@ -11,7 +11,7 @@ import {
     WindowSetAlwaysOnTop,
     WindowSetSize,
 } from '../wailsjs/runtime/runtime';
-import {HideWindow, TrayError, TrayStatus} from '../wailsjs/go/main/App';
+import {AutostartEnabled, HideWindow, SetAutostart, TrayError, TrayStatus} from '../wailsjs/go/main/App';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {SettingsPanel} from './components/settings/SettingsPanel';
 import {useChat} from './hooks/useChat';
@@ -70,6 +70,24 @@ function App() {
         setInfo(`${size.w}x${size.h} @ ${pos.x},${pos.y} tray:${tray ? "on" : "off"}${trayErr ? " err:" + trayErr : ""}`);
     }, []);
 
+    const [autostart, setAutostartOn] = useState<boolean>(false);
+    const [autostartErr, setAutostartErr] = useState<string | null>(null);
+
+    useEffect(() => {
+        AutostartEnabled().then(setAutostartOn).catch(() => setAutostartOn(false));
+    }, []);
+
+    const toggleAutostart = useCallback(async () => {
+        const next = !autostart;
+        setAutostartErr(null);
+        try {
+            await SetAutostart(next);
+            setAutostartOn(next);
+        } catch (e) {
+            setAutostartErr(e instanceof Error ? e.message : String(e));
+        }
+    }, [autostart]);
+
     const flipTop = useCallback(() => {
         WindowSetAlwaysOnTop(!top);
         setTop(!top);
@@ -94,7 +112,7 @@ function App() {
     if (mode === 'settings') {
         return (
             <div id="chat">
-                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} />
+                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} />
             </div>
         );
     }

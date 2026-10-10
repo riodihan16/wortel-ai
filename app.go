@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
 
 	"companion/internal/ai"
 	"companion/internal/app"
+	"companion/internal/autostart"
 	"companion/internal/config"
 	"companion/internal/credentials"
 	"companion/internal/storage"
@@ -165,3 +167,22 @@ func (a *App) TestProvider(in app.SaveInput) (app.TestResult, error) {
 }
 
 func errStorageUnavailable() error { return errors.New("storage belum tersedia, restart aplikasi") }
+
+// AutostartEnabled reports whether the app starts with Windows.
+// Default is off; the user opts in from Settings (FR-011).
+func (a *App) AutostartEnabled() bool {
+	return autostart.Enabled()
+}
+
+// SetAutostart turns "run at login" on or off. Uses the per-user Run key;
+// no admin rights and no secret involved.
+func (a *App) SetAutostart(on bool) error {
+	if !on {
+		return autostart.Disable()
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return errors.New("tidak dapat menemukan path aplikasi")
+	}
+	return autostart.Enable(exe)
+}

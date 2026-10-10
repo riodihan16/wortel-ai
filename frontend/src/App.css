@@ -231,6 +231,36 @@ button {
     margin-top: 4px;
 }
 
+#settings-general {
+    border-top: 1px solid #334155;
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#settings-general h4 {
+    margin: 0;
+    font-size: 13px;
+}
+
+.checkrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.checkrow input {
+    width: 16px;
+    height: 16px;
+}
+
+#settings-general-error {
+    color: #fca5a5;
+    font-size: 12px;
+}
+
 #settings-form {
     display: flex;
     flex-direction: column;
