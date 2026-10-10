@@ -29,4 +29,6 @@ export function Show():Promise<void>;
 
 export function TestProvider(arg1:app.SaveInput):Promise<app.TestResult>;
 
+export function TrayError():Promise<string>;
+
 export function TrayStatus():Promise<boolean>;

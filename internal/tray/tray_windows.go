@@ -37,6 +37,7 @@ var (
 	pSetForeground    = user32.NewProc("SetForegroundWindow")
 	pUnregisterClass  = user32.NewProc("UnregisterClassW")
 	pRegWindowMsg     = user32.NewProc("RegisterWindowMessageW")
+	pPostQuitMessage  = user32.NewProc("PostQuitMessage")
 
 	pShellNotifyIcon = shell32.NewProc("Shell_NotifyIconW")
 	pGetModuleHandle = kernel32.NewProc("GetModuleHandleW")
@@ -127,7 +128,23 @@ var (
 	taskMsg  uint32
 	wndProc  uintptr
 	classBuf *uint16
+	lastErr  string
 )
+
+func setErr(err error) {
+	if err == nil {
+		lastErr = ""
+		return
+	}
+	lastErr = err.Error()
+}
+
+// LastError returns the last tray init failure, if any.
+func LastError() string {
+	mu.Lock()
+	defer mu.Unlock()
+	return lastErr
+}
 
 // Start creates the tray icon + menu on a dedicated thread.
 // Safe to call once; second call is a no-op returning nil.
@@ -172,14 +189,16 @@ func Running() bool {
 
 func runLoop() {
 	if err := initTray(); err != nil {
-		ready <- err
 		mu.Lock()
+		setErr(err)
 		doneCh := done
 		mu.Unlock()
+		ready <- err
 		close(doneCh)
 		return
 	}
 	mu.Lock()
+	setErr(nil)
 	running = true
 	mu.Unlock()
 	ready <- nil
@@ -334,6 +353,7 @@ func wndProcFn(h, m, w, l uintptr) uintptr {
 		_, _, _ = pDestroyWindow.Call(h)
 		return 0
 	case wmDestroy:
+		_, _, _ = pPostQuitMessage.Call(0)
 		return 0
 	}
 	if taskMsg != 0 && uint32(m) == taskMsg {

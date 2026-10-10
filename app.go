@@ -72,6 +72,11 @@ func (a *App) TrayStatus() bool {
 	return tray.Running()
 }
 
+// TrayError returns the last tray init failure, empty when none.
+func (a *App) TrayError() string {
+	return tray.LastError()
+}
+
 // History returns recent messages oldest-first. Empty when none.
 func (a *App) History(conversationID string, n int) []app.ChatMessage {
 	if a.svc == nil {

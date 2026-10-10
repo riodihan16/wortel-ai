@@ -7,3 +7,9 @@ package tray
 func Start(c Callbacks) error { return nil }
 
 func Stop() {}
+
+// Running always false off Windows.
+func Running() bool { return false }
+
+// LastError always empty off Windows.
+func LastError() string { return "" }

@@ -54,6 +54,10 @@ export function TestProvider(arg1) {
   return window['go']['main']['App']['TestProvider'](arg1);
 }
 
+export function TrayError() {
+  return window['go']['main']['App']['TrayError']();
+}
+
 export function TrayStatus() {
   return window['go']['main']['App']['TrayStatus']();
 }
