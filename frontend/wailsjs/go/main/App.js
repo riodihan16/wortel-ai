@@ -26,6 +26,10 @@ export function History(arg1, arg2) {
   return window['go']['main']['App']['History'](arg1, arg2);
 }
 
+export function HotkeyError() {
+  return window['go']['main']['App']['HotkeyError']();
+}
+
 export function ListConversations() {
   return window['go']['main']['App']['ListConversations']();
 }
@@ -60,6 +64,10 @@ export function Show() {
 
 export function TestProvider(arg1) {
   return window['go']['main']['App']['TestProvider'](arg1);
+}
+
+export function ToggleChat() {
+  return window['go']['main']['App']['ToggleChat']();
 }
 
 export function TrayError() {

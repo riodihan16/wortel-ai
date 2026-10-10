@@ -18,6 +18,7 @@ interface Props {
   autostart: boolean;
   autostartErr: string | null;
   onToggleAutostart: () => void;
+  hotkeyErr: string;
 }
 
 const EMPTY = { name: "", baseURL: "https://", model: "", apiKey: "" };
@@ -77,6 +78,11 @@ export function SettingsPanel(p: Props) {
           Jalankan otomatis saat Windows menyala
         </label>
         {p.autostartErr && <div id="settings-general-error" role="alert">{p.autostartErr}</div>}
+        <div id="settings-hotkey">
+          <span className="hotkey-label">Shortcut buka chat</span>
+          <span className="hotkey-combo">Ctrl + Shift + W</span>
+        </div>
+        {p.hotkeyErr && <div id="settings-hotkey-error" role="alert">{p.hotkeyErr}</div>}
       </div>
       <div id="settings-list">
         {p.providers.length === 0 && <p id="settings-empty">Belum ada provider. Tambahkan endpoint di bawah.</p>}

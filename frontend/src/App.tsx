@@ -11,7 +11,7 @@ import {
     WindowSetAlwaysOnTop,
     WindowSetSize,
 } from '../wailsjs/runtime/runtime';
-import {AutostartEnabled, HideWindow, SetAutostart, TrayError, TrayStatus} from '../wailsjs/go/main/App';
+import {AutostartEnabled, HideWindow, HotkeyError, SetAutostart, TrayError, TrayStatus} from '../wailsjs/go/main/App';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {SettingsPanel} from './components/settings/SettingsPanel';
 import {useChat} from './hooks/useChat';
@@ -45,9 +45,14 @@ function App() {
             WindowSetSize(CHAT.w, CHAT.h);
             setMode('settings');
         });
+        EventsOn('app:toggle', () => {
+            WindowSetSize(CHAT.w, CHAT.h);
+            setMode('chat');
+        });
         return () => {
             EventsOff('app:show');
             EventsOff('app:settings');
+            EventsOff('app:toggle');
         };
     }, []);
 
@@ -72,9 +77,11 @@ function App() {
 
     const [autostart, setAutostartOn] = useState<boolean>(false);
     const [autostartErr, setAutostartErr] = useState<string | null>(null);
+    const [hotkeyErr, setHotkeyErr] = useState<string>("");
 
     useEffect(() => {
         AutostartEnabled().then(setAutostartOn).catch(() => setAutostartOn(false));
+        HotkeyError().then(setHotkeyErr).catch(() => setHotkeyErr(""));
     }, []);
 
     const toggleAutostart = useCallback(async () => {
@@ -112,7 +119,7 @@ function App() {
     if (mode === 'settings') {
         return (
             <div id="chat">
-                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} />
+                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} hotkeyErr={hotkeyErr} />
             </div>
         );
     }

@@ -15,6 +15,8 @@ export function HideWindow():Promise<void>;
 
 export function History(arg1:string,arg2:number):Promise<Array<app.ChatMessage>>;
 
+export function HotkeyError():Promise<string>;
+
 export function ListConversations():Promise<Array<app.Conversation>>;
 
 export function ListProviders():Promise<Array<config.ProviderProfile>>;
@@ -32,6 +34,8 @@ export function SetAutostart(arg1:boolean):Promise<void>;
 export function Show():Promise<void>;
 
 export function TestProvider(arg1:app.SaveInput):Promise<app.TestResult>;
+
+export function ToggleChat():Promise<void>;
 
 export function TrayError():Promise<string>;
 

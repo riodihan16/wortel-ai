@@ -261,6 +261,26 @@ button {
     font-size: 12px;
 }
 
+#settings-hotkey {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+.hotkey-combo {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: monospace;
+}
+
+#settings-hotkey-error {
+    color: #fca5a5;
+    font-size: 12px;
+}
+
 #settings-form {
     display: flex;
     flex-direction: column;

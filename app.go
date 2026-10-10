@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"os"
+	"sync"
 
 	"companion/internal/ai"
 	"companion/internal/app"
 	"companion/internal/autostart"
 	"companion/internal/config"
 	"companion/internal/credentials"
+	"companion/internal/hotkey"
 	"companion/internal/storage"
 	"companion/internal/tray"
 
@@ -18,9 +20,13 @@ import (
 
 // App struct
 type App struct {
-	ctx   context.Context
-	svc   *app.Service
-	provs *app.Providers
+	ctx       context.Context
+	svc       *app.Service
+	provs     *app.Providers
+	hotkeyErr string
+
+	mu     sync.Mutex
+	hidden bool
 }
 
 // NewApp creates a new App application struct
@@ -43,32 +49,67 @@ func (a *App) startup(ctx context.Context) {
 	// M5 tray. Failure is non-fatal: app keeps running without tray.
 	// Error stored and exposed via TrayError so Probe shows the cause.
 	if err := tray.Start(tray.Callbacks{
-		OnShow:     func() { runtime.WindowShow(ctx); runtime.EventsEmit(ctx, "app:show") },
-		OnSettings: func() { runtime.WindowShow(ctx); runtime.EventsEmit(ctx, "app:settings") },
-		OnHide:     func() { runtime.WindowHide(ctx) },
+		OnShow:     func() { a.setHidden(false); runtime.WindowShow(ctx); runtime.EventsEmit(ctx, "app:show") },
+		OnSettings: func() { a.setHidden(false); runtime.WindowShow(ctx); runtime.EventsEmit(ctx, "app:settings") },
+		OnHide:     func() { a.setHidden(true); runtime.WindowHide(ctx) },
 		OnExit:     func() { runtime.Quit(ctx) },
 	}); err != nil {
 		tray.SetError(err)
 	}
+	// M5 shortcut global (FR-010). Failure is non-fatal and reported
+	// to the user via HotkeyError so they can pick another combo.
+	if err := hotkey.Start(hotkey.Default, func() { a.ToggleChat() }); err != nil {
+		a.hotkeyErr = err.Error()
+	}
 }
 
-// shutdown cancels active streams and removes the tray icon.
-// Runs synchronously: streams stop, no goroutine lingers (FR-011).
+// ToggleChat shows the window in chat mode, or hides it when already shown.
+// Visibility is tracked in the App because Wails exposes no IsVisible probe.
+func (a *App) ToggleChat() {
+	a.mu.Lock()
+	hidden := a.hidden
+	a.hidden = !hidden
+	a.mu.Unlock()
+	if hidden {
+		runtime.WindowShow(a.ctx)
+		runtime.EventsEmit(a.ctx, "app:toggle")
+		return
+	}
+	runtime.WindowHide(a.ctx)
+}
+
+// shutdown cancels active streams, removes the tray icon, and releases
+// the global shortcut. Runs synchronously: no goroutine lingers (FR-011).
 func (a *App) shutdown(ctx context.Context) {
 	if a.svc != nil {
 		a.svc.CancelAll()
 	}
+	hotkey.Stop()
 	tray.Stop()
 }
 
 // Show brings the window up from tray-hidden state.
 func (a *App) Show() {
+	a.setHidden(false)
 	runtime.WindowShow(a.ctx)
 }
 
 // HideWindow sends the window to the tray (M5 hide to tray).
 func (a *App) HideWindow() {
+	a.setHidden(true)
 	runtime.WindowHide(a.ctx)
+}
+
+func (a *App) setHidden(v bool) {
+	a.mu.Lock()
+	a.hidden = v
+	a.mu.Unlock()
+}
+
+// HotkeyError returns the global-shortcut registration error, empty when OK.
+// Non-empty means the default combo was taken; the user must be told (FR-010).
+func (a *App) HotkeyError() string {
+	return a.hotkeyErr
 }
 
 // TrayStatus reports whether the tray icon loop owns an icon.
