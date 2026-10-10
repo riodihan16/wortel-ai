@@ -58,7 +58,7 @@ html, body, #root {
     gap: 4px;
     background: transparent;
     color: var(--text);
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 #pet-dot {
@@ -68,7 +68,7 @@ html, body, #root {
     border: 2px solid var(--accent-2);
     background: var(--bg);
     color: var(--text);
-    font-size: 20px;
+    font-size: calc(20px * var(--font-scale));
     cursor: pointer;
 }
 
@@ -105,7 +105,7 @@ html, body, #root {
 
 #chat-body {
     padding: 12px;
-    font-size: 13px;
+    font-size: calc(13px * var(--font-scale));
 }
 
 #chat-actions {
@@ -137,14 +137,14 @@ button {
 
 #chat-empty {
     opacity: 0.7;
-    font-size: 13px;
+    font-size: calc(13px * var(--font-scale));
 }
 
 .msg {
     max-width: 90%;
     padding: 6px 10px;
     border-radius: 10px;
-    font-size: 13px;
+    font-size: calc(13px * var(--font-scale));
     line-height: 1.4;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -163,7 +163,7 @@ button {
 }
 
 .msg-status {
-    font-size: 11px;
+    font-size: calc(11px * var(--font-scale));
     opacity: 0.7;
     margin-top: 2px;
 }
@@ -177,7 +177,7 @@ button {
     border: 1px solid var(--danger-border);
     border-radius: 8px;
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 #chat-composer {
@@ -193,7 +193,7 @@ button {
     background: var(--bg-deep);
     color: var(--text);
     padding: 6px 8px;
-    font-size: 13px;
+    font-size: calc(13px * var(--font-scale));
 }
 
 #btn-send, #btn-stop {
@@ -218,7 +218,7 @@ button {
 }
 
 #chat-state {
-    font-size: 11px;
+    font-size: calc(11px * var(--font-scale));
     opacity: 0.6;
 }
 
@@ -228,7 +228,7 @@ button {
     gap: 8px;
     padding: 12px;
     overflow-y: auto;
-    font-size: 13px;
+    font-size: calc(13px * var(--font-scale));
 }
 
 #settings-header {
@@ -264,7 +264,7 @@ button {
 }
 
 .prov-meta {
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
     opacity: 0.7;
     word-break: break-all;
 }
@@ -285,14 +285,14 @@ button {
 
 #settings-general h4 {
     margin: 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--font-scale));
 }
 
 .checkrow {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 .checkrow input {
@@ -302,14 +302,14 @@ button {
 
 #settings-general-error {
     color: var(--danger-text);
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 #settings-hotkey {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 .hotkey-combo {
@@ -322,7 +322,7 @@ button {
 
 #settings-hotkey-error {
     color: var(--danger-text);
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 #settings-appearance {
@@ -335,14 +335,14 @@ button {
 
 #settings-appearance h4 {
     margin: 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--font-scale));
 }
 
 .appearance-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
     gap: 8px;
 }
 
@@ -357,7 +357,7 @@ button {
     color: var(--text);
     border-radius: 6px;
     padding: 3px 10px;
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 .seg button.seg-on {
@@ -368,7 +368,7 @@ button {
 
 #settings-appearance-error {
     color: var(--danger-text);
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 #settings-form {
@@ -383,7 +383,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 #settings-form input {
@@ -421,7 +421,7 @@ button {
     border: 1px solid var(--border);
     background: var(--bg-input);
     color: var(--text);
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 #conv-rename {
@@ -456,7 +456,7 @@ button {
     border-radius: 6px;
     padding: 6px 8px;
     overflow-x: auto;
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
     margin: 0 0 6px 0;
 }
 
@@ -464,7 +464,7 @@ button {
     background: var(--bg-input);
     border-radius: 4px;
     padding: 0 4px;
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale));
 }
 
 .msg-body pre code {
