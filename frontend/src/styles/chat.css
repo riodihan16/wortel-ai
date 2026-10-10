@@ -477,3 +477,18 @@
     border-color: var(--color-rule-strong);
     color: var(--color-ink-3);
 }
+
+/* Conversation search: leads a long menu (7+ entries). */
+.conv-search {
+    flex-shrink: 0;
+    margin-bottom: var(--space-1);
+    padding: 5px var(--space-2);
+    font-size: var(--text-sm);
+}
+
+.conv-empty {
+    margin: 0;
+    padding: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--color-ink-3);
+}

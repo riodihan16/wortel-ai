@@ -18,6 +18,10 @@ interface Props {
 
 const FRESH_LABEL = "Percakapan baru";
 
+// Past this many entries a search box leads the menu: scanning 30 look-alike
+// titles is recall work; typing two letters is recognition.
+const SEARCH_FROM = 7;
+
 function itemLabel(c: ConversationItem): string {
   return c.title || c.id.slice(0, 8);
 }
@@ -27,6 +31,8 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
   const boxRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
 
   // A freshly created conversation is not in the list until its first message
   // is saved; keep it visible as the current entry.
@@ -35,6 +41,14 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
     : [{ id: conversationId, title: FRESH_LABEL }, ...conversations];
   const current = items.find((c) => c.id === conversationId);
   const currentLabel = current ? itemLabel(current) : FRESH_LABEL;
+  const searchable = items.length >= SEARCH_FROM;
+  const needle = query.trim().toLowerCase();
+  const shown = needle ? items.filter((c) => itemLabel(c).toLowerCase().includes(needle)) : items;
+
+  const pick = (c: ConversationItem) => {
+    close(true);
+    if (c.id !== conversationId) onSwitch(c.id);
+  };
 
   const close = (refocus: boolean) => {
     setOpen(false);
@@ -43,7 +57,8 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
 
   useEffect(() => {
     if (!open) return;
-    menuRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
+    setQuery("");
+    (searchRef.current ?? menuRef.current?.querySelector<HTMLElement>('[aria-checked="true"]'))?.focus();
     const onDoc = (e: MouseEvent) => {
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
     };
@@ -91,7 +106,27 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
         // tabIndex -1: a press on the menu's padding or scrollbar focuses the
         // menu itself instead of <body>, so the blur rule above keeps it open.
         <div className="menu conv-menu" role="menu" ref={menuRef} tabIndex={-1} onKeyDown={(e) => moveMenuFocus(e, menuRef.current)}>
-          {items.map((c) => {
+          {searchable && (
+            <input
+              ref={searchRef}
+              type="search"
+              className="input conv-search"
+              aria-label="Cari percakapan"
+              placeholder="Cari judul…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                // Home/End move the caret here, not the menu focus.
+                if (e.key === "Home" || e.key === "End") e.stopPropagation();
+                if (e.key === "Enter" && shown.length > 0) {
+                  e.preventDefault();
+                  pick(shown[0]);
+                }
+              }}
+            />
+          )}
+          {shown.length === 0 && <p className="conv-empty">Tidak ada percakapan yang cocok.</p>}
+          {shown.map((c) => {
             const isOn = c.id === conversationId;
             return (
               <button
@@ -101,10 +136,7 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
                 aria-checked={isOn}
                 className={isOn ? "menu-option menu-option--on" : "menu-option"}
                 title={itemLabel(c)}
-                onClick={() => {
-                  close(true);
-                  if (!isOn) onSwitch(c.id);
-                }}
+                onClick={() => pick(c)}
               >
                 <span className="menu-option__label">{itemLabel(c)}</span>
                 {isOn && <IconCheck size={14} />}
