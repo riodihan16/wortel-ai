@@ -504,7 +504,11 @@ button:disabled {
 #model-menu {
     position: absolute;
     top: calc(100% + 4px);
-    right: 0;
+    /* Anchor to the picker's left edge: the picker sits at the left of the
+       header, so right:0 pushed a 160px-wide menu past the window's left edge
+       (x = -16) where #chat's overflow:hidden clipped it. */
+    left: 0;
+    right: auto;
     z-index: 20;
     display: flex;
     flex-direction: column;

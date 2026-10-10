@@ -138,6 +138,15 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** hapus `tailwindcss` + `@tailwindcss/vite`, ganti dengan reset CSS eksplisit (`box-sizing`, margin/padding nol, font inherit) di `style.css`. Styling tetap pakai token di `App.css`.
 - **Bukti:** CSS bundle 11.31 kB → 7.02 kB (gzip 2.97 → 1.76 kB). `tsc` dan `npm run build` bersih; UI terverifikasi render (pet mode tombol + header chat).
 
+## ADR-033 — Dropdown model terpotong di sisi kiri (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** Setelah pemilih model pindah ke `#chat-subheader` (sisi kiri), dropdown tetap terpotong.
+- **Akar:** `#model-menu` memakai `right: 0` relatif `#model-picker` yang berada di kiri layar; menu lebar minimum 160px melebar ke kiri hingga `x = -16`, di luar batas `#chat` yang `overflow: hidden`, sehingga sebagian item terpotong.
+- **Perbaikan:** `#model-menu` diset `left: 0; right: auto`, jadi menu melebar ke kanan dari tepi kiri picker.
+- **Bukti:** probe browser nyata — sebelum: `mLeft -16`, `clippedLeft true`; sesudah: `mLeft 12`, `mRight 172`, `clippedLeft/Right/Bottom false`, 3 opsi tampil. `tsc`, `go test ./...`, clean release build, app start bersih.
+- **Catatan:** saat picker pindah posisi lagi, anchor menu harus ikut disesuaikan (kiri/kanan) agar tidak keluar jendela.
+
 ## ADR-032 — Baris kedua header: pemilih model dipindah ke bawah, status sejajar (2026-10-10)
 
 - **Status:** Done.
