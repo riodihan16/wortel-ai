@@ -244,3 +244,18 @@ func TestMigrationV3toV4(t *testing.T) {
 		t.Fatalf("v4 not idempotent: %q vs %q", modelsJSON, after)
 	}
 }
+
+// TestEnsureConversationFailsAfterClose proves the write path the service
+// guards on: once the DB is closed (disk gone, handle lost) EnsureConversation
+// returns an error rather than panicking, so Service can surface a storage
+// failure instead of starting a stream that would never persist.
+func TestEnsureConversationFailsAfterClose(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "closed.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	_ = db.Close()
+	if err := db.EnsureConversation("c1", "Halo"); err == nil {
+		t.Fatal("expected error from EnsureConversation on a closed DB")
+	}
+}

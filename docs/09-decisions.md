@@ -267,6 +267,32 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Frontend:** `useChat` kelola daftar + `conversationId` aktif, `ChatPanel` dropdown + baru/rename/hapus (konfirmasi), `SafeMarkdown` tanpa deps: paragraf/list/code/`code`/bold/italic/link, raw HTML tak render, link allowlist http/https saja.
 - **Verifikasi:** `go test ./...` ok, `tsc` bersih, `gofmt` bersih, `wails build` ok → `build/bin/companion.exe`. Tes `TestConversationCRUD` (rename/cascade/missing).
 - **Sisa M4:** smoke manual Windows (baru/buka/rename/hapus + restart persist + markdown render + hapus saat streaming ditolak).
+## ADR-039 — Guard cancel tidak boleh terkunci permanen (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** `useChat.cancel()` menjalankan `await CancelGeneration(...)` lalu melepas guard (`sendingRef`, `activeRequest`) **tanpa** `try/finally`. Audit pra-rilis menemukan: bila `CancelGeneration` reject (IPC/backend error), kedua guard tertinggal `true`/non-null → `busyNow()` selamanya true → tombol +, rename, delete, select, dan `send()` terkunci sampai restart aplikasi.
+- **Keputusan:** bungkus dengan `try/catch/finally`; `finally` selalu reset `sendingRef.current = false`, `activeRequest.current = null`, `status = "idle"`. Error cancel dilaporkan lewat `setError`, tidak ditelan.
+- **Bukti:** `useChat.test.ts` — dua tes (`cancel` gagal saat fase sending; gagal saat fase streaming dengan `started` sudah tiba) memverifikasi guard lepas dan `send()` berikutnya jalan. Dihapus sementara → 2 tes gagal (menangkap regresi).
+- **Konsekuensi:** guard selaras dengan FR-005 (cancel selalu mengembalikan UI ke idle).
+
+## ADR-038 — Kegagalan start menampilkan pesan, bukan hilang di stdout (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** `main.go` memanggil `println("Error:", ...)` bila `wails.Run` gagal. Pada build GUI tidak ada console, jadi error (termasuk WebView2 Runtime tidak terpasang) tak terlihat. FR-001 mensyaratkan "ketergantungan runtime ditangani dengan pesan yang dapat dimengerti".
+- **Pilihan:** (a) biarkan; (b) `MessageBoxW` Win32 dengan pesan khusus WebView2; (c) log ke file.
+- **Keputusan:** (b). `fatal_windows.go` memakai `user32!MessageBoxW` (`flags = MB_OK|MB_ICONERROR|MB_SETFOREGROUND`). Bila error memuat `webview2`/`runtime version not available`, teks berisi tautan unduhan WebView2. Di non-Windows, `fatal_other.go` mencetak ke stdout.
+- **Bukti:** probe memanggil `fatalDialog` dengan error WebView2 → proses **memblokir** menunggu klik (dialog tampil); `isWebView2Missing` lulus unit test (2 positif, 2 negatif). Aplikasi normal tetap start dan keluar bersih.
+- **Konsekuensi:** kegagalan start selalu terlihat user; pesan menyertakan detail error asli (tanpa secret).
+
+## ADR-037 — Persistensi percakapan best-effort, bukan blocker stream (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** `internal/app/service.go` menulis conversation + pesan (`EnsureConversation`, `AppendMessage`, `UpdateMessage`) di dalam goroutine streaming dan mengabaikan error (`_ =`). Audit pra-rilis menanyakan apakah error ini harus menggagalkan request.
+- **Pilihan:** (a) propagasi error tulis → batalkan stream + emit `failed`; (b) best-effort, abaikan, andalkan user melihat history kosong; (c) retry dengan backoff.
+- **Keputusan:** (b). Stream ke provider adalah operasi jaringan panjang; kegagalan tulis lokal (disk penuh, handle hilang) tidak boleh membuang respons yang sudah diterima user. MVP tidak punya retry queue; (c) ditunda.
+- **Batas yang diketahui:** bila penulisan gagal, pesan hilang saat restart tanpa notifikasi. `EnsureConversation` pada DB tertutup sudah dipastikan mengembalikan error, bukan panic (`TestEnsureConversationFailsAfterClose`), sehingga layanan tetap aman. Kondisi `resolve` sukses **dan** tulis gagal (mis. disk penuh tepat di tengah) sulit direproduksi dalam unit test tanpa hook test-only di produksi; karenanya tidak ada tes otomatis untuk jalur emisi, hanya jaminan tidak-panic.
+- **Konsekuensi:** error persistensi tidak terlihat user pada 0.1.0. Kandidat perbaikan M7: surface `storage` error via `ChatEvent` bila sebuah flag diset, atau retry queue.
+
 ## ADR-036 — M6 hardening: race detector aktif (MinGW-w64) (2026-10-10)
 
 - **Status:** Done.

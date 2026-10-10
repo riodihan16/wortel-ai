@@ -235,14 +235,14 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - [x] Versi aplikasi ditampilkan. → `App.Version()` di header chat; `0.1.0` terverifikasi tertanam di binary (ADR-025).
 - [x] Cara install/run dan uninstall didokumentasikan. → README "Distribusi dan uninstall".
 - [x] Lokasi data lokal dijelaskan. → `%LOCALAPPDATA%\WortelAI\wortel.db` (+ `-wal`/`-shm`); README + docs 07.
-- [x] WebView2 requirement dijelaskan. → README "Menjalankan dan membangun".
+- [x] WebView2 requirement dijelaskan. → README "Menjalankan dan membangun"; kegagalan start menampilkan `MessageBoxW` dengan tautan unduh WebView2 bila runtime absen (ADR-038).
 - [x] Signing/SmartScreen behavior dipertimbangkan sebelum distribusi publik. → **Belum ditandatangani.** Executable tanpa Authenticode memicu peringatan SmartScreen "Windows protected your PC". Untuk distribusi publik perlu sertifikat code signing; untuk MVP portable pribadi, pengguna menekan "More info → Run anyway". Dicatat sebagai known issue.
 
 ### Artifact rilis 0.1.0
 
 - **File:** `build/bin/companion.exe`
-- **Ukuran:** 15,686,144 byte (~15.0 MB)
-- **SHA-256:** `8a665dab5be232121cbe095335a8abeeba4b621464f9f1f2ed0b1ea20bbc6764`
+- **Ukuran:** 15,687,680 byte (~15.0 MB)
+- **SHA-256:** `8293dcc63700f0b3dc1fbba793abe986350ac90de5cae22c0f2eed2561b2cbfa`
 - **Perintah build:** `wails build -ldflags "-X main.Version=0.1.0"` dari clean checkout (setelah `rm -rf frontend/dist build/bin`).
 - **Verifikasi:** versi `0.1.0` tertanam di binary (mekanisme `-X main.Version` dibuktikan balik lewat probe `go run`); aplikasi start dan tercatat `[WebView2] Environment created successfully`. Migrasi DB user nyata v2→v3 dan v3→v4 terverifikasi (kolom `models`/`active_model`; migrasi v4 mengubah daftar model string menjadi entri `{id,alias}`).
 - **Catatan:** hash diperbarui pada M6 hardening (ADR-027 alias + ADR-035 regression suite frontend) setelah build ulang dari clean checkout.
@@ -254,5 +254,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - Beberapa item diuji manual oleh user pada release build dan lulus: drag karakter, hide/show tray (ikon), hotkey global `Ctrl+Shift+W`, perilaku display-change, dan streaming ke endpoint OpenAI-compatible sungguhan.
 - `go test -race ./...` hijau. Mesin build punya MinGW-w64 (WinLibs POSIX/UCRT, `gcc` di PATH user via `winget install BrechtSanders.WinLibs.POSIX.UCRT`). Jalankan race dengan `CGO_ENABLED=1 go test -race ./...`. Dua data race di **kode test** ditemukan dan diperbaiki: emitter tidak sinkron di `TestSendAndCancel` dan `TestCancelAllStopsStreams` kini lewat `eventSink` ber-mutex. Produksi tidak terpengaruh (`s.mu` sudah menjaga map; buffer streaming lokal per goroutine). Build rilis tetap `CGO_ENABLED=0` (artefak tidak memakai CGO).
 - UI frontend kini punya runner permanen: `vitest`+`jsdom`, 12 tes (`useChat` reducer/guard, `SafeMarkdown` allowlist link). Sisa yang belum ditutup otomatis: composer Enter vs Shift+Enter, busy state kontrol, dan render provider key; masih mengandalkan probe/manual.
+- Kegagalan persistensi percakapan (disk penuh / handle DB hilang) **tidak terlihat user** pada 0.1.0: stream tetap jalan, pesan hilang saat restart. Best-effort by design (ADR-037); tidak ada tes otomatis untuk jalur emisi karena sulit direproduksi tanpa hook test-only.
+- SmartScreen: executable belum ditandatangani (lihat Distribusi) — butuh sertifikat code signing untuk distribusi publik.
 
 

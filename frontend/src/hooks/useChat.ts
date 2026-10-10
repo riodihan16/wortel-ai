@@ -184,8 +184,20 @@ export function useChat() {
 
   const cancel = useCallback(async () => {
     // Saat sending, requestId belum ada: batalkan via backend lalu lepas guard.
-    await CancelGeneration(convRef.current);
-    sendingRef.current = false;
+    // finally: guard harus lepas walau CancelGeneration reject; kalau tidak,
+    // tombol +/rename/delete/send terkunci permanen (busyNow() true selamanya).
+    try {
+      await CancelGeneration(convRef.current);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal membatalkan.");
+    } finally {
+      // Lepas kedua guard: sendingRef untuk fase "sending", activeRequest untuk
+      // fase "streaming". Kalau salah satu tertinggal, send() dan aksi lain
+      // terkunci permanen sampai restart.
+      sendingRef.current = false;
+      activeRequest.current = null;
+      setStatus("idle");
+    }
   }, []);
 
   const busyNow = useCallback(

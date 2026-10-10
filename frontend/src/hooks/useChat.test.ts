@@ -138,3 +138,48 @@ describe("useChat send guard", () => {
     expect(backend.send).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("useChat cancel guard", () => {
+  it("releases the busy guard when CancelGeneration rejects", async () => {
+    const { result } = await mountChat();
+    await act(async () => {
+      await result.current.send("halo");
+    });
+    expect(result.current.busy).toBe(true);
+
+    backend.cancel.mockRejectedValueOnce(new Error("IPC gagal"));
+    await act(async () => {
+      await result.current.cancel();
+    });
+
+    // Guard must be released even though cancel failed, otherwise every
+    // action guarded by busyNow() would stay locked forever.
+    expect(result.current.busy).toBe(false);
+    await act(async () => {
+      await result.current.send("lagi");
+    });
+    expect(backend.send).toHaveBeenCalledTimes(2);
+  });
+
+  it("releases both guards when cancel fails during the streaming phase", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+    await act(async () => {
+      await result.current.send("halo");
+    });
+    // Backend adopts the requestId only once "started" arrives.
+    act(() => emit({ type: "started", messageId: "m1" }, conv));
+    expect(result.current.status).toBe("streaming");
+
+    backend.cancel.mockRejectedValueOnce(new Error("IPC gagal"));
+    await act(async () => {
+      await result.current.cancel();
+    });
+
+    expect(result.current.busy).toBe(false);
+    await act(async () => {
+      await result.current.send("lagi");
+    });
+    expect(backend.send).toHaveBeenCalledTimes(2);
+  });
+});

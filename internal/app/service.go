@@ -114,6 +114,9 @@ func (s *Service) SendMessage(ctx context.Context, conversationID, text string) 
 		db := s.db()
 		userMsgID := uuid.NewString()
 		if db != nil {
+			// Persistence is best-effort by design: a DB failure must not abort
+			// an in-flight stream. The error surfaces later when the history
+			// list is empty after restart; see ADR-037.
 			_ = db.EnsureConversation(conversationID, storage.TitleFor(text))
 			_ = db.AppendMessage(storage.MessageRow{ID: userMsgID, ConversationID: conversationID, Role: "user", Content: text, Status: "complete", Model: model})
 			_ = db.AppendMessage(storage.MessageRow{ID: messageID, ConversationID: conversationID, Role: "assistant", Content: "", Status: "streaming", Model: model})
