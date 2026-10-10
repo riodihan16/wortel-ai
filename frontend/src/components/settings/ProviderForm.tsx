@@ -218,7 +218,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       <h3 className="prov-form__title" id={titleId}>{editing ? "Ubah provider" : "Provider baru"}</h3>
       {!editing && (
         <div className="field">
-          <span className="field__label" id={`${titleId}-presets`}>Isi otomatis untuk</span>
+          <span className="field__label" id={`${titleId}-presets`}>Pilih layanan untuk isi otomatis (opsional)</span>
           <div className="preset-row" role="group" aria-labelledby={`${titleId}-presets`}>
             {PROVIDER_PRESETS.map((pr, i) => (
               <button
@@ -233,6 +233,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
               </button>
             ))}
           </div>
+          {preset && <div className="field__hint">{preset.source}</div>}
         </div>
       )}
       <div className="field">
