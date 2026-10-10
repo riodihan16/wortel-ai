@@ -195,3 +195,21 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Quit confirmation replaces the rail's icons. It stays shown while it
+   holds focus (Batal is focused first), so leaving with the pointer does not
+   hide a pending question. */
+#pet .pet__actions--confirm {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+    white-space: nowrap;
+}
+
+#pet .pet__confirm-msg {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-ink);
+}
