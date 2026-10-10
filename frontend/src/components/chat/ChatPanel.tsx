@@ -1,10 +1,13 @@
 // ChatPanel owns #chat-main: conv-bar, list, error, composer, footer.
 // Invariants: prop interface frozen; draft clears only on success (submit);
-// error never clears draft. Rename Escape cancels; no window-level Escape.
+// error never clears draft. Rename and delete-confirm rows are mutually
+// exclusive, Escape cancels either; no window-level Escape. Delete asks inline,
+// never through window.confirm: WebView2 draws that natively, outside the theme.
 import { useEffect, useRef, useState } from "react";
 import type { JSX, KeyboardEvent, ReactNode } from "react";
 import type { ChatMessage, ChatStatus } from "../../types/chat";
 import type { ConversationItem } from "../../hooks/useChat";
+import { ConversationPicker } from "./ConversationPicker";
 import { SafeMarkdown } from "./SafeMarkdown";
 import {
   IconAlert,
@@ -83,6 +86,8 @@ export function ChatPanel({
 }: Props): JSX.Element {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const deleteBtnRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
@@ -114,6 +119,27 @@ export function ChatPanel({
     setRenaming(null);
   };
 
+  const cancelDelete = () => {
+    setDeleting(null);
+    deleteBtnRef.current?.focus();
+  };
+
+  const confirmDelete = (id: string) => {
+    setDeleting(null);
+    onDelete(id);
+    // The focused Hapus button unmounts with the row; hand focus to the
+    // composer instead of letting it fall to <body>.
+    composerRef.current?.focus();
+  };
+
+  // The row names one conversation; switching away must not leave it armed
+  // against a conversation the user is no longer looking at. `armed` also
+  // guards the one render between the switch and this effect's reset.
+  useEffect(() => {
+    setDeleting(null);
+  }, [conversationId]);
+  const armed = deleting === conversationId ? deleting : null;
+
   const cur = conversations.find((c) => c.id === conversationId);
   const curTitle = cur?.title || conversationId.slice(0, 8);
   const label = statusLabel(status);
@@ -121,28 +147,12 @@ export function ChatPanel({
   return (
     <div id="chat-main">
       <div id="conv-bar">
-        <select
-          id="conv-select"
-          className="select"
-          value={conversationId}
-          onChange={(e) => onSwitch(e.target.value)}
-          title="Pilih percakapan"
-          aria-label="Pilih percakapan"
+        <ConversationPicker
+          conversations={conversations}
+          conversationId={conversationId}
           disabled={busy}
-        >
-          {/* A freshly created conversation has an id that is not in the list
-              yet. Without a matching option the browser silently forces the
-              select to the first entry, and picking that entry then fires no
-              change event. Keep a placeholder option for the current id. */}
-          {!conversations.some((c) => c.id === conversationId) && (
-            <option value={conversationId}>Percakapan baru</option>
-          )}
-          {conversations.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title || c.id.slice(0, 8)}
-            </option>
-          ))}
-        </select>
+          onSwitch={onSwitch}
+        />
         <button type="button" className="icon-btn" onClick={onNew} title="Percakapan baru" aria-label="Percakapan baru" disabled={busy}>
           <IconPlus size={15} />
         </button>
@@ -150,6 +160,7 @@ export function ChatPanel({
           type="button"
           className="icon-btn"
           onClick={() => {
+            setDeleting(null);
             setRenameDraft(cur?.title ?? "");
             setRenaming(conversationId);
           }}
@@ -160,18 +171,45 @@ export function ChatPanel({
           <IconPencil size={15} />
         </button>
         <button
+          ref={deleteBtnRef}
           type="button"
           className="icon-btn icon-btn--danger"
           onClick={() => {
-            if (window.confirm(`Hapus percakapan "${curTitle}"?`)) onDelete(conversationId);
+            setRenaming(null);
+            setDeleting(conversationId);
           }}
           title="Hapus percakapan"
           aria-label="Hapus percakapan"
+          aria-expanded={armed !== null}
           disabled={busy || !conversationId}
         >
           <IconTrash size={15} />
         </button>
       </div>
+      {armed && (
+        <div
+          id="conv-delete"
+          role="group"
+          aria-label="Konfirmasi hapus percakapan"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") cancelDelete();
+          }}
+        >
+          <IconAlert size={14} />
+          <span className="conv-delete__msg">
+            <span>Hapus permanen “</span>
+            <span className="conv-delete__title">{curTitle}</span>
+            <span>”?</span>
+          </span>
+          <button type="button" className="btn btn--sm btn--danger" onClick={() => confirmDelete(armed)} disabled={busy}>
+            Hapus
+          </button>
+          {/* Focused first: Enter on an armed row must not delete. */}
+          <button type="button" className="btn btn--sm" onClick={cancelDelete} autoFocus>
+            Batal
+          </button>
+        </div>
+      )}
       {renaming && (
         <div id="conv-rename">
           <input

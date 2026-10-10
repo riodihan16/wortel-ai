@@ -54,7 +54,7 @@ export function ModelPicker({ provider, busy, onModelChange }: Props): JSX.Eleme
         <IconChevronDown size={14} />
       </button>
       {open && (
-        <div className="model-menu" role="menu">
+        <div className="menu model-menu" role="menu">
           {provider.models.map((m) => {
             const isOn = m.id === active;
             return (
@@ -63,7 +63,7 @@ export function ModelPicker({ provider, busy, onModelChange }: Props): JSX.Eleme
                 type="button"
                 role="menuitemradio"
                 aria-checked={isOn}
-                className={isOn ? "model-option model-option--on" : "model-option"}
+                className={isOn ? "menu-option menu-option--on" : "menu-option"}
                 title={m.id}
                 disabled={busy}
                 onClick={() => {
@@ -71,7 +71,7 @@ export function ModelPicker({ provider, busy, onModelChange }: Props): JSX.Eleme
                   if (!isOn) onModelChange(provider.id, m.id);
                 }}
               >
-                <span className="model-option__label">{m.alias || m.id}</span>
+                <span className="menu-option__label">{m.alias || m.id}</span>
                 {isOn && <IconCheck size={14} />}
               </button>
             );

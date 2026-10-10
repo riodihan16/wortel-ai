@@ -459,3 +459,75 @@
     font-size: var(--text-xs);
     letter-spacing: 0.02em;
 }
+
+/* ---------------- menu ----------------
+   Floating option list shared by the model and conversation pickers. Each
+   picker positions it (.model-menu opens up, .conv-menu opens down). */
+.menu {
+    position: absolute;
+    z-index: var(--z-menu);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-1);
+    min-width: 0;
+    overflow-y: auto;
+    background: var(--color-paper-3);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-3);
+}
+
+/* Options: default·hover·focus-visible·active·disabled·success(active tick)
+   styled here; loading·error unreachable (local menu, no fetch). */
+.menu-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-width: 0;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    text-align: left;
+}
+
+.menu-option:hover:not(:disabled) {
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+}
+
+.menu-option:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+.menu-option:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.menu-option:disabled {
+    opacity: 0.45;
+}
+
+.menu-option--on {
+    color: var(--color-ink);
+    font-weight: 600;
+}
+
+.menu-option--on svg {
+    margin-left: auto;
+    flex-shrink: 0;
+    color: var(--color-accent);
+}
+
+.menu-option__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

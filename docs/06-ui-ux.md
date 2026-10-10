@@ -112,7 +112,10 @@ Mendukung multi-monitor dan DPI scaling perlu dites. Jangan mengasumsikan koordi
 - Semua tombol memiliki label/tooltip atau accessible name.
 - Loading indicator tidak boleh menutupi teks yang sudah diterima.
 - Saat error, pertahankan teks pengguna dan teks parsial agar tidak hilang.
-- Tombol destructive seperti Delete conversation diberi konfirmasi.
+- Tombol destructive seperti Delete conversation diberi konfirmasi inline
+  bertema (ADR-048). Jangan pakai `window.confirm`/`alert`/`prompt` maupun
+  `<select>` native: WebView2 menggambar keduanya dengan chrome sistem di luar
+  tema.
 
 ## 6. Aksesibilitas
 

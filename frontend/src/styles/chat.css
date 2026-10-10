@@ -25,14 +25,92 @@
     min-width: 0;
 }
 
-#conv-select {
+/* ---- conversation picker ----
+   Trigger: default·hover·active·disabled via .btn; loading = disabled while
+   busy; error·success n/a (local switch). Menu opens downward over the list. */
+.conv-picker {
+    position: relative;
     flex: 1;
     min-width: 0;
+}
+
+.conv-trigger {
+    width: 100%;
+    justify-content: flex-start;
+}
+
+.conv-trigger__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
     text-overflow: ellipsis;
+    text-align: left;
+}
+
+.conv-trigger svg {
+    flex-shrink: 0;
+    color: var(--color-ink-2);
+    transition: transform var(--dur) var(--ease-out);
+}
+
+.conv-trigger[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+
+.conv-menu {
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 50vh;
 }
 
 /* Non-submitting icon buttons: error/success states n/a. */
-#conv-bar .icon-btn:focus-visible {
+#conv-bar .icon-btn:focus-visible,
+.conv-trigger:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+/* ---- delete confirmation row ----
+   Inline, not a modal and not window.confirm: deleting one conversation needs
+   a second deliberate press, not a focus trap. Danger tint marks it as the
+   destructive step; Batal holds focus so Enter cannot delete by accident.
+   Contrast: ink on danger-soft 13.5:1, danger on danger-soft 4.6:1 (dark) /
+   5.1:1 (light). */
+#conv-delete {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+    min-width: 0;
+    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-sm);
+    background: var(--color-danger-soft);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+}
+
+#conv-delete > svg {
+    flex-shrink: 0;
+    color: var(--color-danger);
+}
+
+.conv-delete__msg {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.conv-delete__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+#conv-delete .btn:focus-visible {
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
 }
@@ -262,79 +340,12 @@
     white-space: nowrap;
 }
 
-/* Opens upward from the bottom row; anchored left per ADR-033. */
+/* Opens upward from the bottom row; anchored left per ADR-033. Chrome and
+   options come from .menu / .menu-option (controls.css). */
 .model-menu {
-    position: absolute;
     bottom: calc(100% + 4px);
-    top: auto;
     left: 0;
-    right: auto;
-    z-index: var(--z-menu);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: var(--space-1);
-    min-width: 0;
     width: max-content;
     max-width: 100%;
     max-height: 40vh;
-    overflow-y: auto;
-    background: var(--color-paper-3);
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-3);
-}
-
-/* Options: default·hover·focus-visible·active·disabled·success(active tick)
-   styled here; loading·error unreachable (local menu, no fetch). */
-.model-option {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    width: 100%;
-    min-width: 0;
-    padding: var(--space-1) var(--space-2);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--color-ink-2);
-    font-size: var(--text-sm);
-    text-align: left;
-}
-
-.model-option:hover:not(:disabled) {
-    background: var(--color-paper-2);
-    color: var(--color-ink);
-}
-
-.model-option:focus-visible {
-    outline: var(--focus-ring);
-    outline-offset: var(--focus-offset);
-}
-
-.model-option:active:not(:disabled) {
-    transform: translateY(1px);
-}
-
-.model-option:disabled {
-    opacity: 0.45;
-}
-
-.model-option--on {
-    color: var(--color-ink);
-    font-weight: 600;
-}
-
-.model-option--on svg {
-    margin-left: auto;
-    flex-shrink: 0;
-    color: var(--color-accent);
-}
-
-.model-option__label {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
