@@ -327,7 +327,10 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
             ))}
           </div>
         )}
-        <div className="field__hint">Model yang dipilih dipakai untuk chat. Alias (opsional) diisi di barisnya, hanya nama tampilan.</div>
+        <div className="field__hint">
+          Model yang dipilih dipakai untuk chat.
+          {form.models.length > 0 && " Alias (opsional) diisi di barisnya, hanya nama tampilan."}
+        </div>
       </div>
       <div className="field">
         <label className="field__label" htmlFor="settings-apikey">API key</label>

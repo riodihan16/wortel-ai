@@ -471,7 +471,8 @@
 
 /* ---------------- chip ----------------
    Small pressable pill for a one-of-many shortcut (provider presets).
-   aria-pressed carries the state; the accent ring repeats it visually. */
+   aria-pressed carries the state; the pressed chip shows it with the same
+   neutral fill + ink-3 outline as other selections (orange = focus only). */
 .chip {
     display: inline-flex;
     align-items: center;
@@ -488,8 +489,9 @@
     color var(--dur-fast) var(--ease-out);
 }
 
-.chip:hover:not(:disabled) {
-    background: var(--color-paper-3);
+/* Hover only sharpens the outline, so it never looks like the pressed chip. */
+.chip:hover:not(:disabled):not([aria-pressed="true"]) {
+    border-color: var(--color-ink-3);
     color: var(--color-ink);
 }
 

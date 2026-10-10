@@ -107,7 +107,16 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
         // only own menu items; arrows from the box are forwarded to the list.
         // tabIndex -1: a press on the padding or the empty note focuses this
         // surface (inside the picker), so the blur rule keeps the menu open.
-        <div className="menu conv-menu" tabIndex={-1}>
+        <div
+          className="menu conv-menu"
+          tabIndex={-1}
+          // A press on the surface or the empty note keeps the caret in the
+          // search box, so the user can keep typing.
+          onMouseDown={(e) => {
+            const t = e.target as HTMLElement;
+            if (searchRef.current && (t === e.currentTarget || t.closest(".conv-empty"))) e.preventDefault();
+          }}
+        >
           {searchable && (
             <input
               ref={searchRef}
