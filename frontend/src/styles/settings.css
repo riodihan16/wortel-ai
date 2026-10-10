@@ -170,6 +170,22 @@
   align-self: flex-start;
 }
 
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+
+.settings-saved {
+  align-items: center;
+}
+
+.settings-saved .banner__text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .model-add-row {
   display: flex;
   flex-wrap: wrap;

@@ -462,6 +462,42 @@
     letter-spacing: 0.02em;
 }
 
+/* ---------------- chip ----------------
+   Small pressable pill for a one-of-many shortcut (provider presets).
+   aria-pressed carries the state; the accent ring repeats it visually. */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-rule-strong);
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-2);
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    transition: background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.chip:hover:not(:disabled) {
+    background: var(--color-paper-3);
+    color: var(--color-ink);
+}
+
+.chip:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+.chip[aria-pressed="true"] {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+    color: var(--color-ink);
+    font-weight: 600;
+}
+
 /* ---------------- confirm row ----------------
    Inline second press for destructive actions (ADR-048), never a modal and
    never window.confirm. Danger tint marks the step; the caller autofocuses

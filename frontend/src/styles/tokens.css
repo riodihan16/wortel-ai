@@ -44,6 +44,17 @@
 
     --color-scrim: oklch(0% 0 0 / 0.6);
 
+    /* ---- carrot character (fixed, theme-independent) ----
+       The pet sits on the desktop wallpaper, not on app paper, so these are
+       never overridden by [data-theme]. Ink is a dark brown outline that keeps
+       the silhouette legible on light wallpaper; the body carries it on dark. */
+    --carrot-body: oklch(73% 0.165 52);
+    --carrot-shade: oklch(57% 0.16 42);
+    --carrot-leaf: oklch(70% 0.16 140);
+    --carrot-ink: oklch(27% 0.045 40);
+    --carrot-cheek: oklch(64% 0.18 25);
+    --carrot-shine: oklch(100% 0 0);
+
     color-scheme: dark;
 
     /* ---- geometry ---- */

@@ -7,6 +7,7 @@ import type { JSX, KeyboardEvent } from "react";
 import { app } from "../../../wailsjs/go/models";
 import type { ModelEntry, ProviderProfile, TestResult } from "../../types/provider";
 import { IconAlert, IconCheck, IconEyeOff, IconKey, IconX } from "../ui/Icon";
+import { PROVIDER_PRESETS, type ProviderPreset } from "./presets";
 
 type SaveInput = app.SaveInput;
 
@@ -63,15 +64,30 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   const [aliasDraft, setAliasDraft] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
+  const [preset, setPreset] = useState<ProviderPreset | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
+  const firstPresetRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
+  const keyNoteId = useId();
 
-  // Opening the form lands the user on it, never silently below the fold.
+  // Opening the form lands the user on its first control, never silently
+  // below the fold: the preset row for a new provider, Nama when editing.
   useEffect(() => {
     rootRef.current?.scrollIntoView?.({ block: "nearest" });
-    nameRef.current?.focus();
+    (firstPresetRef.current ?? nameRef.current)?.focus();
   }, []);
+
+  // A preset replaces the endpoint, and the name only while the user has not
+  // typed their own.
+  const applyPreset = (next: ProviderPreset) => {
+    setForm((f) => ({
+      ...f,
+      name: !f.name.trim() || f.name === preset?.name ? next.name : f.name,
+      baseURL: next.baseURL,
+    }));
+    setPreset(next);
+  };
 
   // Adds the trimmed draft to the model list. Duplicates are ignored so the
   // active model is unambiguous; the first model added becomes active.
@@ -138,6 +154,25 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   return (
     <div className="prov-form" ref={rootRef} role="group" aria-labelledby={titleId}>
       <h3 className="prov-form__title" id={titleId}>{editing ? "Ubah provider" : "Provider baru"}</h3>
+      {!editing && (
+        <div className="field">
+          <span className="field__label" id={`${titleId}-presets`}>Isi otomatis untuk</span>
+          <div className="preset-row" role="group" aria-labelledby={`${titleId}-presets`}>
+            {PROVIDER_PRESETS.map((pr, i) => (
+              <button
+                key={pr.name}
+                type="button"
+                className="chip"
+                ref={i === 0 ? firstPresetRef : undefined}
+                aria-pressed={preset?.name === pr.name}
+                onClick={() => applyPreset(pr)}
+              >
+                {pr.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="field">
         <label className="field__label" htmlFor="settings-name">Nama</label>
         <input id="settings-name" ref={nameRef} className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Provider pribadi" />
@@ -156,7 +191,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
               value={modelDraft}
               onChange={(e) => setModelDraft(e.target.value)}
               onKeyDown={enterAdds}
-              placeholder="example-model"
+              placeholder={preset?.modelHint ?? "ID model persis, mis. gpt-4.1-mini"}
             />
             <input
               className="input"
@@ -201,7 +236,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       <div className="field">
         <label className="field__label" htmlFor="settings-apikey">API key {editing && "(kosong = pakai tersimpan)"}</label>
         <span className="settings-keyrow">
-          <input id="settings-apikey" className="input" type={showKey ? "text" : "password"} value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} placeholder={editing ? "•••••• (tersimpan)" : "sk-..."} autoComplete="off" />
+          <input id="settings-apikey" className="input" type={showKey ? "text" : "password"} value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} placeholder={editing ? "•••••• (tersimpan)" : (preset?.keyHint ?? "sk-…")} autoComplete="off" aria-describedby={keyNoteId} />
           <button
             type="button"
             className="btn btn--sm"
@@ -213,6 +248,12 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
             {showKey ? "Sembunyikan" : "Tampilkan"}
           </button>
         </span>
+        <div className="field__hint" id={keyNoteId}>
+          {preset?.local
+            ? "Server lokal tidak memeriksa key, isi apa saja. "
+            : ""}
+          Disimpan di Windows Credential Manager, tidak pernah ditampilkan lagi.
+        </div>
       </div>
       {formError && <div id="settings-form-error" className="banner banner--error" role="alert">
         <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
@@ -223,11 +264,11 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
         <span>{test.ok ? "OK: " : ""}{test.message}{test.insecure ? " (HTTP tanpa TLS!)" : ""}</span>
       </div>}
       <div className="prov-form__actions">
-        <button type="button" className="btn btn--primary" onClick={submit}>Simpan</button>
         <button type="button" className="btn" onClick={() => onTest(toSave(form, editing))} disabled={testing}>
           {testing && <span className="spinner" aria-hidden="true" />}
-          {testing ? "Mengetes…" : "Test connection"}
+          {testing ? "Mengetes…" : "Tes koneksi"}
         </button>
+        <button type="button" className="btn btn--primary" onClick={submit}>Simpan</button>
         {onCancel && <button type="button" className="btn btn--ghost" onClick={onCancel}>Batal</button>}
       </div>
     </div>

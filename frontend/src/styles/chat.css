@@ -109,44 +109,63 @@
     padding: var(--space-1);
 }
 
-/* ---- empty state ---- */
+/* ---- empty state ----
+   The carrot leads; heading, one line of help, one action. */
 .chat-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: var(--space-2);
-    padding: var(--space-7) var(--space-4);
-    color: var(--color-accent);
+    margin: auto 0;
+    padding: var(--space-5) var(--space-4);
+}
+
+.chat-empty .carrot {
+    margin-bottom: var(--space-1);
 }
 
 .chat-empty__heading {
-    font-style: normal;
-    font-size: var(--text-md);
+    margin: 0;
+    font-size: var(--text-lg);
     font-weight: 600;
+    line-height: var(--leading-tight);
     color: var(--color-ink);
 }
 
 .chat-empty__hint {
+    margin: 0 0 var(--space-2);
+    max-width: 30ch;
     font-size: var(--text-sm);
+    line-height: var(--leading-snug);
     color: var(--color-ink-2);
 }
 
-.chat-empty__example-label {
-    font-size: var(--text-2xs);
-    color: var(--color-ink-3);
-}
-
+/* A suggestion, not code: it fills the composer and waits for Enter. */
 .chat-empty__example {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--color-ink-2);
-    background: var(--color-well);
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-md);
-    padding: var(--space-2) var(--space-3);
     max-width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: 1px dashed var(--color-rule-strong);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
     overflow-wrap: anywhere;
+    transition: background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.chat-empty__example:hover {
+    border-style: solid;
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+    color: var(--color-ink);
+}
+
+.chat-empty__example:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
 }
 
 /* ---- bubbles ---- */

@@ -9,15 +9,18 @@ import type { ChatMessage, ChatStatus } from "../../types/chat";
 import type { ConversationItem } from "../../hooks/useChat";
 import { ConversationPicker } from "./ConversationPicker";
 import { SafeMarkdown } from "./SafeMarkdown";
+import { Carrot } from "../ui/Carrot";
 import {
   IconAlert,
   IconArrowUp,
   IconPencil,
   IconPlus,
-  IconSparkle,
   IconStop,
   IconTrash,
 } from "../ui/Icon";
+
+// Inserted into the composer, never sent: the user still presses Enter.
+const EXAMPLE_PROMPT = "Ringkas catatan ini jadi 3 poin:\n";
 
 interface Props {
   messages: ChatMessage[];
@@ -101,7 +104,7 @@ export function ChatPanel({
   }, []);
 
   const submit = () => {
-    if (!draft.trim() || busy) return;
+    if (!draft.trim() || busy || !hasProvider) return;
     onSend(draft);
     onDraftChange("");
   };
@@ -236,24 +239,32 @@ export function ChatPanel({
       <div id="chat-list" ref={listRef}>
         {messages.length === 0 && !hasProvider && (
           <div className="chat-empty">
-            <IconSparkle size={18} />
-            <p className="chat-empty__heading">Belum ada provider</p>
+            <Carrot size={64} />
+            <p className="chat-empty__heading">Wortel belum tersambung</p>
             <p className="chat-empty__hint">
-              Tambahkan base URL, daftar model, dan API key lebih dulu. Chat aktif
-              setelah ada provider yang dipilih.
+              Hubungkan ke OpenAI, OpenRouter, Groq, atau model lokal supaya
+              Wortel bisa membalas.
             </p>
             <button type="button" className="btn btn--primary" onClick={onOpenSettings}>
-              Buka Pengaturan
+              Hubungkan provider
             </button>
           </div>
         )}
         {messages.length === 0 && hasProvider && (
           <div className="chat-empty">
-            <IconSparkle size={18} />
-            <p className="chat-empty__heading">Belum ada percakapan</p>
-            <p className="chat-empty__hint">Mulai dengan satu pertanyaan singkat.</p>
-            <p className="chat-empty__example-label">Contoh prompt</p>
-            <p className="chat-empty__example">Ringkas catatan ini jadi 3 poin.</p>
+            <Carrot size={64} />
+            <p className="chat-empty__heading">Mau tanya apa?</p>
+            <p className="chat-empty__hint">Tulis di bawah, atau mulai dari contoh ini:</p>
+            <button
+              type="button"
+              className="chat-empty__example"
+              onClick={() => {
+                onDraftChange(EXAMPLE_PROMPT);
+                composerRef.current?.focus();
+              }}
+            >
+              Ringkas catatan ini jadi 3 poin
+            </button>
           </div>
         )}
         {messages.map((m) => (
@@ -285,9 +296,10 @@ export function ChatPanel({
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={keyDown}
-          placeholder="Tulis pesan… (Enter kirim, Shift+Enter baris baru)"
+          placeholder={hasProvider ? "Tulis pesan… (Enter kirim, Shift+Enter baris baru)" : "Hubungkan provider dulu untuk mulai chat"}
           rows={2}
           aria-label="Tulis pesan"
+          disabled={!hasProvider}
         />
         <button
           type="button"
@@ -297,7 +309,7 @@ export function ChatPanel({
             if (busy) onCancel();
             else submit();
           }}
-          disabled={!draft.trim() && !busy}
+          disabled={busy ? false : !hasProvider || !draft.trim()}
           aria-label={busy ? "Hentikan" : "Kirim pesan"}
           title={busy ? "Hentikan" : "Kirim pesan"}
         >

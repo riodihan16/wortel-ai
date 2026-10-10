@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { app } from "../../../wailsjs/go/models";
 import type { ProviderProfile, TestResult } from "../../types/provider";
-import { IconAlert, IconChevronDown, IconPlus } from "../ui/Icon";
+import { IconAlert, IconCheck, IconChevronDown, IconPlus } from "../ui/Icon";
 import { Segmented } from "../ui/Segmented";
 import { ProviderForm } from "./ProviderForm";
 
@@ -51,6 +51,10 @@ export function SettingsPanel(p: Props) {
   const [editing, setEditing] = useState<string>("");
   const [adding, setAdding] = useState(false);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  // Success moment after Simpan; the first provider also gets the way back
+  // to chat, since that is where the user was heading.
+  const [savedNote, setSavedNote] = useState<{ name: string; first: boolean } | null>(null);
+  const startChatRef = useRef<HTMLButtonElement>(null);
   const editBtns = useRef(new Map<string, HTMLButtonElement>());
   const delBtns = useRef(new Map<string, HTMLButtonElement>());
   const addBtnRef = useRef<HTMLButtonElement>(null);
@@ -76,12 +80,14 @@ export function SettingsPanel(p: Props) {
   };
 
   const startEdit = (id: string) => {
+    setSavedNote(null);
     setConfirmDel(null);
     setAdding(false);
     setEditing(id);
   };
 
   const startAdd = () => {
+    setSavedNote(null);
     setConfirmDel(null);
     setEditing("");
     setAdding(true);
@@ -96,12 +102,19 @@ export function SettingsPanel(p: Props) {
       : () => addBtnRef.current?.focus();
   };
 
+  const handleSaved = (saved: ProviderProfile, first: boolean) => {
+    setSavedNote({ name: saved.name, first });
+    closeForm();
+    if (first) pendingFocus.current = () => startChatRef.current?.focus();
+  };
+
   const cancelDelete = (id: string) => {
     setConfirmDel(null);
     delBtns.current.get(id)?.focus();
   };
 
   const confirmDelete = (id: string) => {
+    setSavedNote(null);
     setConfirmDel(null);
     if (editing === id) setEditing("");
     p.onDelete(id);
@@ -117,7 +130,7 @@ export function SettingsPanel(p: Props) {
       testing={p.testing}
       onSave={p.onSave}
       onTest={p.onTest}
-      onSaved={closeForm}
+      onSaved={(saved) => handleSaved(saved, firstRun)}
       onCancel={firstRun ? undefined : closeForm}
     />
   );
@@ -139,6 +152,19 @@ export function SettingsPanel(p: Props) {
         <section className="section" aria-label="Provider">
           <h2 className="section__title" ref={listTitleRef} tabIndex={-1}>Provider</h2>
           {p.listError && <ErrorBanner text={p.listError} />}
+          {savedNote && (
+            <div className="banner banner--ok settings-saved" role="status">
+              <span className="banner__icon"><IconCheck size={14} aria-hidden="true" /></span>
+              <span className="banner__text">
+                {savedNote.first ? `“${savedNote.name}” tersimpan dan aktif.` : `“${savedNote.name}” tersimpan.`}
+              </span>
+              {savedNote.first && (
+                <button type="button" className="btn btn--sm btn--primary" ref={startChatRef} onClick={p.onClose}>
+                  Mulai chat
+                </button>
+              )}
+            </div>
+          )}
           {!firstRun && (
             <div id="settings-list">
               {p.providers.map((pr) => {
