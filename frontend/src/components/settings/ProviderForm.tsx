@@ -266,7 +266,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
         {fieldError("name")}
       </div>
       <div className="field">
-        <label className="field__label" htmlFor="settings-baseurl">Base URL</label>
+        <label className="field__label" htmlFor="settings-baseurl">Alamat API (Base URL)</label>
         <input id="settings-baseurl" className="input" value={form.baseURL} onChange={(e) => change({ baseURL: e.target.value })} placeholder="https://api.example.com/v1" inputMode="url" aria-describedby={urlNoteId} />
         <div className="field__hint" id={urlNoteId}>Endpoint yang kompatibel dengan OpenAI, biasanya berakhiran /v1.</div>
       </div>

@@ -48,6 +48,8 @@ interface Props {
   hasProvider: boolean;
   /** Bumped by the global shortcut: put the caret in the composer. */
   focusSignal?: number;
+  /** Active global shortcut, taught once in the empty state. */
+  shortcutHint?: string;
 }
 
 // Footer status speaks only while work is in flight; outcomes (failed,
@@ -79,6 +81,7 @@ export function ChatPanel({
   onOpenSettings,
   hasProvider,
   focusSignal = 0,
+  shortcutHint,
 }: Props): JSX.Element {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -311,6 +314,11 @@ export function ChatPanel({
             >
               Ringkas catatan ini jadi 3 poin
             </button>
+            {shortcutHint && (
+              <p className="chat-empty__tip">
+                Tip: <kbd className="kbd">{shortcutHint}</kbd> membuka Wortel dari mana saja.
+              </p>
+            )}
           </div>
         )}
         {messages.map((m, i) => (

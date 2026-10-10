@@ -174,6 +174,7 @@ export function SettingsPanel(p: Props) {
       <div id="settings">
         <section className="section" aria-label="Provider">
           <h2 className="section__title" ref={listTitleRef} tabIndex={-1}>Provider</h2>
+          <p className="section__intro">Layanan AI yang menjawab chat. Key disimpan di perangkat ini, bukan di cloud.</p>
           {p.listError && <ErrorBanner text={p.listError} />}
           {savedNote && (
             <div className="banner banner--ok settings-saved" role="status">

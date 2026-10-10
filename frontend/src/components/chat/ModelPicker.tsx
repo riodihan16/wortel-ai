@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import type { ProviderProfile } from "../../types/provider";
-import { IconCheck, IconChevronDown, IconGlobe } from "../ui/Icon";
+import { IconCheck, IconChevronDown, IconModel } from "../ui/Icon";
 import { moveMenuFocus } from "./menuKeys";
 
 interface Props {
@@ -66,7 +66,7 @@ export function ModelPicker({ provider, busy, onModelChange }: Props): JSX.Eleme
         aria-label={`Model ${activeLabel}, provider ${provider.name}`}
         title={`Provider: ${provider.name}`}
       >
-        <IconGlobe size={14} />
+        <IconModel size={14} />
         <span className="model-trigger__label">{activeLabel}</span>
         <IconChevronDown size={14} />
       </button>

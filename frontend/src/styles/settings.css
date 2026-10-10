@@ -398,3 +398,11 @@
   line-height: var(--leading-snug);
   color: var(--color-ink-3);
 }
+
+/* One line under a section title saying what the section is for. */
+.section__intro {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--color-ink-3);
+}

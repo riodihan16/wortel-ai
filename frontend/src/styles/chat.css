@@ -492,3 +492,9 @@
     font-size: var(--text-sm);
     color: var(--color-ink-3);
 }
+
+.chat-empty__tip {
+    margin: var(--space-3) 0 0;
+    font-size: var(--text-sm);
+    color: var(--color-ink-3);
+}

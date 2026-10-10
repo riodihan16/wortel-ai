@@ -152,10 +152,11 @@ export const IconMinimize = (p: IconProps) => (
   </Svg>
 );
 
-export const IconGlobe = (p: IconProps) => (
+/* A small cube: "the model", without the "language/web" read of a globe. */
+export const IconModel = (p: IconProps) => (
   <Svg {...p}>
-    <circle cx="12" cy="12" r="8" />
-    <path d="M4.3 9.5h15.4M4.3 14.5h15.4" />
-    <path d="M12 4c-2.4 2.4-3.4 5.1-3.4 8s1 5.6 3.4 8c2.4-2.4 3.4-5.1 3.4-8s-1-5.6-3.4-8Z" />
+    <path d="M12 3.5 19.5 7.75v8.5L12 20.5 4.5 16.25v-8.5Z" />
+    <path d="M4.5 7.75 12 12l7.5-4.25" />
+    <path d="M12 12v8.5" />
   </Svg>
 );
