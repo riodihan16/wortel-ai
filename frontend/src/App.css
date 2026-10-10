@@ -103,6 +103,12 @@ html, body, #root {
     cursor: move;
 }
 
+#app-version {
+    opacity: 0.55;
+    font-size: calc(11px * var(--font-scale));
+    font-weight: 400;
+}
+
 button {
     cursor: pointer;
 }

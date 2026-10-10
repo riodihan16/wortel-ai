@@ -7,7 +7,7 @@ import {
     Quit,
     WindowSetSize,
 } from '../wailsjs/runtime/runtime';
-import {AutostartEnabled, GetAppearance, GetShortcut, HideWindow, HotkeyError, SetAppearance, SetAutostart, SetShortcut} from '../wailsjs/go/main/App';
+import {AutostartEnabled, GetAppearance, GetShortcut, HideWindow, HotkeyError, SetAppearance, SetAutostart, SetShortcut, Version} from '../wailsjs/go/main/App';
 import {app} from '../wailsjs/go/models';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {SettingsPanel} from './components/settings/SettingsPanel';
@@ -73,12 +73,14 @@ function App() {
     // Draft lives here, not in ChatPanel: switching to pet mode unmounts the
     // panel, and the draft must survive that (FR-003).
     const [draft, setDraft] = useState<string>("");
+    const [version, setVersion] = useState<string>("");
 
     useEffect(() => {
         AutostartEnabled().then(setAutostartOn).catch(() => setAutostartOn(false));
         HotkeyError().then(setHotkeyErr).catch(() => setHotkeyErr(""));
         GetAppearance().then(setAppearance).catch(() => {});
         GetShortcut().then(setShortcut).catch(() => {});
+        Version().then(setVersion).catch(() => setVersion("dev"));
     }, []);
 
     const changeShortcut = useCallback(async (next: app.Shortcut) => {
@@ -169,7 +171,7 @@ function App() {
     return (
         <div id="chat">
             <div id="chat-header" style={{'--wails-draggable': 'drag'} as CSSProperties}>
-                <span>Wortel AI</span>
+                <span>Wortel AI <small id="app-version">v{version}</small></span>
                 <span>
                     <button onClick={() => setMode('settings')}>Settings</button>
                     <button onClick={toggle}>Pet</button>

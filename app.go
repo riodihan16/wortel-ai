@@ -24,6 +24,7 @@ type App struct {
 	svc       *app.Service
 	provs     *app.Providers
 	hotkeyErr string
+	version   string
 
 	mu     sync.Mutex
 	hidden bool
@@ -124,6 +125,15 @@ func (a *App) setHidden(v bool) {
 	a.mu.Lock()
 	a.hidden = v
 	a.mu.Unlock()
+}
+
+// Version returns the build version stamped at link time ("dev" otherwise).
+// Shown in Settings so users and support can identify a build (release checklist).
+func (a *App) Version() string {
+	if a.version == "" {
+		return "dev"
+	}
+	return a.version
 }
 
 // HotkeyError returns the global-shortcut registration error, empty when OK.

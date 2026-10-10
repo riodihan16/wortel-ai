@@ -93,3 +93,7 @@ export function TrayError() {
 export function TrayStatus() {
   return window['go']['main']['App']['TrayStatus']();
 }
+
+export function Version() {
+  return window['go']['main']['App']['Version']();
+}

@@ -48,3 +48,5 @@ export function ToggleChat():Promise<void>;
 export function TrayError():Promise<string>;
 
 export function TrayStatus():Promise<boolean>;
+
+export function Version():Promise<string>;

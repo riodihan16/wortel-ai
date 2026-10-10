@@ -21,6 +21,7 @@ type Service struct {
 	provider ai.Provider                   // fallback (mock in dev)
 	provs    *Providers                    // nil = fallback only
 	emit     func(event string, payload ai.ChatEvent)
+	wg       sync.WaitGroup // tracks running generation goroutines
 }
 
 func NewService(provider ai.Provider, emit func(string, ai.ChatEvent)) *Service {
@@ -96,11 +97,14 @@ func (s *Service) SendMessage(ctx context.Context, conversationID, text string) 
 
 	s.emit("chat:event", ai.ChatEvent{Type: "started", RequestID: requestID, ConversationID: conversationID, MessageID: messageID})
 
+	s.wg.Add(1)
 	go func() {
 		defer func() {
 			s.mu.Lock()
 			delete(s.active, conversationID)
+			delete(s.requests, requestID)
 			s.mu.Unlock()
+			s.wg.Done()
 		}()
 		live, model, resolveErr := s.resolve(genCtx)
 		if resolveErr != nil {
@@ -170,8 +174,9 @@ func (s *Service) CancelGeneration(conversationID string) {
 	}
 }
 
-// CancelAll stops every active stream. Called on shutdown so no
-// goroutine/request lingers after exit (FR-011).
+// CancelAll stops every active stream and waits for their goroutines to
+// finish writing history. Called on shutdown so no goroutine/request lingers
+// after exit (FR-011) and no DB write races process teardown.
 func (s *Service) CancelAll() {
 	s.mu.Lock()
 	cancels := make([]context.CancelFunc, 0, len(s.active))
@@ -182,4 +187,5 @@ func (s *Service) CancelAll() {
 	for _, cancel := range cancels {
 		cancel()
 	}
+	s.wg.Wait()
 }

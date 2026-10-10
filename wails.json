@@ -9,5 +9,12 @@
   "author": {
     "name": "Ridho DR",
     "email": "ridho.d.ramadhan@gmail.com"
+  },
+  "info": {
+    "companyName": "Wortel AI",
+    "productName": "Wortel AI",
+    "productVersion": "0.1.0",
+    "copyright": "MIT",
+    "comments": "Windows desktop companion"
   }
 }
