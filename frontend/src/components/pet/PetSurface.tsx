@@ -59,8 +59,9 @@ export function PetSurface(props: {
   return (
     <div id="pet" className={`pet--${mood}`}>
       <span className="pet__hint" aria-hidden="true">
-        Klik: chat · Geser: pindah
-        {shortcut && <span className="pet__hint-key">{shortcut}</span>}
+        {/* One line only: a second line would cover the leaves. With a
+            shortcut the hint teaches it; dragging stays in the title. */}
+        {shortcut ? `Klik atau ${shortcut}: chat` : "Klik: chat · Geser: pindah"}
       </span>
       <span className="sr-only" role="status">{ready ? "Balasan siap, klik untuk membaca" : STATUS_TEXT[mood]}</span>
       <button

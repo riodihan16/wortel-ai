@@ -15,6 +15,7 @@ import { Carrot } from "../ui/Carrot";
 import {
   IconAlert,
   IconArrowUp,
+  IconChevronDown,
   IconPencil,
   IconPlus,
   IconStop,
@@ -83,10 +84,45 @@ export function ChatPanel({
   const listRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
+  // Follow the reply only while the user is at the bottom; reading earlier
+  // text during a stream must not be yanked away. A new conversation and the
+  // user's own send always land at the bottom.
+  const stick = useRef(true);
+  const lastCount = useRef(messages.length);
+  const [newBelow, setNewBelow] = useState(false);
+
+  useEffect(() => {
+    stick.current = true;
+  }, [conversationId]);
+
   useEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    const grew = messages.length > lastCount.current;
+    lastCount.current = messages.length;
+    if (!el) return;
+    if (stick.current || (grew && messages.at(-1)?.role === "user")) {
+      el.scrollTop = el.scrollHeight;
+      stick.current = true;
+      setNewBelow(false);
+    } else {
+      setNewBelow(true);
+    }
   }, [messages]);
+
+  const onListScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+    stick.current = near;
+    if (near) setNewBelow(false);
+  };
+
+  const toBottom = () => {
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+    stick.current = true;
+    setNewBelow(false);
+  };
 
   useEffect(() => {
     composerRef.current?.focus();
@@ -236,7 +272,7 @@ export function ChatPanel({
           </button>
         </div>
       )}
-      <div id="chat-list" ref={listRef} role="log" aria-label="Isi percakapan" aria-busy={busy}>
+      <div id="chat-list" ref={listRef} role="log" aria-label="Isi percakapan" aria-busy={busy} onScroll={onListScroll}>
         {messages.length === 0 && !hasProvider && (
           <div className="chat-empty">
             <Carrot size={64} />
@@ -277,6 +313,12 @@ export function ChatPanel({
           />
         ))}
       </div>
+      {newBelow && (
+        <button type="button" className="btn btn--sm chat-newbelow" onClick={toBottom} aria-label="Balasan baru di bawah">
+          <IconChevronDown size={13} />
+          Balasan baru
+        </button>
+      )}
       {error && (
         <div id="chat-error" className="banner banner--error" role="alert">
           <IconAlert size={15} />

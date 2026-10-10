@@ -18,12 +18,13 @@
 // Allow task-list checkboxes (GFM) plus the attributes markdown normally
 // emits, nothing more. `defaultSchema` already permits the common inline /
 // block tags and drops scripts, styles, iframes, and event handlers.
-import { isValidElement, useEffect, useRef, useState } from "react";
+import { isValidElement } from "react";
 import type { JSX, ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { IconCheck, IconCopy } from "../ui/Icon";
+import { useCopy } from "../../hooks/useCopy";
 
 const schema = {
   ...defaultSchema,
@@ -39,27 +40,8 @@ const schema = {
 };
 
 function CodeBlock({ children }: { children: ReactNode }): JSX.Element {
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timer.current !== null) window.clearTimeout(timer.current);
-    };
-  }, []);
-
-  const copy = async () => {
-    try {
-      const clip = navigator.clipboard;
-      if (!clip) return;
-      await clip.writeText(extractText(children));
-      setCopied(true);
-      if (timer.current !== null) window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard unavailable (non-secure context): stay silent, no throw.
-    }
-  };
+  const { state, copy } = useCopy();
+  const label = state === "copied" ? "Tersalin" : state === "failed" ? "Gagal menyalin" : "Salin kode";
 
   return (
     <div className="md-code">
@@ -67,12 +49,12 @@ function CodeBlock({ children }: { children: ReactNode }): JSX.Element {
       <button
         type="button"
         className="btn btn--sm btn--ghost md-code__copy"
-        onClick={copy}
-        aria-label={copied ? "Tersalin" : "Salin kode"}
-        title={copied ? "Tersalin" : "Salin kode"}
+        onClick={() => copy(extractText(children))}
+        aria-label={label}
+        title={label}
       >
-        {copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
-        {copied ? "Tersalin" : "Salin"}
+        {state === "copied" ? <IconCheck size={13} /> : <IconCopy size={13} />}
+        {state === "copied" ? "Tersalin" : state === "failed" ? "Gagal" : "Salin"}
       </button>
     </div>
   );

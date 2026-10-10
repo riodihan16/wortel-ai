@@ -177,7 +177,7 @@
     flex-direction: column;
     max-width: 88%;
     min-width: 0;
-    line-height: var(--leading-snug);
+    line-height: var(--leading-read);
 }
 
 .msg-user {
@@ -419,4 +419,61 @@
     flex-shrink: 0;
     margin: -4px 0;
     animation: carrot-hop 460ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Copy under a finished reply: always visible on the newest reply, revealed
+   on hover/focus for older ones so the transcript stays quiet. */
+.msg-actions {
+    margin-top: var(--space-1);
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.msg:hover .msg-actions,
+.msg:focus-within .msg-actions,
+.msg:last-child .msg-actions {
+    opacity: 1;
+}
+
+.msg-actions .btn:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+/* "New reply below": floats over the bottom of the transcript. Its negative
+   margin cancels its own 24px height plus the column gap, so it never shifts
+   the composer; `top` lifts it off the list edge without touching layout. */
+.chat-newbelow {
+    position: relative;
+    top: calc(-1 * var(--space-2));
+    z-index: 1;
+    align-self: center;
+    flex-shrink: 0;
+    margin-top: calc(-24px - var(--space-2));
+    box-shadow: var(--shadow-2);
+}
+
+.chat-newbelow:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+/* Locked composer (no provider): the placeholder carries the instruction,
+   so it keeps full contrast instead of fading with the control. */
+#chat-composer .textarea:disabled {
+    opacity: 1;
+    border-style: dashed;
+    background: var(--color-paper-2);
+}
+
+#chat-composer .textarea:disabled::placeholder {
+    color: var(--color-ink-2);
+}
+
+/* Nothing to send yet: a quiet outline, not a muddy faded orange. */
+#btn-send.btn--primary:disabled {
+    opacity: 1;
+    background: transparent;
+    border-color: var(--color-rule-strong);
+    color: var(--color-ink-3);
 }

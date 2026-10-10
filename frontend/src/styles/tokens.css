@@ -85,6 +85,7 @@
 
     --leading-tight: 1.25;
     --leading-snug: 1.4;
+    --leading-read: 1.5; /* transcript prose: long answers read better */
     --leading-normal: 1.6;
 
     --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;

@@ -214,19 +214,6 @@
     color: var(--color-ink);
 }
 
-/* Second hint line: the global shortcut, as a key. */
-#pet .pet__hint-key {
-    display: block;
-    margin-top: 1px;
-    font-family: var(--font-mono);
-    color: var(--color-ink-2);
-    text-align: center;
-}
-
-#pet .pet__hint:has(.pet__hint-key) {
-    border-radius: var(--radius-md);
-}
-
 /* Reply ready: a speech bubble (word, not dots) that stays until chat opens. */
 #pet .pet__bubble--reply {
     padding: 2px 8px;

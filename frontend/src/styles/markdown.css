@@ -6,7 +6,7 @@
     min-width: 0;
     overflow-wrap: anywhere;
     font-size: var(--text-base);
-    line-height: var(--leading-snug);
+    line-height: var(--leading-read);
     color: var(--color-ink);
 }
 
