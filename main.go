@@ -36,6 +36,7 @@ func main() {
 			WindowIsTranslucent:               false,
 			DisableFramelessWindowDecorations: true,
 		},
+		OnStartup:  app.startup,
 		OnShutdown: app.shutdown,
 		Bind: []interface{}{
 			app,
