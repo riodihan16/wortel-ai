@@ -18,6 +18,8 @@ interface Props {
   onSwitch: (id: string) => void;
   onRename: (id: string, title: string) => void;
   onDelete: (id: string) => void;
+  draft: string;
+  onDraftChange: (v: string) => void;
 }
 
 function statusLabel(s: ChatStatus): string {
@@ -51,8 +53,9 @@ export function ChatPanel({
   onSwitch,
   onRename,
   onDelete,
+  draft,
+  onDraftChange,
 }: Props) {
-  const [draft, setDraft] = useState("");
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
@@ -65,7 +68,7 @@ export function ChatPanel({
   const submit = () => {
     if (!draft.trim() || busy) return;
     onSend(draft);
-    setDraft("");
+    onDraftChange("");
   };
 
   const keyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -158,7 +161,7 @@ export function ChatPanel({
       <div id="chat-composer">
         <textarea
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={keyDown}
           placeholder="Tulis pesan… (Enter kirim, Shift+Enter baris baru)"
           rows={2}

@@ -45,7 +45,9 @@ type Providers struct {
 }
 
 func NewProviders(db *storage.DB, creds credentials.Store) *Providers {
-	return &Providers{db: db, creds: creds, http: &http.Client{Timeout: 20 * time.Second}}
+	c := ai.SafeClient()
+	c.Timeout = 20 * time.Second
+	return &Providers{db: db, creds: creds, http: c}
 }
 
 // List returns public profiles with credential presence.

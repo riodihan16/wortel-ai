@@ -5,13 +5,9 @@ import {
     EventsOff,
     EventsOn,
     Quit,
-    WindowCenter,
-    WindowGetPosition,
-    WindowGetSize,
-    WindowSetAlwaysOnTop,
     WindowSetSize,
 } from '../wailsjs/runtime/runtime';
-import {AutostartEnabled, GetAppearance, GetShortcut, HideWindow, HotkeyError, SetAppearance, SetAutostart, SetShortcut, TrayError, TrayStatus} from '../wailsjs/go/main/App';
+import {AutostartEnabled, GetAppearance, GetShortcut, HideWindow, HotkeyError, SetAppearance, SetAutostart, SetShortcut} from '../wailsjs/go/main/App';
 import {app} from '../wailsjs/go/models';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {SettingsPanel} from './components/settings/SettingsPanel';
@@ -25,8 +21,6 @@ const CHAT = {w: 400, h: 600};
 
 function App() {
     const [mode, setMode] = useState<Mode>('pet');
-    const [info, setInfo] = useState<string>('probe belum jalan');
-    const [top, setTop] = useState<boolean>(true);
     const chat = useChat();
     const provs = useProviders();
     const lastUser = useRef<string>('');
@@ -68,14 +62,6 @@ function App() {
         setMode(next);
     }, [mode]);
 
-    const probe = useCallback(async () => {
-        const size = await WindowGetSize();
-        const pos = await WindowGetPosition();
-        const tray = await TrayStatus().catch(() => false);
-        const trayErr = await TrayError().catch(() => "");
-        setInfo(`${size.w}x${size.h} @ ${pos.x},${pos.y} tray:${tray ? "on" : "off"}${trayErr ? " err:" + trayErr : ""}`);
-    }, []);
-
     const [autostart, setAutostartOn] = useState<boolean>(false);
     const [autostartErr, setAutostartErr] = useState<string | null>(null);
     const [hotkeyErr, setHotkeyErr] = useState<string>("");
@@ -84,6 +70,9 @@ function App() {
     const [shortcut, setShortcut] = useState<app.Shortcut>({enabled: true, combo: 'Ctrl+Shift+W'});
     const [shortcutErr, setShortcutErr] = useState<string>("");
     const [capturing, setCapturing] = useState<boolean>(false);
+    // Draft lives here, not in ChatPanel: switching to pet mode unmounts the
+    // panel, and the draft must survive that (FR-003).
+    const [draft, setDraft] = useState<string>("");
 
     useEffect(() => {
         AutostartEnabled().then(setAutostartOn).catch(() => setAutostartOn(false));
@@ -156,23 +145,15 @@ function App() {
         }
     }, [autostart]);
 
-    const flipTop = useCallback(() => {
-        WindowSetAlwaysOnTop(!top);
-        setTop(!top);
-    }, [top]);
-
     if (mode === 'pet') {
         return (
             <div id="pet" style={{'--wails-draggable': 'drag'} as CSSProperties}>
                 <button id="pet-dot" onClick={toggle} title="Buka chat">W</button>
                 <div id="pet-hint">drag area, klik W buka chat</div>
                 <div id="pet-actions">
-                    <button onClick={probe}>Probe</button>
-                    <button onClick={() => WindowCenter()}>Center</button>
                     <button onClick={() => HideWindow()}>Hide</button>
                     <button onClick={Quit}>Quit</button>
                 </div>
-                <div id="pet-info">{info}</div>
             </div>
         );
     }
@@ -196,15 +177,7 @@ function App() {
                     <button onClick={Quit}>Quit</button>
                 </span>
             </div>
-            <ChatPanel messages={chat.messages} status={chat.status} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} />
-            <div id="chat-body">
-                <div id="chat-actions">
-                    <button onClick={probe}>Probe</button>
-                    <button onClick={flipTop}>Top:{top ? 'on' : 'off'}</button>
-                    <button onClick={() => WindowCenter()}>Center</button>
-                </div>
-                <div id="chat-info">{info}</div>
-            </div>
+            <ChatPanel messages={chat.messages} status={chat.status} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} />
         </div>
     );
 }

@@ -110,7 +110,7 @@ func (o *OpenAICompatible) StreamChat(ctx context.Context, req ChatRequest, onCh
 	}
 	client := o.Client
 	if client == nil {
-		client = http.DefaultClient
+		client = SafeClient()
 	}
 	resp, err := client.Do(httpReq)
 	if err != nil {

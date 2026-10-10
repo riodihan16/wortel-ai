@@ -72,7 +72,7 @@ html, body, #root {
     cursor: pointer;
 }
 
-#pet-hint, #pet-info {
+#pet-hint {
     background: rgba(0, 0, 0, 0.6);
     padding: 2px 8px;
     border-radius: 8px;
@@ -101,17 +101,6 @@ html, body, #root {
     padding: 8px 12px;
     background: var(--surface);
     cursor: move;
-}
-
-#chat-body {
-    padding: 12px;
-    font-size: calc(13px * var(--font-scale));
-}
-
-#chat-actions {
-    display: flex;
-    gap: 4px;
-    margin-top: 8px;
 }
 
 button {
