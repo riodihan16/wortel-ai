@@ -55,13 +55,23 @@ export function PetSurface(props: {
     refocusQuit.current = true;
     setConfirmQuit(false);
   };
+  // An unanswered question must not stay pinned over an always-on-top pet:
+  // the rail closes when focus leaves it or the user switches apps.
+  useEffect(() => {
+    if (!confirmQuit) return;
+    const close = () => setConfirmQuit(false);
+    window.addEventListener("blur", close);
+    return () => window.removeEventListener("blur", close);
+  }, [confirmQuit]);
+  // "Klik atau Ctrl+Shift+W: chat" is the longest hint that fits 180px.
+  const teachShortcut = shortcut !== undefined && shortcut.length <= 14;
 
   return (
     <div id="pet" className={`pet--${mood}`}>
       <span className="pet__hint" aria-hidden="true">
         {/* One line only: a second line would cover the leaves. With a
             shortcut the hint teaches it; dragging stays in the title. */}
-        {shortcut ? `Klik atau ${shortcut}: chat` : "Klik: chat · Geser: pindah"}
+        {teachShortcut ? `Klik atau ${shortcut}: chat` : "Klik: chat · Geser: pindah"}
       </span>
       <span className="sr-only" role="status">{ready ? "Balasan siap, klik untuk membaca" : STATUS_TEXT[mood]}</span>
       <button
@@ -97,6 +107,9 @@ export function PetSurface(props: {
           aria-label="Konfirmasi keluar"
           onKeyDown={(e) => {
             if (e.key === "Escape") cancelQuit();
+          }}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setConfirmQuit(false);
           }}
         >
           <span className="pet__confirm-msg">Keluar?</span>

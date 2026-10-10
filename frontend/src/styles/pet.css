@@ -30,7 +30,9 @@
     background: none;
     border: none;
     border-radius: var(--radius-pill);
-    cursor: pointer;
+    /* Grab, not pointer: the hint teaches the click, the cursor teaches the
+       drag (the hint no longer has room for both). */
+    cursor: grab;
     transition: transform var(--dur) var(--ease-out),
     filter var(--dur) var(--ease-out);
     /* Hit area = the painted carrot, not this 116px box: the box and the svg
@@ -50,6 +52,7 @@
 }
 
 #pet .pet__btn:active:not(:disabled) {
+    cursor: grabbing;
     transform: scale(0.97);
     transition-duration: var(--dur-fast);
 }
