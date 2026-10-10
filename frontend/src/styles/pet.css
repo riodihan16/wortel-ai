@@ -226,3 +226,13 @@
 #pet .pet__hint:has(.pet__hint-key) {
     border-radius: var(--radius-md);
 }
+
+/* Reply ready: a speech bubble (word, not dots) that stays until chat opens. */
+#pet .pet__bubble--reply {
+    padding: 2px 8px;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    line-height: var(--leading-tight);
+    color: var(--carrot-ink);
+    white-space: nowrap;
+}

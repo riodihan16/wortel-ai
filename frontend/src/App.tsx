@@ -13,6 +13,7 @@ import {PetSurface} from './components/pet/PetSurface';
 import {SettingsPanel} from './components/settings/SettingsPanel';
 import {useChat} from './hooks/useChat';
 import {usePetDrag} from './hooks/usePetDrag';
+import {usePetSignal} from './hooks/usePetSignal';
 import {useProviders} from './hooks/useProviders';
 
 type Mode = 'pet' | 'chat' | 'settings';
@@ -81,6 +82,7 @@ function App() {
         void switchTo(mode === 'pet' ? 'chat' : 'pet', setMode);
     }, [mode]);
     const petDrag = usePetDrag(toggle);
+    const pet = usePetSignal(mode, chat.status);
 
     const [autostart, setAutostartOn] = useState<boolean>(false);
     const [autostartErr, setAutostartErr] = useState<string | null>(null);
@@ -170,7 +172,8 @@ function App() {
     if (mode === 'pet') {
         return (
             <PetSurface
-                status={chat.status}
+                status={pet.petStatus}
+                replyReady={pet.replyReady}
                 drag={petDrag}
                 onHide={() => HideWindow()}
                 onQuit={Quit}

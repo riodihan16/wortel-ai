@@ -323,7 +323,7 @@ export function ChatPanel({
         <span id="chat-state" role="status">
           {label && (
             <>
-              <span className="status-dot status-dot--busy" aria-hidden="true" />
+              <Carrot size={26} mood="thinking" className="chat-state__carrot" />
               <span className="chat-state__label">{label}</span>
             </>
           )}

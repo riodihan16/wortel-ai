@@ -413,3 +413,10 @@
     max-width: 100%;
     max-height: 40vh;
 }
+
+/* Live carrot in the footer while a reply runs: hops in, then waits. */
+.chat-state__carrot {
+    flex-shrink: 0;
+    margin: -4px 0;
+    animation: carrot-hop 460ms cubic-bezier(0.16, 1, 0.3, 1);
+}

@@ -34,9 +34,12 @@ export function PetSurface(props: {
   onQuit: () => void;
   /** Global shortcut combo, taught in the hover hint when it works. */
   shortcut?: string;
+  /** A reply finished while the user was away from chat. */
+  replyReady?: boolean;
 }): JSX.Element {
-  const { status, drag, onHide, onQuit, shortcut } = props;
+  const { status, drag, onHide, onQuit, shortcut, replyReady } = props;
   const mood = moodFor(status);
+  const ready = replyReady && mood === "idle";
   // Keluar asks first, inside the rail (ADR-050). Focus on Batal keeps the
   // rail open through :focus-within even after the pointer leaves.
   const [confirmQuit, setConfirmQuit] = useState(false);
@@ -59,7 +62,7 @@ export function PetSurface(props: {
         Klik: chat · Geser: pindah
         {shortcut && <span className="pet__hint-key">{shortcut}</span>}
       </span>
-      <span className="sr-only" role="status">{STATUS_TEXT[mood]}</span>
+      <span className="sr-only" role="status">{ready ? "Balasan siap, klik untuk membaca" : STATUS_TEXT[mood]}</span>
       <button
         type="button"
         className="pet__btn"
@@ -75,6 +78,9 @@ export function PetSurface(props: {
               <i />
               <i />
             </span>
+          )}
+          {ready && (
+            <span className="pet__bubble pet__bubble--reply" aria-hidden="true">Sudah!</span>
           )}
           {mood === "error" && (
             <span className="pet__alert" aria-hidden="true">
