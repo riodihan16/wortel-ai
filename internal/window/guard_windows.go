@@ -14,10 +14,13 @@ var (
 	pGetWindowLongPtr = user32.NewProc("GetWindowLongPtrW")
 	pSetWindowLongPtr = user32.NewProc("SetWindowLongPtrW")
 	pCallWindowProc   = user32.NewProc("CallWindowProcW")
-	pMonitorFromRect  = user32.NewProc("MonitorFromRect")
+	pMonitorFromPoint = user32.NewProc("MonitorFromPoint")
+	pGetCursorPos     = user32.NewProc("GetCursorPos")
 )
 
 const wmMoving = 0x0216
+
+type point struct{ X, Y int32 }
 
 // GWLP_WNDPROC is -4; nIndex is a C int, so pass its two's complement.
 var gwlpWndProc = int32(-4)
@@ -70,9 +73,18 @@ func movingProc(h, msg, wp, lp uintptr) uintptr {
 }
 
 func constrainRect(wr *windows.Rect) {
-	// Nearest monitor to the proposed rect, not the current one, so the
-	// window can still be dragged onto another display.
-	mon, _, _ := pMonitorFromRect.Call(uintptr(unsafe.Pointer(wr)), monitorDefaultToNearest)
+	// Clamp into the monitor under the cursor, not the one the window is
+	// on: the window then follows the cursor onto another display as soon
+	// as the cursor crosses, instead of walling at the shared edge until
+	// most of the window is over.
+	var pt point
+	if ok, _, _ := pGetCursorPos.Call(uintptr(unsafe.Pointer(&pt))); ok == 0 {
+		return
+	}
+	// POINT is passed by value; on 64-bit Windows (the only build target)
+	// its two int32s pack little-endian into one register.
+	packed := uintptr(uint32(pt.X)) | uintptr(uint32(pt.Y))<<32
+	mon, _, _ := pMonitorFromPoint.Call(packed, monitorDefaultToNearest)
 	work, err := monitorWorkArea(mon)
 	if err != nil {
 		return

@@ -19,7 +19,22 @@ type Mode = 'pet' | 'chat' | 'settings';
 
 // Backend owns the sizes and keeps the window inside the monitor work area,
 // so a pet parked near an edge opens a panel that is not cut off (ADR-042).
-const fitWindow = (mode: Mode) => SetWindowMode(mode === 'pet' ? 'pet' : 'panel');
+// Awaited before the view switches so content never renders clipped in the
+// old size.
+async function fitWindow(mode: Mode): Promise<void> {
+    try {
+        await SetWindowMode(mode === 'pet' ? 'pet' : 'panel');
+    } catch {
+        // Only an IPC failure lands here: the backend logs placement errors
+        // and falls back to a plain resize itself. Switching the view anyway
+        // is the best the UI can do; there is no surface to report it on.
+    }
+}
+
+async function switchTo(mode: Mode, setMode: (m: Mode) => void): Promise<void> {
+    await fitWindow(mode);
+    setMode(mode);
+}
 
 function App() {
     const [mode, setMode] = useState<Mode>('pet');
@@ -35,16 +50,13 @@ function App() {
     // M5: tray menu intents. Show -> chat mode, Settings -> settings mode.
     useEffect(() => {
         EventsOn('app:show', () => {
-            fitWindow('chat');
-            setMode('chat');
+            void switchTo('chat', setMode);
         });
         EventsOn('app:settings', () => {
-            fitWindow('chat');
-            setMode('settings');
+            void switchTo('settings', setMode);
         });
         EventsOn('app:toggle', () => {
-            fitWindow('chat');
-            setMode('chat');
+            void switchTo('chat', setMode);
         });
         return () => {
             EventsOff('app:show');
@@ -57,26 +69,21 @@ function App() {
         if (lastUser.current) chat.send(lastUser.current);
     }, [chat]);
 
-    // Both surfaces are the same window, so every mode change must resize it in
-    // the same call that switches the tree — otherwise the pet renders inside a
-    // 400x600 window for a frame.
+    // Both surfaces are the same window, so every mode change goes through
+    // switchTo — otherwise the pet renders inside a 400x600 window for a frame.
     const showChat = useCallback(() => {
-        fitWindow('chat');
-        setMode('chat');
+        void switchTo('chat', setMode);
     }, []);
 
     const showPet = useCallback(() => {
-        fitWindow('pet');
-        setMode('pet');
+        void switchTo('pet', setMode);
     }, []);
 
     // Pet click opens chat, pet drag moves the window. The 4 px threshold lives
     // in usePetDrag (ADR-041): a plain --wails-draggable surface would start the
     // move on the first mousemove and swallow the click (ADR-029).
     const toggle = useCallback(() => {
-        const next: Mode = mode === 'pet' ? 'chat' : 'pet';
-        fitWindow(next);
-        setMode(next);
+        void switchTo(mode === 'pet' ? 'chat' : 'pet', setMode);
     }, [mode]);
     const petDrag = usePetDrag(toggle);
 

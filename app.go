@@ -139,6 +139,7 @@ func (a *App) SetWindowMode(mode string) error {
 	if err := window.Apply(m); err != nil {
 		// Placement failed (no handle/monitor info): degrade to the old
 		// plain resize so the mode switch itself still works.
+		runtime.LogWarningf(a.ctx, "window place: %v", err)
 		runtime.WindowSetSize(a.ctx, size.W, size.H)
 	}
 	return nil

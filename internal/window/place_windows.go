@@ -77,13 +77,17 @@ func Apply(m Mode) error {
 	}
 	w, ht := size.W*int(dpi)/baseDPI, size.H*int(dpi)/baseDPI
 
-	x, y := placer.Place(m, int(r.Left), int(r.Top), w, ht, work)
+	// Plan on a copy: the remembered shift must only change if the window
+	// really moved, or the next pet return would undo a shift never applied.
+	next := placer
+	x, y := next.Place(m, int(r.Left), int(r.Top), w, ht, work)
 	ok, _, e := pSetWindowPos.Call(uintptr(h), 0,
 		uintptr(int32(x)), uintptr(int32(y)), uintptr(w), uintptr(ht),
 		swpNoZOrder|swpNoActivate)
 	if ok == 0 {
 		return fmt.Errorf("SetWindowPos: %w", e)
 	}
+	placer = next
 	return nil
 }
 
