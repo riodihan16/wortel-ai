@@ -29,6 +29,25 @@ type App struct {
 
 	mu     sync.Mutex
 	hidden bool
+	mode   string // last SetWindowMode value; "" until the frontend sets one
+}
+
+type toggleAction int
+
+const (
+	toggleShowChat toggleAction = iota // show the window if needed, then chat
+	toggleToPet                        // collapse the open panel back to the pet
+)
+
+// toggleFor decides what the global shortcut does. It is labelled "buka
+// chat": a hidden window or the pet opens chat; an open panel (chat or
+// Settings) goes back to the pet. Hiding is left to the explicit Sembunyikan
+// actions, so the shortcut never makes the companion disappear (ADR-050).
+func toggleFor(hidden bool, mode string) toggleAction {
+	if hidden || mode != string(window.Panel) {
+		return toggleShowChat
+	}
+	return toggleToPet
 }
 
 // NewApp creates a new App application struct
@@ -90,19 +109,22 @@ func (a *App) applyShortcut() {
 	}
 }
 
-// ToggleChat shows the window in chat mode, or hides it when already shown.
-// Visibility is tracked in the App because Wails exposes no IsVisible probe.
+// ToggleChat runs the global shortcut (see toggleFor). Visibility and mode
+// are tracked in the App because Wails exposes no IsVisible probe.
 func (a *App) ToggleChat() {
 	a.mu.Lock()
-	hidden := a.hidden
-	a.hidden = !hidden
+	hidden, mode := a.hidden, a.mode
+	a.hidden = false
 	a.mu.Unlock()
-	if hidden {
-		runtime.WindowShow(a.ctx)
+	switch toggleFor(hidden, mode) {
+	case toggleToPet:
+		runtime.EventsEmit(a.ctx, "app:pet")
+	default:
+		if hidden {
+			runtime.WindowShow(a.ctx)
+		}
 		runtime.EventsEmit(a.ctx, "app:toggle")
-		return
 	}
-	runtime.WindowHide(a.ctx)
 }
 
 // shutdown cancels active streams, removes the tray icon, and releases
@@ -142,6 +164,9 @@ func (a *App) SetWindowMode(mode string) error {
 		runtime.LogWarningf(a.ctx, "window place: %v", err)
 		runtime.WindowSetSize(a.ctx, size.W, size.H)
 	}
+	a.mu.Lock()
+	a.mode = mode
+	a.mu.Unlock()
 	return nil
 }
 

@@ -52,10 +52,15 @@ function App() {
         EventsOn('app:toggle', () => {
             void switchTo('chat', setMode);
         });
+        // Global shortcut while the panel is open: back to the pet (ADR-050).
+        EventsOn('app:pet', () => {
+            void switchTo('pet', setMode);
+        });
         return () => {
             EventsOff('app:show');
             EventsOff('app:settings');
             EventsOff('app:toggle');
+            EventsOff('app:pet');
         };
     }, []);
 
@@ -169,6 +174,7 @@ function App() {
                 drag={petDrag}
                 onHide={() => HideWindow()}
                 onQuit={Quit}
+                shortcut={shortcut.enabled && !hotkeyErr ? shortcut.combo : undefined}
             />
         );
     }

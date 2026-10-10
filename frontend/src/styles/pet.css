@@ -213,3 +213,16 @@
     font-weight: 600;
     color: var(--color-ink);
 }
+
+/* Second hint line: the global shortcut, as a key. */
+#pet .pet__hint-key {
+    display: block;
+    margin-top: 1px;
+    font-family: var(--font-mono);
+    color: var(--color-ink-2);
+    text-align: center;
+}
+
+#pet .pet__hint:has(.pet__hint-key) {
+    border-radius: var(--radius-md);
+}

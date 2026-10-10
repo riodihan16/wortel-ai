@@ -297,7 +297,7 @@ export function SettingsPanel(p: Props) {
             <label className="check">
               <input type="checkbox" checked={p.shortcut.enabled} disabled={p.capturing}
                 onChange={(e) => p.onShortcutChange(new app.Shortcut({ enabled: e.target.checked, combo: p.shortcut.combo }))} />
-              Shortcut keyboard untuk buka chat
+              Shortcut keyboard: buka chat, tekan lagi untuk kembali ke wortel
             </label>
             <div className="settings-shortcut-row">
               <span className={p.capturing ? "kbd settings-combo--capturing" : "kbd"} role="status">

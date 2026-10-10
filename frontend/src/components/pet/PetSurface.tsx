@@ -32,8 +32,10 @@ export function PetSurface(props: {
   drag: PetDragHandlers;
   onHide: () => void;
   onQuit: () => void;
+  /** Global shortcut combo, taught in the hover hint when it works. */
+  shortcut?: string;
 }): JSX.Element {
-  const { status, drag, onHide, onQuit } = props;
+  const { status, drag, onHide, onQuit, shortcut } = props;
   const mood = moodFor(status);
   // Keluar asks first, inside the rail (ADR-050). Focus on Batal keeps the
   // rail open through :focus-within even after the pointer leaves.
@@ -55,6 +57,7 @@ export function PetSurface(props: {
     <div id="pet" className={`pet--${mood}`}>
       <span className="pet__hint" aria-hidden="true">
         Klik: chat · Geser: pindah
+        {shortcut && <span className="pet__hint-key">{shortcut}</span>}
       </span>
       <span className="sr-only" role="status">{STATUS_TEXT[mood]}</span>
       <button
