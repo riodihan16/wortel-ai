@@ -22,6 +22,10 @@ export function GetAppearance() {
   return window['go']['main']['App']['GetAppearance']();
 }
 
+export function GetShortcut() {
+  return window['go']['main']['App']['GetShortcut']();
+}
+
 export function HideWindow() {
   return window['go']['main']['App']['HideWindow']();
 }
@@ -64,6 +68,10 @@ export function SetAppearance(arg1) {
 
 export function SetAutostart(arg1) {
   return window['go']['main']['App']['SetAutostart'](arg1);
+}
+
+export function SetShortcut(arg1) {
+  return window['go']['main']['App']['SetShortcut'](arg1);
 }
 
 export function Show() {

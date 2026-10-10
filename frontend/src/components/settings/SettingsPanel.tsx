@@ -19,6 +19,11 @@ interface Props {
   autostartErr: string | null;
   onToggleAutostart: () => void;
   hotkeyErr: string;
+  shortcut: app.Shortcut;
+  shortcutErr: string;
+  onShortcutChange: (next: app.Shortcut) => void;
+  capturing: boolean;
+  onCaptureToggle: () => void;
   appearance: app.Appearance;
   appearanceErr: string;
   onAppearanceChange: (next: app.Appearance) => void;
@@ -82,9 +87,19 @@ export function SettingsPanel(p: Props) {
         </label>
         {p.autostartErr && <div id="settings-general-error" role="alert">{p.autostartErr}</div>}
         <div id="settings-hotkey">
-          <span className="hotkey-label">Shortcut buka chat</span>
-          <span className="hotkey-combo">Ctrl + Shift + W</span>
+          <label id="settings-shortcut-enabled" className="checkrow">
+            <input type="checkbox" checked={p.shortcut.enabled} disabled={p.capturing}
+              onChange={(e) => p.onShortcutChange(new app.Shortcut({ enabled: e.target.checked, combo: p.shortcut.combo }))} />
+            Aktifkan shortcut buka chat
+          </label>
+          <div className="shortcut-row">
+            <span className={`hotkey-combo${p.capturing ? " hotkey-capturing" : ""}`}>
+              {p.capturing ? "Tekan kombinasi…" : p.shortcut.combo}
+            </span>
+            <button onClick={p.onCaptureToggle}>{p.capturing ? "Batal" : "Ubah"}</button>
+          </div>
         </div>
+        {p.shortcutErr && <div id="settings-hotkey-error" role="alert">{p.shortcutErr}</div>}
         {p.hotkeyErr && <div id="settings-hotkey-error" role="alert">{p.hotkeyErr}</div>}
       </div>
       <div id="settings-appearance">

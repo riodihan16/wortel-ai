@@ -13,6 +13,8 @@ export function DeleteProvider(arg1:string):Promise<void>;
 
 export function GetAppearance():Promise<app.Appearance>;
 
+export function GetShortcut():Promise<app.Shortcut>;
+
 export function HideWindow():Promise<void>;
 
 export function History(arg1:string,arg2:number):Promise<Array<app.ChatMessage>>;
@@ -34,6 +36,8 @@ export function SetActiveProvider(arg1:string):Promise<void>;
 export function SetAppearance(arg1:app.Appearance):Promise<void>;
 
 export function SetAutostart(arg1:boolean):Promise<void>;
+
+export function SetShortcut(arg1:app.Shortcut):Promise<void>;
 
 export function Show():Promise<void>;
 

@@ -11,7 +11,7 @@ import {
     WindowSetAlwaysOnTop,
     WindowSetSize,
 } from '../wailsjs/runtime/runtime';
-import {AutostartEnabled, GetAppearance, HideWindow, HotkeyError, SetAppearance, SetAutostart, TrayError, TrayStatus} from '../wailsjs/go/main/App';
+import {AutostartEnabled, GetAppearance, GetShortcut, HideWindow, HotkeyError, SetAppearance, SetAutostart, SetShortcut, TrayError, TrayStatus} from '../wailsjs/go/main/App';
 import {app} from '../wailsjs/go/models';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {SettingsPanel} from './components/settings/SettingsPanel';
@@ -81,12 +81,51 @@ function App() {
     const [hotkeyErr, setHotkeyErr] = useState<string>("");
     const [appearance, setAppearance] = useState<app.Appearance>({theme: 'dark', fontScale: 1});
     const [appearanceErr, setAppearanceErr] = useState<string>("");
+    const [shortcut, setShortcut] = useState<app.Shortcut>({enabled: true, combo: 'Ctrl+Shift+W'});
+    const [shortcutErr, setShortcutErr] = useState<string>("");
+    const [capturing, setCapturing] = useState<boolean>(false);
 
     useEffect(() => {
         AutostartEnabled().then(setAutostartOn).catch(() => setAutostartOn(false));
         HotkeyError().then(setHotkeyErr).catch(() => setHotkeyErr(""));
         GetAppearance().then(setAppearance).catch(() => {});
+        GetShortcut().then(setShortcut).catch(() => {});
     }, []);
+
+    const changeShortcut = useCallback(async (next: app.Shortcut) => {
+        setShortcutErr("");
+        try {
+            await SetShortcut(next);
+            setShortcut(next);
+        } catch (e) {
+            setShortcutErr(e instanceof Error ? e.message : String(e));
+        }
+        HotkeyError().then(setHotkeyErr).catch(() => {});
+    }, []);
+
+    // Capture the next combo while the user is rebinding. Runs only in the
+    // capture state, so it cannot swallow normal typing elsewhere.
+    useEffect(() => {
+        if (!capturing) return;
+        const onKey = (e: KeyboardEvent) => {
+            e.preventDefault();
+            if (e.key === 'Escape') { setCapturing(false); return; }
+            if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
+            const mods: string[] = [];
+            if (e.ctrlKey) mods.push('Ctrl');
+            if (e.altKey) mods.push('Alt');
+            if (e.shiftKey) mods.push('Shift');
+            if (e.metaKey) mods.push('Win');
+            if (mods.length === 0) {
+                setShortcutErr('Shortcut butuh minimal satu modifier (Ctrl/Alt/Shift/Win)');
+                return;
+            }
+            setCapturing(false);
+            changeShortcut({enabled: true, combo: [...mods, e.key.length === 1 ? e.key.toUpperCase() : e.key].join('+')});
+        };
+        window.addEventListener('keydown', onKey, true);
+        return () => window.removeEventListener('keydown', onKey, true);
+    }, [capturing, changeShortcut]);
 
     // Apply appearance to the document root. Theme drives the CSS token
     // block; fontScale scales the base font size (docs 06 §6).
@@ -141,7 +180,7 @@ function App() {
     if (mode === 'settings') {
         return (
             <div id="chat">
-                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} hotkeyErr={hotkeyErr} appearance={appearance} appearanceErr={appearanceErr} onAppearanceChange={changeAppearance} />
+                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} hotkeyErr={hotkeyErr} appearance={appearance} appearanceErr={appearanceErr} onAppearanceChange={changeAppearance} shortcut={shortcut} shortcutErr={shortcutErr} onShortcutChange={changeShortcut} capturing={capturing} onCaptureToggle={() => setCapturing((v) => !v)} />
             </div>
         );
     }

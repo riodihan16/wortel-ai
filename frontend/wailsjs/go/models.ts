@@ -68,6 +68,20 @@ export namespace app {
 	        this.enabled = source["enabled"];
 	    }
 	}
+	export class Shortcut {
+	    enabled: boolean;
+	    combo: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Shortcut(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.combo = source["combo"];
+	    }
+	}
 	export class TestResult {
 	    ok: boolean;
 	    code?: string;

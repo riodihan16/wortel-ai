@@ -56,10 +56,30 @@ func (a *App) startup(ctx context.Context) {
 	}); err != nil {
 		tray.SetError(err)
 	}
-	// M5 shortcut global (FR-010). Failure is non-fatal and reported
-	// to the user via HotkeyError so they can pick another combo.
-	if err := hotkey.Start(hotkey.Default, func() { a.ToggleChat() }); err != nil {
+	// M5 shortcut global (FR-010). Uses the stored combo when present.
+	// Failure is non-fatal and reported to the user via HotkeyError so
+	// they can pick another combo in Settings.
+	a.applyShortcut()
+}
+
+// applyShortcut registers the configured global shortcut, replacing any
+// existing registration. Never fatal: failures surface through HotkeyError.
+func (a *App) applyShortcut() {
+	hotkey.Stop()
+	a.mu.Lock()
+	a.hotkeyErr = ""
+	a.mu.Unlock()
+	if a.provs == nil {
+		return
+	}
+	h, enabled := a.provs.ResolvedShortcut()
+	if !enabled {
+		return
+	}
+	if err := hotkey.Start(h, func() { a.ToggleChat() }); err != nil {
+		a.mu.Lock()
 		a.hotkeyErr = err.Error()
+		a.mu.Unlock()
 	}
 }
 
@@ -107,9 +127,33 @@ func (a *App) setHidden(v bool) {
 }
 
 // HotkeyError returns the global-shortcut registration error, empty when OK.
-// Non-empty means the default combo was taken; the user must be told (FR-010).
+// Non-empty means the combo was taken or invalid; the user must be told (FR-010).
 func (a *App) HotkeyError() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	return a.hotkeyErr
+}
+
+// GetShortcut returns the saved shortcut setting (enabled flag + combo).
+func (a *App) GetShortcut() app.Shortcut {
+	if a.provs == nil {
+		return app.DefaultShortcut()
+	}
+	return a.provs.GetShortcut()
+}
+
+// SetShortcut validates, persists, and re-registers the global shortcut.
+// A combo the OS refuses returns an error and leaves the previous binding
+// itself; the caller sees the new HotkeyError value too.
+func (a *App) SetShortcut(in app.Shortcut) error {
+	if a.provs == nil {
+		return errors.New("storage belum tersedia, restart aplikasi")
+	}
+	if err := a.provs.SetShortcut(in); err != nil {
+		return err
+	}
+	a.applyShortcut()
+	return nil
 }
 
 // GetAppearance returns stored theme + font scale, or defaults when unwired.

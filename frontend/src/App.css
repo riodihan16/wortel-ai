@@ -307,9 +307,21 @@ button {
 
 #settings-hotkey {
     display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: calc(12px * var(--font-scale));
+}
+
+.shortcut-row {
+    display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: calc(12px * var(--font-scale));
+    gap: 8px;
+}
+
+.hotkey-capturing {
+    border-color: var(--accent) !important;
+    color: var(--accent);
 }
 
 .hotkey-combo {
