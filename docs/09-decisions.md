@@ -20,6 +20,7 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 | ADR-043 | Redesign visual frontend: token OKLCH + karakter SVG | Done 2026-10-10 | `App.css` (739 baris, 9 radius ad-hoc, 0 `:focus-visible`/motion) diganti sistem token OKLCH di `frontend/src/styles/`; audit kontras aplikasi nyata bersih pada kontrol aktif, kedua tema. |
 | ADR-044 | Pip status pet, onboarding provider pertama, section Tentang | Done 2026-10-10 | Tiga item daftar kerja docs 10 §5.2/§5.4/§6 diimplementasikan; pip memakai bentuk (bukan warna) untuk membedakan state, empty state bercabang pada `hasProvider`. |
 | ADR-045 | Alias tampilan per model + Settings draggable | Done 2026-10-10 | `config.ModelEntry{ID, Alias}` + migrasi v4; `#chat` Settings jadi drag region dengan `#settings-header` sebagai handle. Semula ditulis sebagai ADR-027 (duplikat). |
+| ADR-047 | Aksen UI oranye wortel, menggantikan indigo | Done 2026-10-10 | Accent dark `#f68c36` (= hue brand), light `#ac4403`; neutral/danger/success tetap; semua pasangan ≥ 4.5:1. |
 
 ## ADR-001 — Wails v2
 
@@ -398,6 +399,14 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** (b). `build/windows/info.json` `info.0409` ditambah `"FileVersion": "{{.Info.ProductVersion}}"`. Ini juga menutup kesenjangan dengan `git.exe` (punya `FileVersion` string) dan membuat properti exe konsisten di semua pembaca (installer, signature tooling, AV heuristics yang memakai .NET).
 - **Bukti:** probe `c_withfv.exe` (dengan `FileVersion`) → `Co='Wortel AI' Prod='Wortel AI' Desc='Wortel AI' FV='0.1.0'`; probe `d_origorder.exe` (tanpa) → string kosong, `FVraw=0.1.0.0`. Setelah `wails build` ulang, `companion.exe` → `Co='Wortel AI' Prod='Wortel AI' Desc='Wortel AI' Copy='MIT' FV='0.1.0' PV='0.1.0'`. `scripts/smoke.ps1` → `SMOKE_OK` (window "Wortel AI", 35 MB).
 - **Risiko:** `info.0409` masih `0409` (en-US) hardcoded lewat template Wails; UI berbahasa Indonesia tetapi metadata tetap en-US. Bukan blocker rilis.
+
+## ADR-047 — Aksen UI oranye wortel, menggantikan indigo (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** Permintaan user: aksen UI harus oranye seperti wortel. Aksen ADR-043 adalah indigo (hue 280), satu keluarga dengan neutral, sehingga UI tidak membawa identitas produk; oranye hanya muncul di karakter (`--color-brand`).
+- **Keputusan:** hanya `--color-accent`/`--color-accent-soft` yang berubah; neutral Iris (hue 280), `danger`, `success`, dan `brand` tetap. Dark: `oklch(74% 0.16 55)` (`#f68c36`), hue dan lightness sama dengan `--color-brand` dark; soft `oklch(28% 0.05 55)`. Light: `oklch(52% 0.15 44)` (`#ac4403`); wortel terang gagal 4.5:1 di kertas terang, jadi lightness diturunkan dan hue digeser ke merah agar tetap oranye, bukan cokelat. Soft `oklch(95.5% 0.028 62)`. Semua nilai dicek di dalam gamut sRGB.
+- **Kontras (dihitung OKLCH → sRGB, WCAG 2.x):** dark: accent pada `paper` 7.9, terburuk `paper-3` 6.1, pada `accent-soft` 6.1, `accent-ink` pada accent 7.9. Light: accent pada `paper` 5.6, terburuk `paper-3` 4.7, pada `accent-soft` 5.1, `accent-ink` pada accent 5.6. Angka accent di ADR-043 digantikan angka ini.
+- **Risiko:** accent oranye dan `danger` (hue 22) sekarang sama-sama hangat (beda hue ~25–33°). Keduanya tetap terbedakan (dark `#f68c36` vs `#f0555b`, light `#ac4403` vs `#be2132`), dan state error sudah membawa ikon/teks (ADR-044: pip error = cakram + `IconAlert`; status dot busy berdenyut). Jangan pakai warna sebagai satu-satunya pembeda accent vs danger pada komponen baru.
 
 ## ADR-018 — M5 tray Win32 murni + exit bersih (2026-10-10)
 

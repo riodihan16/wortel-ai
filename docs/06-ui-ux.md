@@ -196,8 +196,10 @@ permukaan tempat token itu masih ≥ 4.5:1.
 kontrol, terukur 4.1:1 pada `--color-paper` dark dan 3.6:1 light — memenuhi 3:1
 untuk komponen UI, WCAG 1.4.11).
 
-**Accent:** indigo tunggal — `--color-accent`, dengan `--color-accent-soft` (latar
-pill/banner) dan `--color-accent-ink` (teks di atas accent).
+**Accent:** oranye wortel tunggal (ADR-047) — `--color-accent`, dengan
+`--color-accent-soft` (latar pill/banner) dan `--color-accent-ink` (teks di atas
+accent). Dark memakai hue yang sama dengan `--color-brand` (`#f68c36`); light
+memakai wortel gelap (`#ac4403`) agar teks accent tetap ≥ 4.5:1.
 
 **Semantik:** `--color-danger`/`--color-danger-soft`, `--color-success`/`--color-success-soft`.
 **Brand:** `--color-brand` (oranye wortel) + `--color-brand-leaf` — hanya untuk
