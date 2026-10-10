@@ -1,6 +1,8 @@
 // ChatPanel owns #chat-main: conv-bar, list, error, composer, footer.
-// Invariants: prop interface frozen; draft clears only on success (submit);
-// error never clears draft. Rename and delete-confirm rows are mutually
+// Invariants: draft clears only on success (submit); error never clears
+// draft. A failed reply shows its error inline (MessageItem); the banner is
+// only for errors that belong to no reply. Escape in the composer stops a
+// running reply. Rename and delete-confirm rows are mutually
 // exclusive, Escape cancels either; no window-level Escape. Delete asks inline,
 // never through window.confirm: WebView2 draws that natively, outside the theme.
 import { useEffect, useRef, useState } from "react";
@@ -8,7 +10,7 @@ import type { JSX, KeyboardEvent, ReactNode } from "react";
 import type { ChatMessage, ChatStatus } from "../../types/chat";
 import type { ConversationItem } from "../../hooks/useChat";
 import { ConversationPicker } from "./ConversationPicker";
-import { SafeMarkdown } from "./SafeMarkdown";
+import { MessageItem } from "./MessageItem";
 import { Carrot } from "../ui/Carrot";
 import {
   IconAlert,
@@ -17,6 +19,7 @@ import {
   IconPlus,
   IconStop,
   IconTrash,
+  IconX,
 } from "../ui/Icon";
 
 // Inserted into the composer, never sent: the user still presses Enter.
@@ -32,6 +35,7 @@ interface Props {
   onSend: (text: string) => void;
   onCancel: () => void;
   onRetry: () => void;
+  onDismissError: () => void;
   onNew: () => void;
   onSwitch: (id: string) => void;
   onRename: (id: string, title: string) => void;
@@ -43,28 +47,12 @@ interface Props {
   hasProvider: boolean;
 }
 
-function statusLabel(s: ChatStatus): string {
-  switch (s) {
-    case "sending":
-      return "mengirim…";
-    case "streaming":
-      return "mengetik…";
-    case "cancelled":
-      return "dibatalkan";
-    case "error":
-      return "gagal";
-    case "complete":
-      return "";
-    default:
-      return "";
-  }
-}
-
-function statusDot(s: ChatStatus): string {
-  if (s === "sending" || s === "streaming") return "status-dot status-dot--busy";
-  if (s === "error") return "status-dot status-dot--error";
-  if (s === "complete") return "status-dot status-dot--ok";
-  return "status-dot";
+// Footer status speaks only while work is in flight; outcomes (failed,
+// cancelled) are shown on the reply itself.
+function busyLabel(s: ChatStatus): string {
+  if (s === "sending") return "Mengirim…";
+  if (s === "streaming") return "Wortel mengetik…";
+  return "";
 }
 
 export function ChatPanel({
@@ -77,6 +65,7 @@ export function ChatPanel({
   onSend,
   onCancel,
   onRetry,
+  onDismissError,
   onNew,
   onSwitch,
   onRename,
@@ -110,6 +99,11 @@ export function ChatPanel({
   };
 
   const keyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Escape" && busy) {
+      e.preventDefault();
+      onCancel();
+      return;
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       submit();
@@ -145,7 +139,11 @@ export function ChatPanel({
 
   const cur = conversations.find((c) => c.id === conversationId);
   const curTitle = cur?.title || conversationId.slice(0, 8);
-  const label = statusLabel(status);
+  const label = busyLabel(status);
+  const last = messages.at(-1);
+  const replyFailed = last?.role === "assistant" && last.status === "error";
+  // SendMessage itself threw: the question is on screen with no reply yet.
+  const sendFailed = status === "error" && last?.role === "user";
 
   return (
     <div id="chat-main">
@@ -236,7 +234,7 @@ export function ChatPanel({
           </button>
         </div>
       )}
-      <div id="chat-list" ref={listRef}>
+      <div id="chat-list" ref={listRef} role="log" aria-label="Isi percakapan" aria-busy={busy}>
         {messages.length === 0 && !hasProvider && (
           <div className="chat-empty">
             <Carrot size={64} />
@@ -267,25 +265,28 @@ export function ChatPanel({
             </button>
           </div>
         )}
-        {messages.map((m) => (
-          <div key={m.id} className={`msg msg-${m.role}`}>
-            <div className="msg-body">
-              {m.role === "assistant" ? <SafeMarkdown text={m.content} /> : m.content}
-            </div>
-            {statusLabel(m.status) ? (
-              <div className="msg-status">{statusLabel(m.status)}</div>
-            ) : (
-              <div className="msg-status" aria-hidden="true" />
-            )}
-          </div>
+        {messages.map((m, i) => (
+          <MessageItem
+            key={m.id}
+            message={m}
+            isLast={i === messages.length - 1}
+            error={error}
+            busy={busy}
+            onRetry={onRetry}
+          />
         ))}
       </div>
-      {error && (
+      {error && !replyFailed && (
         <div id="chat-error" className="banner banner--error" role="alert">
           <IconAlert size={15} />
           <span className="banner__text">{error}</span>
-          <button type="button" className="btn btn--sm" onClick={onRetry}>
-            Coba lagi
+          {sendFailed && !busy && (
+            <button type="button" className="btn btn--sm" onClick={onRetry}>
+              Coba lagi
+            </button>
+          )}
+          <button type="button" className="icon-btn" onClick={onDismissError} aria-label="Tutup pesan error" title="Tutup">
+            <IconX size={14} />
           </button>
         </div>
       )}
@@ -304,23 +305,27 @@ export function ChatPanel({
         <button
           type="button"
           id="btn-send"
-          className={busy ? "btn btn--icon btn--danger" : "btn btn--icon btn--primary"}
+          className={busy ? "btn btn--icon btn--stop" : "btn btn--icon btn--primary"}
           onClick={() => {
             if (busy) onCancel();
             else submit();
           }}
           disabled={busy ? false : !hasProvider || !draft.trim()}
-          aria-label={busy ? "Hentikan" : "Kirim pesan"}
-          title={busy ? "Hentikan" : "Kirim pesan"}
+          aria-label={busy ? "Hentikan balasan" : "Kirim pesan"}
+          title={busy ? "Hentikan balasan (Esc)" : "Kirim pesan (Enter)"}
         >
           {busy ? <IconStop size={14} /> : <IconArrowUp size={14} />}
         </button>
       </div>
       <div id="chat-footer">
         <div id="chat-footer-model">{modelPicker}</div>
-        <span id="chat-state">
-          <span className={statusDot(status)} aria-hidden="true" />
-          {label && <span className="chat-state__label">{label}</span>}
+        <span id="chat-state" role="status">
+          {label && (
+            <>
+              <span className="status-dot status-dot--busy" aria-hidden="true" />
+              <span className="chat-state__label">{label}</span>
+            </>
+          )}
         </span>
       </div>
     </div>

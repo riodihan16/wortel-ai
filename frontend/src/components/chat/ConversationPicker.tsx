@@ -4,9 +4,10 @@
 // close, no global handlers while closed), opening downward, plus arrow-key
 // focus movement because the list can grow long.
 import { useEffect, useRef, useState } from "react";
-import type { JSX, KeyboardEvent } from "react";
+import type { JSX } from "react";
 import type { ConversationItem } from "../../hooks/useChat";
 import { IconCheck, IconChevronDown } from "../ui/Icon";
+import { moveMenuFocus } from "./menuKeys";
 
 interface Props {
   conversations: ConversationItem[];
@@ -61,20 +62,6 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
     if (disabled) setOpen(false);
   }, [disabled]);
 
-  const moveFocus = (e: KeyboardEvent<HTMLDivElement>) => {
-    const opts = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitemradio"]') ?? []);
-    if (opts.length === 0) return;
-    const at = opts.indexOf(document.activeElement as HTMLElement);
-    const next: Record<string, number> = {
-      ArrowDown: (at + 1) % opts.length,
-      ArrowUp: at <= 0 ? opts.length - 1 : at - 1,
-      Home: 0,
-      End: opts.length - 1,
-    };
-    if (!(e.key in next)) return;
-    e.preventDefault();
-    opts[next[e.key]].focus();
-  };
 
   return (
     <div
@@ -103,7 +90,7 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
       {open && (
         // tabIndex -1: a press on the menu's padding or scrollbar focuses the
         // menu itself instead of <body>, so the blur rule above keeps it open.
-        <div className="menu conv-menu" role="menu" ref={menuRef} tabIndex={-1} onKeyDown={moveFocus}>
+        <div className="menu conv-menu" role="menu" ref={menuRef} tabIndex={-1} onKeyDown={(e) => moveMenuFocus(e, menuRef.current)}>
           {items.map((c) => {
             const isOn = c.id === conversationId;
             return (

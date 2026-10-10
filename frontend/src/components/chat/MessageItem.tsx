@@ -1,0 +1,60 @@
+// MessageItem renders one turn of the transcript. A reply's outcome lives on
+// the reply itself, never in a separate status row: a failed reply becomes an
+// inline error card (reason + retry on the newest turn), a cancelled reply
+// gets an end-cap inside its bubble, and an empty streaming reply shows
+// typing dots until the first delta lands.
+import type { JSX } from "react";
+import type { ChatMessage } from "../../types/chat";
+import { IconAlert } from "../ui/Icon";
+import { SafeMarkdown } from "./SafeMarkdown";
+
+interface Props {
+  message: ChatMessage;
+  /** Newest message: the only one whose failure can be retried. */
+  isLast: boolean;
+  /** Live error text from the last request; older failures fall back to a generic line. */
+  error: string | null;
+  busy: boolean;
+  onRetry: () => void;
+}
+
+export function MessageItem({ message: m, isLast, error, busy, onRetry }: Props): JSX.Element {
+  const failed = m.role === "assistant" && m.status === "error";
+  const cancelled = m.role === "assistant" && m.status === "cancelled";
+  const waiting = m.role === "assistant" && m.status === "streaming" && !m.content;
+  const showBody = !(failed && !m.content);
+
+  return (
+    <div className={`msg msg-${m.role}`}>
+      {showBody && (
+        <div className="msg-body">
+          {waiting ? (
+            <span className="msg-typing" role="img" aria-label="Wortel sedang menulis">
+              <span />
+              <span />
+              <span />
+            </span>
+          ) : m.role === "assistant" ? (
+            <SafeMarkdown text={m.content} />
+          ) : (
+            m.content
+          )}
+          {cancelled && (
+            <span className="msg-endcap">{m.content ? "Dihentikan" : "Dihentikan sebelum ada balasan"}</span>
+          )}
+        </div>
+      )}
+      {failed && (
+        <div className="msg-failed" role={isLast ? "alert" : undefined}>
+          <IconAlert size={14} />
+          <span className="msg-failed__text">{isLast && error ? error : "Balasan ini gagal."}</span>
+          {isLast && !busy && (
+            <button type="button" className="btn btn--sm" onClick={onRetry}>
+              Coba lagi
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -259,3 +259,67 @@ func TestEnsureConversationFailsAfterClose(t *testing.T) {
 		t.Fatal("expected error from EnsureConversation on a closed DB")
 	}
 }
+
+func TestPrepareRetryReusesUserAndDropsFailedReply(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "retry.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer db.Close()
+	if err := db.EnsureConversation("c1", "x"); err != nil {
+		t.Fatalf("ensure: %v", err)
+	}
+	// Same second on purpose: user and reply rows share created_at in
+	// production because both are written back to back.
+	at := time.Now().UTC()
+	for _, m := range []MessageRow{
+		{ID: "u0", ConversationID: "c1", Role: "user", Content: "lama", Status: "complete", CreatedAt: at.Add(-time.Minute)},
+		{ID: "a0", ConversationID: "c1", Role: "assistant", Content: "ok", Status: "complete", CreatedAt: at.Add(-time.Minute)},
+		{ID: "u1", ConversationID: "c1", Role: "user", Content: "halo", Status: "complete", CreatedAt: at},
+		{ID: "a1", ConversationID: "c1", Role: "assistant", Content: "", Status: "failed", CreatedAt: at},
+	} {
+		if err := db.AppendMessage(m); err != nil {
+			t.Fatalf("append %s: %v", m.ID, err)
+		}
+	}
+
+	reused, err := db.PrepareRetry("c1", "halo")
+	if err != nil || !reused {
+		t.Fatalf("PrepareRetry = %v, %v; want true, nil", reused, err)
+	}
+	rows, err := db.RecentRows("c1", 10)
+	if err != nil {
+		t.Fatalf("rows: %v", err)
+	}
+	ids := make([]string, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+	if len(ids) != 3 || ids[2] != "u1" {
+		t.Fatalf("rows after retry = %v; want u0 a0 u1", ids)
+	}
+}
+
+func TestPrepareRetryRefusesWhenTextDiffers(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "retry2.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer db.Close()
+	_ = db.EnsureConversation("c1", "x")
+	_ = db.AppendMessage(MessageRow{ID: "u1", ConversationID: "c1", Role: "user", Content: "halo", Status: "complete"})
+	_ = db.AppendMessage(MessageRow{ID: "a1", ConversationID: "c1", Role: "assistant", Content: "jawab", Status: "complete"})
+
+	reused, err := db.PrepareRetry("c1", "halo")
+	if err != nil || reused {
+		t.Fatalf("PrepareRetry on a completed turn = %v, %v; want false, nil", reused, err)
+	}
+	reused, err = db.PrepareRetry("c1", "lain")
+	if err != nil || reused {
+		t.Fatalf("PrepareRetry with other text = %v, %v; want false, nil", reused, err)
+	}
+	rows, _ := db.RecentRows("c1", 10)
+	if len(rows) != 2 {
+		t.Fatalf("rows touched: %d", len(rows))
+	}
+}

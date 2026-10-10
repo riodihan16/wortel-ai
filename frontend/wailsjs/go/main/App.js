@@ -54,6 +54,10 @@ export function RenameConversation(arg1, arg2) {
   return window['go']['main']['App']['RenameConversation'](arg1, arg2);
 }
 
+export function RetryMessage(arg1, arg2) {
+  return window['go']['main']['App']['RetryMessage'](arg1, arg2);
+}
+
 export function SaveProvider(arg1) {
   return window['go']['main']['App']['SaveProvider'](arg1);
 }

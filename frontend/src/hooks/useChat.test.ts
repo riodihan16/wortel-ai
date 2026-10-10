@@ -8,6 +8,7 @@ const backend = {
   history: vi.fn(async () => [] as unknown[]),
   list: vi.fn(async () => [] as unknown[]),
   send: vi.fn(async () => "req-1"),
+  retry: vi.fn(async () => "req-2"),
   cancel: vi.fn(async () => {}),
   rename: vi.fn(async () => {}),
   remove: vi.fn(async () => {}),
@@ -17,6 +18,7 @@ vi.mock("../../wailsjs/go/main/App", () => ({
   History: (...a: unknown[]) => backend.history(...(a as [])),
   ListConversations: () => backend.list(),
   SendMessage: (...a: unknown[]) => backend.send(...(a as [])),
+  RetryMessage: (...a: unknown[]) => backend.retry(...(a as [])),
   CancelGeneration: (...a: unknown[]) => backend.cancel(...(a as [])),
   RenameConversation: (...a: unknown[]) => backend.rename(...(a as [])),
   DeleteConversation: (...a: unknown[]) => backend.remove(...(a as [])),
@@ -48,6 +50,7 @@ beforeEach(() => {
   backend.history.mockResolvedValue([]);
   backend.list.mockResolvedValue([]);
   backend.send.mockResolvedValue("req-1");
+  backend.retry.mockResolvedValue("req-2");
 });
 
 describe("useChat streaming reducer", () => {
@@ -181,5 +184,50 @@ describe("useChat cancel guard", () => {
       await result.current.send("lagi");
     });
     expect(backend.send).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("useChat retry", () => {
+  async function failOnce() {
+    const r = await mountChat();
+    const conv = r.result.current.conversationId;
+    await act(() => r.result.current.send("halo"));
+    act(() => emit({ type: "started", messageId: "m1" }, conv));
+    act(() => emit({ type: "failed", messageId: "m1", error: { code: "x", message: "429", retryable: true } }, conv));
+    return { ...r, conv };
+  }
+
+  it("re-runs the failed turn without a second user bubble", async () => {
+    const { result, conv } = await failOnce();
+    await act(() => result.current.retry());
+
+    expect(backend.retry).toHaveBeenCalledWith(conv, "halo");
+    expect(backend.send).toHaveBeenCalledTimes(1);
+    const users = result.current.messages.filter((m) => m.role === "user");
+    expect(users).toHaveLength(1);
+    expect(result.current.messages.some((m) => m.status === "error")).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("streams the retried reply into a fresh bubble", async () => {
+    const { result, conv } = await failOnce();
+    await act(() => result.current.retry());
+    act(() => emit({ type: "started", requestId: "req-2", messageId: "m2" }, conv));
+    act(() => emit({ type: "delta", requestId: "req-2", delta: "ok", messageId: "m2" }, conv));
+
+    expect(result.current.messages.at(-1)).toMatchObject({ id: "m2", content: "ok" });
+  });
+
+  it("does nothing while a request is in flight", async () => {
+    const { result } = await mountChat();
+    await act(() => result.current.send("halo"));
+    await act(() => result.current.retry());
+    expect(backend.retry).not.toHaveBeenCalled();
+  });
+
+  it("clearError drops a banner error", async () => {
+    const { result } = await failOnce();
+    act(() => result.current.clearError());
+    expect(result.current.error).toBeNull();
   });
 });

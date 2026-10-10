@@ -29,6 +29,8 @@ export function ListProviders():Promise<Array<config.ProviderProfile>>;
 
 export function RenameConversation(arg1:string,arg2:string):Promise<void>;
 
+export function RetryMessage(arg1:string,arg2:string):Promise<string>;
+
 export function SaveProvider(arg1:app.SaveInput):Promise<config.ProviderProfile>;
 
 export function SendMessage(arg1:string,arg2:string):Promise<string>;

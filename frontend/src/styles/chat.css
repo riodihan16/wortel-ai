@@ -208,18 +208,78 @@
     border: 1px solid var(--color-rule);
 }
 
-/* Fixed-height status row: hide/show never shifts bubble height. */
-.msg-status {
-    min-height: calc(var(--text-2xs) * 1.4);
-    font-size: var(--text-2xs);
-    line-height: var(--leading-snug);
+/* Cancelled: an end-cap inside the bubble, so a partial reply never reads
+   as complete. */
+.msg-endcap {
+    display: block;
+    margin-top: var(--space-1);
+    font-size: var(--text-xs);
+    font-style: italic;
     color: var(--color-ink-3);
+}
+
+.msg-endcap::before {
+    content: "— ";
+}
+
+/* Failed reply: the reason and the retry live where the reply would be. */
+.msg-failed {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    max-width: 100%;
+    margin-top: var(--space-1);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-md);
+    background: var(--color-danger-soft);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+}
+
+.msg-failed > svg {
+    flex-shrink: 0;
+    color: var(--color-danger);
+}
+
+.msg-failed__text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.msg-failed .btn {
+    flex-shrink: 0;
+}
+
+.msg-failed .btn:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+/* Waiting for the first token. */
+.msg-typing {
+    display: inline-flex;
+    gap: 4px;
+    padding: 6px 2px;
+}
+
+.msg-typing > span {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--color-ink-3);
 }
 
 /* ---- error banner ---- */
 #chat-error.banner {
     flex-shrink: 0;
     min-width: 0;
+}
+
+#chat-error.banner {
+    align-items: center;
 }
 
 #chat-error .banner__text {
@@ -230,7 +290,8 @@
 
 /* Retry is a plain button: default·hover·focus·active·disabled via .btn;
    loading·error·success unreachable (parent re-renders on retry). */
-#chat-error .btn:focus-visible {
+#chat-error .btn:focus-visible,
+#chat-error .icon-btn:focus-visible {
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
 }
@@ -254,8 +315,8 @@
    All 8 states: default·hover·focus·active·disabled via .btn variants;
    loading = stop affordance while busy; error·success surface via banner/dot. */
 #btn-send {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
 }
 

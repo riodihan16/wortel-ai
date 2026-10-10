@@ -6,6 +6,7 @@ import {
   History,
   ListConversations,
   RenameConversation,
+  RetryMessage,
   SendMessage,
 } from "../../wailsjs/go/main/App";
 import type { ChatEvent, ChatMessage, ChatStatus } from "../types/chat";
@@ -36,6 +37,8 @@ export function useChat() {
   const sendingRef = useRef(false);
   const convRef = useRef(conversationId);
   convRef.current = conversationId;
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const refreshList = useCallback(async (): Promise<ConversationItem[]> => {
     try {
@@ -156,6 +159,22 @@ export function useChat() {
     };
   }, [refreshList]);
 
+  // begin hands one turn to the backend. The requestId arrives after the
+  // backend's "started" event may already have been adopted (see handler).
+  const begin = useCallback(
+    async (conv: string, text: string, call: (c: string, t: string) => Promise<string>) => {
+      try {
+        const requestId = await call(conv, text);
+        activeRequest.current = requestId;
+      } catch (e) {
+        setStatus("error");
+        setError(e instanceof Error ? e.message : "Gagal mengirim.");
+        sendingRef.current = false;
+      }
+    },
+    []
+  );
+
   const send = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || sendingRef.current || activeRequest.current) return;
@@ -172,15 +191,35 @@ export function useChat() {
       ...prev,
       { id: `user-${Date.now()}`, role: "user", content: trimmed, status: "complete" },
     ]);
-    try {
-      const requestId = (await SendMessage(conv, trimmed)) as string;
-      activeRequest.current = requestId;
-    } catch (e) {
-      setStatus("error");
-      setError(e instanceof Error ? e.message : "Gagal mengirim.");
-      sendingRef.current = false;
+    await begin(conv, trimmed, SendMessage);
+  }, [begin]);
+
+  // retry re-runs the newest user turn in place: the failed reply bubble is
+  // dropped and the backend reuses the stored user row, so neither the UI
+  // nor history shows the question twice.
+  const retry = useCallback(async () => {
+    if (sendingRef.current || activeRequest.current) return;
+    const conv = convRef.current;
+    const msgs = messagesRef.current;
+    let lastUser = -1;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === "user") {
+        lastUser = i;
+        break;
+      }
     }
-  }, []);
+    if (!conv || lastUser < 0) return;
+    const text = msgs[lastUser].content;
+    sendingRef.current = true;
+    setError(null);
+    setStatus("sending");
+    setMessages((prev) =>
+      prev.filter((m, i) => !(i > lastUser && m.role === "assistant" && m.status === "error"))
+    );
+    await begin(conv, text, RetryMessage);
+  }, [begin]);
+
+  const clearError = useCallback(() => setError(null), []);
 
   const cancel = useCallback(async () => {
     // Saat sending, requestId belum ada: batalkan via backend lalu lepas guard.
@@ -263,6 +302,8 @@ export function useChat() {
     error,
     busy,
     send,
+    retry,
+    clearError,
     cancel,
     conversationId,
     conversations,

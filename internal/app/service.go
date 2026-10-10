@@ -73,6 +73,17 @@ func NewRuntimeService(ctx context.Context, provider ai.Provider) *Service {
 
 // SendMessage starts streaming. Empty input rejected. One active per conversation.
 func (s *Service) SendMessage(ctx context.Context, conversationID, text string) (string, error) {
+	return s.generate(ctx, conversationID, text, false)
+}
+
+// RetryMessage regenerates the newest turn after a failure. Unlike
+// SendMessage it does not store the user's text again when that turn is
+// already in history; the failed reply is replaced (storage.PrepareRetry).
+func (s *Service) RetryMessage(ctx context.Context, conversationID, text string) (string, error) {
+	return s.generate(ctx, conversationID, text, true)
+}
+
+func (s *Service) generate(ctx context.Context, conversationID, text string, retry bool) (string, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return "", errors.New("empty message")
@@ -117,8 +128,14 @@ func (s *Service) SendMessage(ctx context.Context, conversationID, text string) 
 			// Persistence is best-effort by design: a DB failure must not abort
 			// an in-flight stream. The error surfaces later when the history
 			// list is empty after restart; see ADR-037.
+			reused := false
+			if retry {
+				reused, _ = db.PrepareRetry(conversationID, text)
+			}
 			_ = db.EnsureConversation(conversationID, storage.TitleFor(text))
-			_ = db.AppendMessage(storage.MessageRow{ID: userMsgID, ConversationID: conversationID, Role: "user", Content: text, Status: "complete", Model: model})
+			if !reused {
+				_ = db.AppendMessage(storage.MessageRow{ID: userMsgID, ConversationID: conversationID, Role: "user", Content: text, Status: "complete", Model: model})
+			}
 			_ = db.AppendMessage(storage.MessageRow{ID: messageID, ConversationID: conversationID, Role: "assistant", Content: "", Status: "streaming", Model: model})
 		}
 		msgs := []ai.Message{{Role: "user", Content: text}}

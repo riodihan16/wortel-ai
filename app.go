@@ -256,6 +256,12 @@ func (a *App) SendMessage(conversationID string, text string) (string, error) {
 	return a.svc.SendMessage(a.ctx, conversationID, text)
 }
 
+// RetryMessage regenerates the newest turn after a failure without storing
+// the user's text a second time.
+func (a *App) RetryMessage(conversationID string, text string) (string, error) {
+	return a.svc.RetryMessage(a.ctx, conversationID, text)
+}
+
 // CancelGeneration stops the active stream for a conversation.
 func (a *App) CancelGeneration(conversationID string) {
 	a.svc.CancelGeneration(conversationID)

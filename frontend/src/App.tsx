@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {
     EventsOff,
     EventsOn,
@@ -40,12 +40,6 @@ function App() {
     const [mode, setMode] = useState<Mode>('pet');
     const chat = useChat();
     const provs = useProviders();
-    const lastUser = useRef<string>('');
-
-    const send = useCallback((text: string) => {
-        lastUser.current = text.trim();
-        chat.send(text);
-    }, [chat]);
 
     // M5: tray menu intents. Show -> chat mode, Settings -> settings mode.
     useEffect(() => {
@@ -64,10 +58,6 @@ function App() {
             EventsOff('app:toggle');
         };
     }, []);
-
-    const retry = useCallback(() => {
-        if (lastUser.current) chat.send(lastUser.current);
-    }, [chat]);
 
     // Both surfaces are the same window, so every mode change goes through
     // switchTo — otherwise the pet renders inside a 400x600 window for a frame.
@@ -200,7 +190,7 @@ function App() {
                 onHide={() => HideWindow()}
                 onQuit={Quit}
             />
-            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} onOpenSettings={() => setMode('settings')} hasProvider={provs.activeProvider !== null} />
+            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={chat.send} onCancel={chat.cancel} onRetry={chat.retry} onDismissError={chat.clearError} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} onOpenSettings={() => setMode('settings')} hasProvider={provs.activeProvider !== null} />
         </div>
     );
 }

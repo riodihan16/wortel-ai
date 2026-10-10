@@ -67,9 +67,8 @@
     color: var(--color-ink);
 }
 
+/* Reads as a button at rest (it is one), red text marks the consequence. */
 .btn--danger {
-    background: transparent;
-    border-color: transparent;
     color: var(--color-danger);
 }
 
@@ -77,6 +76,20 @@
     background: var(--color-danger-soft);
     border-color: var(--color-danger);
     color: var(--color-danger);
+}
+
+/* Stop: the one control that matters mid-stream, so it is the loudest thing
+   in the composer. Inverted ink, not danger red: stopping is not destructive. */
+.btn--stop {
+    background: var(--color-ink);
+    border-color: transparent;
+    color: var(--color-paper);
+}
+
+.btn--stop:hover:not(:disabled) {
+    background: var(--color-ink);
+    border-color: transparent;
+    filter: brightness(1.12);
 }
 
 .btn--sm {
@@ -346,14 +359,6 @@
 .status-dot--busy {
     background: var(--color-accent);
     animation: status-pulse 1.4s var(--ease-in-out) infinite;
-}
-
-.status-dot--error {
-    background: var(--color-danger);
-}
-
-.status-dot--ok {
-    background: var(--color-success);
 }
 
 @keyframes status-pulse {

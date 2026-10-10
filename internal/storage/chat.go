@@ -64,6 +64,51 @@ func (d *DB) UpdateMessage(id, content, status string) error {
 	return err
 }
 
+// PrepareRetry readies a conversation to regenerate its newest turn without
+// storing the user's text twice. When the newest rows are that user message
+// followed by a failed reply, the failed reply is deleted and the user row is
+// kept for reuse (true). A user row with no reply yet is reused as is. Any
+// other shape (a completed reply, different text, nothing stored because the
+// first attempt never reached the DB) returns false and changes nothing, so
+// the caller stores the user message as a normal send would.
+func (d *DB) PrepareRetry(conversationID, text string) (bool, error) {
+	// rowid breaks ties: a user row and its reply are written in the same
+	// second, so created_at alone does not order them.
+	rows, err := d.inner.Query(`SELECT id, role, content, status FROM messages
+		WHERE conversation_id=? ORDER BY created_at DESC, rowid DESC LIMIT 2`, conversationID)
+	if err != nil {
+		return false, err
+	}
+	type row struct{ id, role, content, status string }
+	var last []row
+	for rows.Next() {
+		var r row
+		if err := rows.Scan(&r.id, &r.role, &r.content, &r.status); err != nil {
+			rows.Close()
+			return false, err
+		}
+		last = append(last, r)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return false, err
+	}
+	rows.Close()
+
+	switch {
+	case len(last) >= 1 && last[0].role == "user" && last[0].content == text:
+		return true, nil
+	case len(last) == 2 && last[0].role == "assistant" && last[0].status == "failed" &&
+		last[1].role == "user" && last[1].content == text:
+		if _, err := d.inner.Exec(`DELETE FROM messages WHERE id=?`, last[0].id); err != nil {
+			return false, err
+		}
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
 // RecentMessages returns the last N messages oldest-first for context.
 func (d *DB) RecentMessages(conversationID string, n int) ([]ai.Message, error) {
 	if n <= 0 {

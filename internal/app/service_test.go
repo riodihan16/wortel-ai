@@ -130,3 +130,22 @@ func TestCancelAllWaitsForGoroutines(t *testing.T) {
 		t.Fatalf("state leaked after CancelAll: active=%d requests=%d", len(svc.active), len(svc.requests))
 	}
 }
+
+func TestRetryStreamsLikeSend(t *testing.T) {
+	var sink eventSink
+	svc := NewService(&ai.MockProvider{}, sink.emit)
+	if _, err := svc.RetryMessage(context.Background(), "c1", "   "); err == nil {
+		t.Fatal("expected empty retry rejection")
+	}
+	if _, err := svc.RetryMessage(context.Background(), "c1", "halo"); err != nil {
+		t.Fatalf("retry: %v", err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if sink.terminal() > 0 {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("no terminal event: %+v", sink.snapshot())
+}
