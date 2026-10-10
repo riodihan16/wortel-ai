@@ -236,7 +236,8 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - [x] Cara install/run dan uninstall didokumentasikan. → README "Distribusi dan uninstall".
 - [x] Lokasi data lokal dijelaskan. → `%LOCALAPPDATA%\WortelAI\wortel.db` (+ `-wal`/`-shm`); README + docs 07.
 - [x] WebView2 requirement dijelaskan. → README "Menjalankan dan membangun"; kegagalan start menampilkan `MessageBoxW` dengan tautan unduh WebView2 bila runtime absen (ADR-038).
-- [x] Signing/SmartScreen behavior dipertimbangkan sebelum distribusi publik. → **Belum ditandatangani.** Executable tanpa Authenticode memicu peringatan SmartScreen "Windows protected your PC". Untuk distribusi publik perlu sertifikat code signing; untuk MVP portable pribadi, pengguna menekan "More info → Run anyway". Dicatat sebagai known issue.
+- [x] Signing/SmartScreen behavior dipertimbangkan sebelum distribusi publik. → **Belum ditandatangani.** Executable tanpa Authenticode memicu peringatan SmartScreen "Windows protected your PC". Untuk MVP portable pribadi, pengguna menekan "More info → Run anyway". Proyek kini open source (MIT) sehingga jalur gratis tersedia: **SignPath Foundation** (OV-level, pipeline terkelola) via `.github/workflows/release.yml`, digerbangi environment `release` dan `vars.SIGNPATH_ENABLED`; lihat ADR-040 dan README "Penandatanganan rilis". Opsi berbayar (Azure Trusted Signing, OV/EV CA) dan langkah `signtool` lokal juga didokumentasikan di README.
+- [x] CI dan rilis otomatis. → `.github/workflows/ci.yml` (gofmt, `go vet`, `go test`, `go test -race`, typecheck/test/build frontend, `wails build` + upload artifact) dan `.github/workflows/release.yml` (tag `v*` → build → SignPath opsional → GitHub release draft + `SHA256SUMS.txt`). Belum pernah dijalankan di GitHub (repo belum di-push); validasi dilakukan lokal (YAML parse + gate yang sama).
 
 ### Artifact rilis 0.1.0
 
@@ -255,6 +256,6 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - `go test -race ./...` hijau. Mesin build punya MinGW-w64 (WinLibs POSIX/UCRT, `gcc` di PATH user via `winget install BrechtSanders.WinLibs.POSIX.UCRT`). Jalankan race dengan `CGO_ENABLED=1 go test -race ./...`. Dua data race di **kode test** ditemukan dan diperbaiki: emitter tidak sinkron di `TestSendAndCancel` dan `TestCancelAllStopsStreams` kini lewat `eventSink` ber-mutex. Produksi tidak terpengaruh (`s.mu` sudah menjaga map; buffer streaming lokal per goroutine). Build rilis tetap `CGO_ENABLED=0` (artefak tidak memakai CGO).
 - UI frontend kini punya runner permanen: `vitest`+`jsdom`, 12 tes (`useChat` reducer/guard, `SafeMarkdown` allowlist link). Sisa yang belum ditutup otomatis: composer Enter vs Shift+Enter, busy state kontrol, dan render provider key; masih mengandalkan probe/manual.
 - Kegagalan persistensi percakapan (disk penuh / handle DB hilang) **tidak terlihat user** pada 0.1.0: stream tetap jalan, pesan hilang saat restart. Best-effort by design (ADR-037); tidak ada tes otomatis untuk jalur emisi karena sulit direproduksi tanpa hook test-only.
-- SmartScreen: executable belum ditandatangani (lihat Distribusi) — butuh sertifikat code signing untuk distribusi publik.
+- SmartScreen: executable belum ditandatangani (lihat Distribusi) — jalur signing OSS (SignPath Foundation) sudah disiapkan di `.github/workflows/release.yml` tapi belum aktif; rilis publik pertama tetap memicu peringatan sampai akun SignPath lolos kualifikasi (ADR-040).
 
 

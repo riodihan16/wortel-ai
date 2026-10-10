@@ -1,26 +1,32 @@
-# Wortel AI — Rencana Produk dan Teknis
+# Wortel AI
 
-> **Status:** Draft perencanaan MVP  
-> **Nama proyek:** Wortel AI (nama sementara; boleh diganti)  
-> **Platform target:** Windows 10/11 x64  
-> **Bahasa dokumentasi:** Indonesia  
-> **Tujuan:** Membuat desktop companion berkarakter 2D yang ringan, modern, dan dapat bercakap-cakap dengan AI melalui endpoint OpenAI-compatible.
+> **Status:** MVP selesai (0.1.0), siap dirilis sebagai executable portable Windows.
+> **Platform target:** Windows 10/11 x64
+> **Bahasa dokumentasi:** Indonesia
+> **Lisensi:** [MIT](LICENSE) © 2026 Ridho Dwi Ramadhan
+>
+> Desktop companion berkarakter 2D yang ringan dan dapat bercakap-cakap dengan AI melalui endpoint OpenAI-compatible.
 
-Dokumen ini adalah sumber acuan awal untuk implementasi. Detail teknis yang belum terbukti di prototipe ditandai sebagai **perlu divalidasi**; jangan menganggapnya sebagai kemampuan yang sudah selesai.
+## Fitur
 
-## Ringkasan konsep
+- Karakter kecil mengambang di desktop; klik untuk membuka panel chat.
+- Chat streaming ke endpoint OpenAI-compatible, dengan tombol berhenti yang benar-benar membatalkan request.
+- Beberapa provider dan beberapa model per provider; ganti model aktif dari header chat.
+- Riwayat percakapan lokal (SQLite) + multi-percakapan (buat, ganti nama, hapus).
+- Markdown aman untuk respons AI (tanpa raw HTML; link hanya http/https).
+- API key disimpan di Windows Credential Manager, tidak pernah ke database/log/frontend.
+- Hotkey global, system tray, dan perilaku idle ringan (tanpa polling, tanpa model lokal).
 
-Wortel AI adalah aplikasi desktop Windows berbentuk karakter kecil yang mengambang di atas desktop. Pengguna mengeklik karakter untuk membuka panel chat. Aplikasi tidak menjalankan model AI secara lokal pada MVP; ia mengirim permintaan ke endpoint AI yang dipilih pengguna.
+## Prinsip
 
-Prinsip utamanya:
-
-- **Ringan saat idle:** tidak melakukan polling, tidak menjalankan loop kerja yang terus-menerus, dan tidak memuat model lokal.
+- **Ringan saat idle:** tidak ada polling, tidak ada loop kerja terus-menerus, tidak ada model lokal.
 - **Provider bebas:** endpoint, model, dan API key dapat dikonfigurasi selama provider mendukung kontrak API yang kompatibel.
-- **Local-first:** pengaturan dan riwayat disimpan secara lokal; percakapan hanya dikirim saat pengguna menekan tombol kirim.
-- **MVP terukur:** mulai dari satu karakter, satu panel chat, satu provider yang dikonfigurasi pengguna, lalu perluas setelah alur dasarnya stabil.
+- **Local-first:** pengaturan dan riwayat disimpan lokal; percakapan hanya dikirim saat pengguna menekan tombol kirim.
 - **Aman secara default:** rahasia tidak disimpan sebagai teks biasa, tidak ditulis ke log, dan respons AI tidak diperlakukan sebagai perintah sistem.
 
 ## Dokumen
+
+Dokumen perencanaan dan teknis ada di `docs/`:
 
 1. [Product brief](docs/01-product-brief.md) — visi, pengguna, prinsip produk, dan batas scope.
 2. [Kebutuhan MVP](docs/02-mvp-requirements.md) — kebutuhan fungsional/nonfungsional dan acceptance criteria.
@@ -105,6 +111,24 @@ Cara uninstall:
 
 Tidak ada langkah lain yang diperlukan; tidak ada komponen yang tertinggal di sistem.
 
+### Penandatanganan rilis (code signing)
+
+Executable saat ini **belum ditandatangani**, sehingga Windows SmartScreen menampilkan "Windows protected your PC". Untuk menjalankan: **More info → Run anyway**. Tanda tangan tidak menghilangkan peringatan pada rilis pertama; ia menggantinya dengan nama penerbit yang terverifikasi dan membangun reputasi seiring unduhan.
+
+Opsi untuk proyek ini (open source):
+
+- **SignPath Foundation** (gratis untuk OSS yang lolos kualifikasi): penandatanganan OV-level lewat pipeline terkelola. Jalur gratis paling realistis untuk proyek ini; lihat `.github/workflows/release.yml`.
+- **Azure Trusted Signing** (~$10/bulan): termurah yang kredibel dan ramah CI, tetapi **individu dibatasi Amerika Serikat & Kanada**, sehingga kemungkinan tidak tersedia untuk pengelola di Indonesia.
+- **OV certificate** dari CA (Certum/Sectigo/DigiCert, ~$99–300/tahun): berlaku global; sejak Juni 2023 private key wajib di hardware token/HSM.
+- **EV certificate** (~$400+/tahun): **jangan** dibeli demi SmartScreen — sejak 2024 EV tidak lagi bypass instan.
+
+Menandatangani secara lokal (setelah punya sertifikat/token):
+
+```bash
+signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /n "Ridho Dwi Ramadhan" build/bin/companion.exe
+```
+
+
 ### Platform yang didukung
 
 - Windows 10/11 x64. Ini satu-satunya target MVP.
@@ -120,3 +144,11 @@ Tidak ada langkah lain yang diperlukan; tidak ada komponen yang tertinggal di si
 - OpenAI API reference: <https://platform.openai.com/docs/api-reference/chat>
 
 Endpoint dan format spesifik harus dikonfirmasi terhadap dokumentasi provider yang benar-benar digunakan. Istilah “OpenAI-compatible” bukan jaminan bahwa semua parameter, endpoint, tool calls, atau streaming identik.
+
+## Berkontribusi
+
+Kontribusi diterima. Baca [CONTRIBUTING.md](CONTRIBUTING.md) untuk alur kerja dan gate verifikasi, lalu [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Untuk kerentanan keamanan, ikuti [SECURITY.md](SECURITY.md) — jangan buka issue publik.
+
+## Lisensi
+
+Dirilis di bawah [MIT License](LICENSE) © 2026 Ridho Dwi Ramadhan.

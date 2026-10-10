@@ -284,6 +284,17 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Bukti:** probe memanggil `fatalDialog` dengan error WebView2 → proses **memblokir** menunggu klik (dialog tampil); `isWebView2Missing` lulus unit test (2 positif, 2 negatif). Aplikasi normal tetap start dan keluar bersih.
 - **Konsekuensi:** kegagalan start selalu terlihat user; pesan menyertakan detail error asli (tanpa secret).
 
+## ADR-040 — Publikasi open source: lisensi MIT, CI, dan jalur signing SignPath (2026-10-10)
+
+- **Status:** Done (belum dijalankan di GitHub — repo belum di-push).
+- **Konteks:** Proyek akan dipublikasikan open source. Repo belum punya lisensi, README masih berstatus "draft perencanaan MVP", tidak ada CI, dan perilaku SmartScreen belum punya jalur penyelesaian. Distribusi publik nyata memerlukan otomatisasi build dan kebijakan penandatanganan yang jelas.
+- **Pilihan lisensi:** MIT (paling permisif, umum untuk app desktop; pemilik `Ridho Dwi Ramadhan`). Alternatif Apache-2.0 (klausa patent) atau GPL-3.0 (copyleft) ditolak sebagai berlebih untuk proyek ini.
+- **Pilihan signing:** (a) rilis tanpa sertifikat + catatan "Run anyway"; (b) SignPath Foundation gratis untuk OSS; (c) OV CA berbayar; (d) Azure Trusted Signing; (e) Microsoft Store (MSIX). **Keputusan: (b) sebagai jalur utama**, dengan (a) sebagai default sampai akun SignPath dan secrets ada. Alasan: SignPath Foundation memberi penandatanganan OV-level tanpa biaya untuk proyek OSS, cocok dengan kenyataan bahwa **Azure Trusted Signing membatasi individu ke AS/Kanada** sehingga kemungkinan tertutup untuk pengelola di Indonesia. EV ditolak: sejak 2024 EV tidak lagi bypass SmartScreen instan, jadi tidak sepadan biayanya.
+- **Implikasi:** Kepemilikan repositori tidak boleh berubah di masa depan karena SignPath mensyaratkan nama organisasi/pemilik tetap.
+- **Implementasi:** `LICENSE` (MIT), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `.gitattributes` (LF, kecuali `*.ps1`/`*.bat` CRLF), `.editorconfig`. README ditulis ulang dari draft menjadi README proyek nyata (fitur, build, distribusi, signing, lisensi). `.github/workflows/ci.yml`: gofmt, `go vet`, `go test`, `go test -race` (MinGW di `windows-latest`), typecheck + `npm test` + build frontend, lalu `wails build` + upload artifact. `.github/workflows/release.yml`: tag `v*` → build (versi dari tag → `-ldflags "-X main.Version="`) → job `sign` (environment `release`, `vars.SIGNPATH_ENABLED`, aksi `signpath/github-action-submit-signing-request@v3`, `archive: false` karena SignPath menolak wrapper ZIP) → release draft + `SHA256SUMS.txt`.
+- **Batas yang diketahui:** Workflow belum pernah dieksekusi di runner GitHub (repo belum memiliki remote). Validasi hanya lokal: parse YAML, `gofmt`/`go vet`/`go test`/`go test -race`, `tsc --noEmit`/`npm test`/`npm run build`, dan asumsi (`main.Version`, `npm test` = `vitest run`) diverifikasi terhadap file repo. Job `sign` aktif hanya setelah secrets SignPath diisi dan `vars.SIGNPATH_ENABLED=true`; sampai itu, rilis mempublikasikan exe belum ditandatangani.
+- **Konsekuensi:** Rilis publik pertama tetap memicu SmartScreen sampai akun SignPath lolos kualifikasi. `.gitattributes` mengubah default checkout ke LF; file yang ada sudah LF sehingga tidak ada churn.
+
 ## ADR-037 — Persistensi percakapan best-effort, bukan blocker stream (2026-10-10)
 
 - **Status:** Done.
