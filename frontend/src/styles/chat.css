@@ -72,47 +72,9 @@
 }
 
 /* ---- delete confirmation row ----
-   Inline, not a modal and not window.confirm: deleting one conversation needs
-   a second deliberate press, not a focus trap. Danger tint marks it as the
-   destructive step; Batal holds focus so Enter cannot delete by accident.
-   Contrast: ink on danger-soft 13.5:1, danger on danger-soft 4.6:1 (dark) /
-   5.1:1 (light). */
+   Chrome comes from .confirm-row (controls.css); placement only here. */
 #conv-delete {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
     flex-shrink: 0;
-    min-width: 0;
-    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
-    border: 1px solid var(--color-danger);
-    border-radius: var(--radius-sm);
-    background: var(--color-danger-soft);
-    color: var(--color-ink);
-    font-size: var(--text-sm);
-}
-
-#conv-delete > svg {
-    flex-shrink: 0;
-    color: var(--color-danger);
-}
-
-.conv-delete__msg {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    white-space: nowrap;
-}
-
-.conv-delete__title {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-weight: 600;
-}
-
-#conv-delete .btn:focus-visible {
-    outline: var(--focus-ring);
-    outline-offset: var(--focus-offset);
 }
 
 /* ---- rename row ---- */

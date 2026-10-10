@@ -1,9 +1,10 @@
 // SettingsPanel owns the provider list, provider add/edit form, appearance,
-// autostart and global-shortcut settings. Behaviour here is frozen: only
-// markup and class names may change, never the logic below (EMPTY shape,
-// toSave, pick/addModel/renameAlias/removeModel/submit, validation messages,
-// reset-on-success, and the !editing reset effect are verbatim).
-import { useEffect, useState } from "react";
+// autostart and global-shortcut settings. Form logic (EMPTY shape, toSave,
+// pick/addModel/renameAlias/removeModel/submit, validation messages,
+// reset-on-success) mirrors the backend contract; change it together with
+// internal/app/providers.go. Provider delete asks inline (ADR-048 pattern) and
+// is never offered on the active provider, which the backend refuses.
+import { useEffect, useRef, useState } from "react";
 import { app } from "../../../wailsjs/go/models";
 import type { ModelEntry, ProviderProfile, TestResult } from "../../types/provider";
 import {
@@ -65,10 +66,39 @@ export function SettingsPanel(p: Props) {
   const [editing, setEditing] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const delBtns = useRef(new Map<string, HTMLButtonElement>());
+  const listTitleRef = useRef<HTMLHeadingElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!editing) setForm(EMPTY);
   }, [editing, p.providers.length]);
+
+  // Ubah must land the user on the form, not leave it loading silently below
+  // the fold.
+  useEffect(() => {
+    if (!editing) return;
+    formRef.current?.scrollIntoView?.({ block: "start" });
+    nameRef.current?.focus();
+  }, [editing]);
+
+  // A confirm row for a provider that no longer exists must not stay armed.
+  const armedDel = p.providers.some((x) => x.id === confirmDel) ? confirmDel : null;
+
+  const cancelDelete = (id: string) => {
+    setConfirmDel(null);
+    delBtns.current.get(id)?.focus();
+  };
+
+  const confirmDelete = (id: string) => {
+    setConfirmDel(null);
+    if (editing === id) setEditing("");
+    p.onDelete(id);
+    // The card and its focused button unmount; keep focus inside the section.
+    listTitleRef.current?.focus();
+  };
 
   const pick = (id: string) => {
     const found = p.providers.find((x) => x.id === id);
@@ -162,7 +192,7 @@ export function SettingsPanel(p: Props) {
       </div>
       <div id="settings">
         <section className="section" aria-label="Provider">
-          <h2 className="section__title">Provider</h2>
+          <h2 className="section__title" ref={listTitleRef} tabIndex={-1}>Provider</h2>
           {p.listError && (
             <div className="banner banner--error" role="alert">
               <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
@@ -172,25 +202,60 @@ export function SettingsPanel(p: Props) {
           <div id="settings-list">
             {p.providers.length === 0 && <p id="settings-empty">Belum ada provider. Tambahkan endpoint di bawah.</p>}
             {p.providers.map((pr) => (
-              <div key={pr.id} className={p.activeId === pr.id ? "card card--active" : "card"}>
+              <div key={pr.id} className={p.activeId === pr.id ? "card card--active" : "card"} role="group" aria-label={`Provider ${pr.name}`}>
                 <div className="prov-head">
                   <span className="prov-name" title={pr.name}>{pr.name}</span>
                   {p.activeId === pr.id && <span className="prov-badge">Aktif</span>}
                 </div>
                 <div className="prov-meta">{pr.baseURL} · {pr.activeModel || pr.model} · {pr.models.length} model · {pr.hasCredential ? "key tersimpan" : "tanpa key"}</div>
                 <div className="prov-actions">
-                  {p.activeId !== pr.id && <button type="button" className="btn btn--sm" onClick={() => p.onActivate(pr.id)}>Aktifkan</button>}
-                  <button type="button" className="btn btn--sm" onClick={() => pick(pr.id)}>Ubah</button>
-                  <button type="button" className="btn btn--sm btn--danger" onClick={() => p.onDelete(pr.id)}>Hapus</button>
+                  {p.activeId !== pr.id && <button type="button" className="btn btn--sm" onClick={() => p.onActivate(pr.id)} aria-label={`Aktifkan provider ${pr.name}`}>Aktifkan</button>}
+                  <button type="button" className="btn btn--sm" onClick={() => { setConfirmDel(null); pick(pr.id); }} aria-label={`Ubah provider ${pr.name}`}>Ubah</button>
+                  {p.activeId !== pr.id && (
+                    <button
+                      type="button"
+                      className="btn btn--sm btn--danger"
+                      ref={(el) => { if (el) delBtns.current.set(pr.id, el); else delBtns.current.delete(pr.id); }}
+                      onClick={() => setConfirmDel(pr.id)}
+                      aria-label={`Hapus provider ${pr.name}`}
+                      aria-expanded={armedDel === pr.id}
+                    >
+                      Hapus
+                    </button>
+                  )}
                 </div>
+                {armedDel === pr.id && (
+                  <div
+                    className="confirm-row"
+                    role="group"
+                    aria-label="Konfirmasi hapus provider"
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") cancelDelete(pr.id);
+                    }}
+                  >
+                    <IconAlert size={14} />
+                    <span className="confirm-row__msg">
+                      <span>Hapus “</span>
+                      <span className="confirm-row__title">{pr.name}</span>
+                      <span>” dan API key-nya?</span>
+                    </span>
+                    <button type="button" className="btn btn--sm btn--danger" onClick={() => confirmDelete(pr.id)}>
+                      Hapus
+                    </button>
+                    {/* Focused first: Enter on an armed row must not delete. */}
+                    <button type="button" className="btn btn--sm" onClick={() => cancelDelete(pr.id)} autoFocus>
+                      Batal
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <div id="settings-form">
+          <div id="settings-form" ref={formRef}>
             <h3 className="settings-form-title">{editing ? "Ubah provider" : "Provider baru"}</h3>
             <div className="field">
               <label className="field__label" htmlFor="settings-name">Nama</label>
-              <input id="settings-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Provider pribadi" />
+              <input id="settings-name" ref={nameRef} className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Provider pribadi" />
             </div>
             <div className="field">
               <label className="field__label" htmlFor="settings-baseurl">Base URL</label>

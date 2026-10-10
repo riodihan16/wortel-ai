@@ -460,6 +460,52 @@
     letter-spacing: 0.02em;
 }
 
+/* ---------------- confirm row ----------------
+   Inline second press for destructive actions (ADR-048), never a modal and
+   never window.confirm. Danger tint marks the step; the caller autofocuses
+   Batal so Enter cannot delete. Contrast: ink on danger-soft 13.5:1, danger
+   on danger-soft 4.6:1 (dark) / 5.1:1 (light). */
+.confirm-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-sm);
+    background: var(--color-danger-soft);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+}
+
+.confirm-row > svg {
+    flex-shrink: 0;
+    color: var(--color-danger);
+}
+
+.confirm-row__msg {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.confirm-row__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.confirm-row .btn {
+    flex-shrink: 0;
+}
+
+.confirm-row .btn:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
 /* ---------------- menu ----------------
    Floating option list shared by the model and conversation pickers. Each
    picker positions it (.model-menu opens up, .conv-menu opens down). */

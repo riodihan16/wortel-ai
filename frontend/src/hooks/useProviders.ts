@@ -31,6 +31,9 @@ export function useProviders() {
       // active (Wails drops a second non-error return value).
       const active = (await ActiveProvider()) as ProviderProfile | null;
       setActiveProvider(active ?? null);
+      // The backend owns which provider is active; mirroring only local
+      // clicks left every card showing "Aktifkan" after a reload.
+      setActiveId(active?.id ?? "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal memuat provider.");
     } finally {
@@ -47,7 +50,6 @@ export function useProviders() {
       setError(null);
       try {
         const saved = (await SaveProvider(in_)) as ProviderProfile;
-        if (!activeId) setActiveId(saved.id);
         await refresh();
         return saved;
       } catch (e) {
@@ -55,7 +57,7 @@ export function useProviders() {
         return null;
       }
     },
-    [activeId, refresh]
+    [refresh]
   );
 
   const remove = useCallback(
@@ -63,13 +65,12 @@ export function useProviders() {
       setError(null);
       try {
         await DeleteProvider(id);
-        if (activeId === id) setActiveId("");
         await refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Gagal menghapus.");
       }
     },
-    [activeId, refresh]
+    [refresh]
   );
 
   const activate = useCallback(
@@ -77,7 +78,6 @@ export function useProviders() {
       setError(null);
       try {
         await SetActiveProvider(id);
-        setActiveId(id);
         await refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Gagal mengaktifkan.");

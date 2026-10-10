@@ -189,6 +189,7 @@ export function ChatPanel({
       {armed && (
         <div
           id="conv-delete"
+          className="confirm-row"
           role="group"
           aria-label="Konfirmasi hapus percakapan"
           onKeyDown={(e) => {
@@ -196,9 +197,9 @@ export function ChatPanel({
           }}
         >
           <IconAlert size={14} />
-          <span className="conv-delete__msg">
+          <span className="confirm-row__msg">
             <span>Hapus permanen “</span>
-            <span className="conv-delete__title">{curTitle}</span>
+            <span className="confirm-row__title">{curTitle}</span>
             <span>”?</span>
           </span>
           <button type="button" className="btn btn--sm btn--danger" onClick={() => confirmDelete(armed)} disabled={busy}>
