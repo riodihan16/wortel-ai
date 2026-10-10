@@ -37,17 +37,22 @@ type toggleAction int
 const (
 	toggleShowChat toggleAction = iota // show the window if needed, then chat
 	toggleToPet                        // collapse the open panel back to the pet
+	toggleFront                        // bring the panel forward exactly as it was
 )
 
 // toggleFor decides what the global shortcut does. It is labelled "buka
 // chat": a hidden window or the pet opens chat; an open panel the user is
-// working in (focused) goes back to the pet; an open panel behind another
-// app comes forward with the caret in the composer ("press, then type",
-// ADR-051). Hiding is left to the explicit Sembunyikan actions, so the
-// shortcut never makes the companion disappear (ADR-050).
+// working in (focused) goes back to the pet; a panel that is hidden or behind
+// another app comes forward as it was: chat gets the caret ("press, then
+// type", ADR-051), Settings keeps an unsaved form (ADR-053). Hiding is left to
+// the explicit Sembunyikan actions, so the shortcut never makes the companion
+// disappear (ADR-050).
 func toggleFor(hidden bool, mode string, focused bool) toggleAction {
-	if hidden || mode != string(window.Panel) || !focused {
+	if mode != string(window.Panel) {
 		return toggleShowChat
+	}
+	if hidden || !focused {
+		return toggleFront
 	}
 	return toggleToPet
 }
@@ -121,16 +126,25 @@ func (a *App) ToggleChat() {
 	switch toggleFor(hidden, mode, window.IsForeground()) {
 	case toggleToPet:
 		runtime.EventsEmit(a.ctx, "app:pet")
+	case toggleFront:
+		a.bringForward()
+		runtime.EventsEmit(a.ctx, "app:front")
 	default:
 		// Always show and take the foreground: the shortcut's promise is
 		// "press, then type", and a visible pet behind another app would
 		// otherwise open chat without keyboard focus (ADR-051).
-		runtime.WindowUnminimise(a.ctx) // a minimised window ignores the foreground call
-		runtime.WindowShow(a.ctx)
-		if err := window.Activate(); err != nil {
-			runtime.LogWarningf(a.ctx, "activate: %v", err)
-		}
+		a.bringForward()
 		runtime.EventsEmit(a.ctx, "app:toggle")
+	}
+}
+
+// bringForward shows the window and takes the foreground so keys typed next
+// reach it. A minimised window ignores the foreground call, so restore first.
+func (a *App) bringForward() {
+	runtime.WindowUnminimise(a.ctx)
+	runtime.WindowShow(a.ctx)
+	if err := window.Activate(); err != nil {
+		runtime.LogWarningf(a.ctx, "activate: %v", err)
 	}
 }
 

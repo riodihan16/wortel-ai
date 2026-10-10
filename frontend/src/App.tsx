@@ -56,6 +56,12 @@ function App() {
         EventsOn('app:toggle', () => {
             void switchTo('chat', setMode).then(() => setFocusSignal((n) => n + 1));
         });
+        // Global shortcut on a panel that was hidden or behind another app: the
+        // window is already forward; keep the view (an unsaved Settings form
+        // survives) and give chat the caret (ADR-053).
+        EventsOn('app:front', () => {
+            if (modeRef.current === 'chat') setFocusSignal((n) => n + 1);
+        });
         // Global shortcut while the panel is open: chat goes back to the pet;
         // Settings goes to chat, like Kembali (ADR-050).
         EventsOn('app:pet', () => {
@@ -66,6 +72,7 @@ function App() {
             EventsOff('app:settings');
             EventsOff('app:toggle');
             EventsOff('app:pet');
+            EventsOff('app:front');
         };
     }, []);
 
