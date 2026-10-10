@@ -138,6 +138,17 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** hapus `tailwindcss` + `@tailwindcss/vite`, ganti dengan reset CSS eksplisit (`box-sizing`, margin/padding nol, font inherit) di `style.css`. Styling tetap pakai token di `App.css`.
 - **Bukti:** CSS bundle 11.31 kB → 7.02 kB (gzip 2.97 → 1.76 kB). `tsc` dan `npm run build` bersih; UI terverifikasi render (pet mode tombol + header chat).
 
+## ADR-029 — Perbaikan hasil uji manual: drag inheritance, kontras, spacing, pemilih model (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** Uji manual user pada build 0.1.0 menemukan empat masalah. Tiga bug + satu permintaan fitur kecil.
+- **Bug 1 — perlu klik 2x:** `#chat-header` dan `#pet` menyetel CSS custom property `--wails-draggable: drag` untuk area drag. Custom property **mewarisi** ke seluruh anak, jadi tombol di dalam header/pet ikut bernilai `drag`; `dragTest` di runtime Wails melihat `e.target` (tombol) sebagai area drag → klik pertama memulai drag window, bukan klik. Perbaikan: set `--wails-draggable: none` pada `.header-actions`, `#pet-dot`, `#pet-hint`, `#pet-actions` (nilai apa pun selain `drag` = opt-out).
+- **Bug 2 — teks tak terbaca:** `style.css` menyetel `color: white` keras pada `html, body, #root` tanpa background, dan banyak kontrol (`h4`, `.prov-name`, `<button>`) tak punya warna eksplisit sehingga jatuh ke UA/default. Perbaikan: hapus `color: white`; pakai `color: var(--text)` pada root; tambah style dasar `button` berbasis token (`--surface-2`/`--text`/`--border`); tambah `color-scheme: dark`/`light` per tema. Kontras terukur (WCAG AA) semua ≥ 4.5: tema gelap terendah 8.48, tema terang terendah 5.47 setelah `--accent` terang digelapkan `#0d9488` → `#0f766e` (sebelumnya 3.74, gagal).
+- **Bug 3 — spasi antar baris tinggi:** `.msg` memakai `white-space: pre-wrap`, dan react-markdown mengeluarkan newline antar elemen block; pre-wrap merender newline itu sebagai baris kosong. Perbaikan: hapus `pre-wrap` dari `.msg` (spacing blok dari margin `.md p`); pertahankan `pre-wrap` hanya pada `.msg-user` agar enter pengguna tetap tampil. Terukur: paragraf 1 baris = 18px + 6px margin (sebelumnya ~36px).
+- **Fitur — tombol ganti model di header chat:** `ModelPicker` baru (tombol `Model: <aktif> ▾` + dropdown daftar model) di `#chat-header`, menggantikan `<select>` `#model-bar` yang dulu ada di dalam panel chat. Menutup saat klik luar dan Esc; memilih model aktif = no-op. Logika/backend tak berubah (`SetActiveModel`).
+- **Bukti:** probe browser nyata — kontras kedua tema, spacing (`pMargin 6px`, tinggi `<p>` 18px), picker (`picked: ['p1','gpt-4o-mini']`, klik aktif no-op, klik luar menutup), property `--wails-draggable` header = `none` pada tombol. `tsc`, `go test ./...`, clean release build, app start bersih.
+- **Risiko:** `--wails-draggable: none` harus dipertahankan pada tiap kontrol baru di dalam area drag; ini gotcha Wails yang mudah terulang.
+
 ## ADR-028 — Multi model per provider + markdown library (2026-10-10)
 
 - **Status:** Done.

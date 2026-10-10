@@ -64,7 +64,7 @@ Provider form minimum:
 - Test connection.
 - Status aktif.
 
-Chat header menampilkan pemilih model (dropdown) bila provider aktif punya lebih dari satu model, sehingga model bisa diganti tanpa membuka Settings.
+Chat header menampilkan tombol pemilih model (label `Model: <aktif>`) yang membuka daftar model provider aktif, sehingga model bisa diganti tanpa membuka Settings (ADR-029).
 
 Jangan menampilkan API key lama penuh setelah settings dibuka. Tampilkan “credential tersimpan” dan sediakan aksi replace/remove.
 
