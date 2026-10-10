@@ -1,4 +1,4 @@
-/* Hallmark · component: pet surface · genre: modern-minimal · theme: Iris
+/* Hallmark · component: pet surface · genre: modern-minimal · theme: Tanah
  * The always-on-top 180x180 desktop companion. It paints NO panel — only the
  * character and, on hover/focus, the action rail.
  * States styled: default · hover · focus-visible · active · disabled · loading.
@@ -40,7 +40,7 @@
     pointer-events: none;
 }
 
-#pet .pet__btn :is(path, circle) {
+#pet .pet__btn :is(path, circle, ellipse) {
     pointer-events: visiblePainted;
 }
 
@@ -60,8 +60,11 @@
 }
 
 /* Idle float lives on an inner wrapper so the hover scale above composes
-   instead of fighting it — one transform per element. */
+   instead of fighting it — one transform per element. The wrapper is also
+   the positioning box for the thought bubble and alert badge, so both ride
+   the same motion as the carrot. */
 #pet .pet__float {
+    position: relative;
     display: block;
     width: 100%;
     height: 100%;
@@ -78,87 +81,54 @@
     }
 }
 
-/* Busy: the companion is generating. A slow halo, transform/opacity only. */
-#pet .pet__btn--busy .pet__float {
-    animation: pet-float 3.6s var(--ease-in-out) infinite,
-    pet-halo 1.6s var(--ease-in-out) infinite;
-}
-
-@keyframes pet-halo {
-    0%,
-    100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.72;
-    }
-}
-
-/* ---- status indicator ----
-   Bottom-right pip, always visible: the only persistent signal in pet mode
-   (docs 06 §3 forbids permanent text). Shape carries the state, so colour is
-   never the sole carrier (WCAG 1.4.1) — hollow ring = idle, filled pulsing
-   disc = thinking, disc + triangle = error. Sits just off the carrot's right
-   flank so it reads as the carrot's own state, above the centred action rail
-   so it never collides with the hover reveal. Offsets are from the window
-   centre, where the carrot is centred, and it rides the same idle float so the
-   gap to the flank stays constant. `pointer-events: none` keeps it out of the
-   drag hit test, and `--wails-draggable` is re-declared for the same reason
-   as the rail. */
-#pet .pet__status {
-    --wails-draggable: none;
+/* ---- mood marks ----
+   The face carries the state; these marks make it readable from across the
+   desk. Fixed --carrot-* colours (they sit on the wallpaper, not app paper)
+   with the same dark outline as the character. pointer-events is inherited
+   as none from .pet__btn, so neither joins the drag hit test. */
+#pet .pet__bubble {
     position: absolute;
-    left: calc(50% + 17px);
-    top: calc(50% + 2px);
-    animation: pet-float 3.6s var(--ease-in-out) infinite;
-    display: grid;
-    place-items: center;
-    width: 14px;
-    height: 14px;
+    top: 4px;
+    right: -16px;
+    display: flex;
+    gap: 3px;
+    padding: 5px 7px;
+    border: 2px solid var(--carrot-ink);
     border-radius: var(--radius-pill);
-    border: 1.5px solid var(--color-rule-strong);
-    background: transparent;
-    pointer-events: none;
+    background: var(--carrot-shine);
 }
 
-#pet .pet__mark {
-    display: grid;
-    place-items: center;
-}
-
-/* Thinking: filled accent disc plus a ring that expands and fades out.
-   transform + opacity only, so it composites without repaint. */
-#pet .pet__status--thinking {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-}
-
-#pet .pet__status--thinking::after {
+#pet .pet__bubble::after {
     content: "";
     position: absolute;
-    inset: -1.5px;
+    left: 2px;
+    bottom: -7px;
+    width: 6px;
+    height: 6px;
+    border: 2px solid var(--carrot-ink);
     border-radius: var(--radius-pill);
-    border: 1.5px solid var(--color-accent);
-    animation: pet-pulse 1.6s var(--ease-out) infinite;
+    background: var(--carrot-shine);
 }
 
-@keyframes pet-pulse {
-    0% {
-        transform: scale(1);
-        opacity: 0.85;
-    }
-    100% {
-        transform: scale(2.1);
-        opacity: 0;
-    }
+#pet .pet__bubble > i {
+    width: 5px;
+    height: 5px;
+    border-radius: var(--radius-pill);
+    background: var(--carrot-ink);
 }
 
-/* Error: solid danger disc; the triangle glyph — not the colour — is what
-   says "something failed". */
-#pet .pet__status--error {
-    background: var(--color-danger);
-    border-color: var(--color-danger);
-    color: var(--color-paper);
+#pet .pet__alert {
+    position: absolute;
+    top: 34px;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--carrot-ink);
+    border-radius: var(--radius-pill);
+    background: var(--carrot-alert);
+    color: var(--carrot-shine);
 }
 
 /* ---- hover/focus action rail ----

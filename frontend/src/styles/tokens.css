@@ -1,46 +1,42 @@
-/* Hallmark · component: design tokens · genre: modern-minimal · theme: Iris (custom)
+/* Hallmark · component: design tokens · genre: modern-minimal · theme: Tanah (custom)
  * contrast: pass — every pair verified in OKLCH->sRGB, WCAG AA (4.5 text / 3.0 UI)
- * Iris = cool neutral surfaces (hue 280) + one carrot-orange accent (ADR-047).
+ * Tanah = warm, low-chroma neutral surfaces (hue 70, soil grey) + one
+ * carrot-orange accent (ADR-047). Neutrals were cool hue 280 until ADR-049.
  * Nothing here is inline-able: components must reference these names, never
  * raw colours.
  */
 
 :root {
     /* ---- surface ramp (dark is the default) ---- */
-    --color-paper: oklch(17% 0.014 280);
-    --color-paper-2: oklch(22.8% 0.016 280);
-    --color-paper-3: oklch(27.8% 0.018 280);
-    --color-well: oklch(13.2% 0.014 280);
+    --color-paper: oklch(17% 0.008 70);
+    --color-paper-2: oklch(22.8% 0.01 70);
+    --color-paper-3: oklch(27.8% 0.011 70);
+    --color-well: oklch(13.2% 0.008 70);
 
     /* ---- ink ramp ----
        Ratios are the worst case across every surface the token is used on
        (paper / paper-2 / paper-3 / well), not just paper:
        ink 12.7 · ink-2 6.1 · ink-3 4.5 — all >= WCAG AA (4.5:1). */
-    --color-ink: oklch(95% 0.006 280);
-    --color-ink-2: oklch(73% 0.012 280);
-    --color-ink-3: oklch(66% 0.012 280);
+    --color-ink: oklch(95% 0.004 70);
+    --color-ink-2: oklch(73% 0.007 70);
+    --color-ink-3: oklch(66% 0.007 70);
 
     /* rule = hairline separator (decorative); rule-strong = control boundary.
        rule-strong is only ever drawn on paper/paper-2/well, never on paper-3,
        and clears 3:1 (WCAG 1.4.11) on each of them. */
-    --color-rule: oklch(31% 0.018 280);
-    --color-rule-strong: oklch(56% 0.022 280); /* >=3:1 on all four surfaces */
+    --color-rule: oklch(31% 0.011 70);
+    --color-rule-strong: oklch(56% 0.013 70); /* >=3:1 on all four surfaces */
 
-    /* carrot: same hue as --color-brand so the UI and the character agree.
+    /* carrot: same hue as --carrot-body so the UI and the character agree.
        accent 6.1 worst case (paper-3) · on accent-soft 6.1 · accent-ink 7.9 */
     --color-accent: oklch(74% 0.16 55);
     --color-accent-soft: oklch(28% 0.05 55);
-    --color-accent-ink: oklch(17% 0.014 280);
+    --color-accent-ink: oklch(17% 0.008 70);
 
     --color-danger: oklch(66% 0.19 22);
     --color-danger-soft: oklch(26.5% 0.062 22);
     --color-success: oklch(76% 0.145 155);
     --color-success-soft: oklch(25% 0.05 155);
-
-    /* brand marks only: the carrot character, never UI chrome (chrome uses
-       --color-accent, which only matches brand in the dark theme) */
-    --color-brand: oklch(74% 0.16 55);
-    --color-brand-leaf: oklch(72% 0.13 145);
 
     --color-scrim: oklch(0% 0 0 / 0.6);
 
@@ -54,6 +50,7 @@
     --carrot-ink: oklch(27% 0.045 40);
     --carrot-cheek: oklch(64% 0.18 25);
     --carrot-shine: oklch(100% 0 0);
+    --carrot-alert: oklch(58% 0.21 25);
 
     color-scheme: dark;
 
@@ -115,40 +112,37 @@
 }
 
 :root[data-theme="light"] {
-    --color-paper: oklch(98.2% 0.004 280);
-    --color-paper-2: oklch(95.8% 0.007 280);
-    --color-paper-3: oklch(92.5% 0.01 280);
-    --color-well: oklch(99.5% 0.002 280);
+    --color-paper: oklch(98.2% 0.002 70);
+    --color-paper-2: oklch(95.8% 0.004 70);
+    --color-paper-3: oklch(92.5% 0.006 70);
+    --color-well: oklch(99.5% 0.001 70);
 
-    --color-ink: oklch(20.5% 0.014 280);
-    --color-ink-2: oklch(45.5% 0.016 280);
+    --color-ink: oklch(20.5% 0.008 70);
+    --color-ink-2: oklch(45.5% 0.01 70);
     /* 4.5:1 on every surface including the paper-3 hover ramp */
-    --color-ink-3: oklch(51.5% 0.014 280);
+    --color-ink-3: oklch(51.5% 0.008 70);
 
-    --color-rule: oklch(89.5% 0.008 280);
+    --color-rule: oklch(89.5% 0.005 70);
     /* >=3:1 on all four surfaces */
-    --color-rule-strong: oklch(61% 0.016 280);
+    --color-rule-strong: oklch(61% 0.01 70);
 
     /* burnt carrot: a bright carrot fails 4.5:1 on light paper, so lightness
        drops and hue leans red to stay orange, not brown.
        accent 4.7 worst case (paper-3) · on accent-soft 5.1 · accent-ink 5.6 */
     --color-accent: oklch(52% 0.15 44);
     --color-accent-soft: oklch(95.5% 0.028 62);
-    --color-accent-ink: oklch(98.2% 0.004 280);
+    --color-accent-ink: oklch(98.2% 0.002 70);
 
     --color-danger: oklch(52% 0.19 22);
     --color-danger-soft: oklch(94.5% 0.03 22);
     --color-success: oklch(50% 0.12 155);
     --color-success-soft: oklch(94.5% 0.03 155);
 
-    --color-brand: oklch(66% 0.165 55);
-    --color-brand-leaf: oklch(58% 0.14 145);
+    --color-scrim: oklch(20% 0.008 70 / 0.35);
 
-    --color-scrim: oklch(20% 0.014 280 / 0.35);
-
-    --shadow-1: 0 1px 2px oklch(20% 0.014 280 / 0.08);
-    --shadow-2: 0 4px 12px oklch(20% 0.014 280 / 0.1);
-    --shadow-3: 0 12px 32px oklch(20% 0.014 280 / 0.14);
+    --shadow-1: 0 1px 2px oklch(20% 0.008 70 / 0.08);
+    --shadow-2: 0 4px 12px oklch(20% 0.008 70 / 0.1);
+    --shadow-3: 0 12px 32px oklch(20% 0.008 70 / 0.14);
 
     color-scheme: light;
 }

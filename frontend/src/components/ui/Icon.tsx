@@ -1,4 +1,4 @@
-/* Hallmark · component: icon set · genre: modern-minimal · theme: Iris
+/* Hallmark · component: icon set · genre: modern-minimal · theme: Tanah
  * states: n/a (non-interactive glyphs) — colour comes from currentColor so
  * every icon inherits its button's ink token, including hover/disabled.
  * One stroke language: 24px box, 1.75 stroke, round caps and joins.

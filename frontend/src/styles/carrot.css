@@ -1,0 +1,14 @@
+/* Hallmark · component: carrot character · genre: modern-minimal · theme: Tanah
+ * Mood styling shared by every Carrot (pet, empty states, reply avatar).
+ * Colours are fixed --carrot-* tokens; nothing here follows the theme.
+ */
+
+/* Error: leaves droop. Origin is the crown in the 116-unit viewBox. */
+.carrot__leaves {
+    transform-origin: 58px 33px;
+    transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.carrot--error .carrot__leaves {
+    transform: rotate(16deg) translateY(2px);
+}

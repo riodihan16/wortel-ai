@@ -1,10 +1,11 @@
-/* Hallmark · component: style entry · genre: modern-minimal · theme: Iris
+/* Hallmark · component: style entry · genre: modern-minimal · theme: Tanah
  * Import order is the cascade order. Components never import CSS directly, so
  * there is exactly one place that decides precedence.
  */
 @import "./tokens.css";
 @import "./base.css";
 @import "./controls.css";
+@import "./carrot.css";
 @import "./shell.css";
 @import "./pet.css";
 @import "./chat.css";

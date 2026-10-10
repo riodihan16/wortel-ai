@@ -1,4 +1,4 @@
-/* Hallmark · component: segmented control · genre: modern-minimal · theme: Iris
+/* Hallmark · component: segmented control · genre: modern-minimal · theme: Tanah
  * states: default · hover · focus-visible · active · disabled
  * Equal-width cells; the thumb slides via --seg-index/--seg-count so no
  * measurement is needed and the animation stays on the compositor.

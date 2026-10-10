@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { app } from "../../../wailsjs/go/models";
 import type { ProviderProfile, TestResult } from "../../types/provider";
 import { IconAlert, IconCheck, IconChevronDown, IconPlus } from "../ui/Icon";
+import { BrandMark } from "../ui/BrandMark";
 import { Segmented } from "../ui/Segmented";
 import { ProviderForm } from "./ProviderForm";
 
@@ -139,6 +140,7 @@ export function SettingsPanel(p: Props) {
     <>
       <div id="settings-header" className="drag-handle">
         <span className="brand">
+          <BrandMark />
           <span className="brand__name">Pengaturan</span>
         </span>
         <span className="header-actions">
