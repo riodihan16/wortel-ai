@@ -71,6 +71,12 @@ export function SettingsPanel(p: Props) {
     pendingFocus.current = null;
   });
 
+  // A test result belongs to this visit: leaving Settings (Kembali, the
+  // shortcut) drops it so the next visit does not show a stale verdict.
+  const clearOnLeave = useRef(p.onClearTest);
+  clearOnLeave.current = p.onClearTest;
+  useEffect(() => () => clearOnLeave.current(), []);
+
   const firstRun = p.providers.length === 0;
   const editingProfile = p.providers.find((x) => x.id === editing) ?? null;
   const showNewForm = adding || firstRun;

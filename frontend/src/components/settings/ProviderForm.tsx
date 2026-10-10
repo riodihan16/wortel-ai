@@ -70,6 +70,8 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   const [preset, setPreset] = useState<ProviderPreset | null>(null);
   const [saving, setSaving] = useState(false);
   const [invalid, setInvalid] = useState<Field | null>(null);
+  // Bumped on every failed save so the same field is refocused each time.
+  const [failTick, setFailTick] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const modelRef = useRef<HTMLInputElement>(null);
@@ -104,7 +106,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
     const id = modelDraft.trim();
     if (!id) return;
     if (form.models.some((m) => m.id === id)) {
-      setFormError(`Model "${id}" sudah ada di daftar.`);
+      fail("model", `Model "${id}" sudah ada di daftar.`);
       return;
     }
     setFormError(null);
@@ -158,8 +160,27 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   const fail = (field: Field, message: string) => {
     setInvalid(field);
     setFormError(message);
-    ({ name: nameRef, model: modelRef, key: keyRef })[field].current?.focus();
+    setFailTick((t) => t + 1);
   };
+
+  // Focus after the render that commits a model draft: the new model row
+  // moves the fields below it, and focusing earlier left the field and its
+  // message off-screen. Centred so the message under it is visible too.
+  useEffect(() => {
+    if (!invalid) return;
+    const el = { name: nameRef, model: modelRef, key: keyRef }[invalid].current;
+    el?.scrollIntoView?.({ block: "center" });
+    el?.focus();
+  }, [invalid, failTick]);
+
+  // The reason sits under the field it is about, not at the end of the form.
+  const fieldError = (field: Field) =>
+    invalid === field && formError ? (
+      <div id={errorId} className="field__error" role="alert">
+        <IconAlert size={13} aria-hidden="true" />
+        <span>{formError}</span>
+      </div>
+    ) : null;
 
   // Field edits clear their own error mark and any test result they outdate.
   const change = (patch: Partial<FormState>, field?: Field) => {
@@ -242,6 +263,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       <div className="field">
         <label className="field__label" htmlFor="settings-name">Nama</label>
         <input id="settings-name" ref={nameRef} className="input" value={form.name} onChange={(e) => change({ name: e.target.value }, "name")} placeholder="Provider pribadi" aria-invalid={invalid === "name"} aria-describedby={describedBy("name")} />
+        {fieldError("name")}
       </div>
       <div className="field">
         <label className="field__label" htmlFor="settings-baseurl">Base URL</label>
@@ -280,6 +302,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
             />
             <button type="button" className="btn" onClick={addModel} disabled={!modelDraft.trim()}>Tambah</button>
           </span>
+          {fieldError("model")}
         </div>
         {form.models.length > 0 && (
           <div className="model-list">
@@ -292,7 +315,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
                     checked={form.activeModel === m.id}
                     onChange={() => change({ activeModel: m.id })}
                   />
-                  <span className="model-pick__label" title={m.id}>{m.alias ? `${m.alias} (${m.id})` : m.id}</span>
+                  <span className="model-pick__label" title={m.id}>{m.id}</span>
                 </label>
                 <input
                   className="input model-alias"
@@ -330,11 +353,8 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
           {preset?.local && "Server lokal tidak memeriksa key, isi apa saja. "}
           Disimpan di Windows Credential Manager, tidak pernah ditampilkan lagi.
         </div>
+        {fieldError("key")}
       </div>
-      {formError && <div id={errorId} className="banner banner--error" role="alert">
-        <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
-        <span>{formError}</span>
-      </div>}
       {test && <div id="settings-test" className={test.ok ? "banner banner--ok" : "banner banner--error"} role="status">
         <span className="banner__icon">{test.ok ? <IconCheck size={14} aria-hidden="true" /> : <IconAlert size={14} aria-hidden="true" />}</span>
         <span>{test.message}{test.insecure ? " Koneksi tidak terenkripsi (HTTP)." : ""}</span>

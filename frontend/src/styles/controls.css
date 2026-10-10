@@ -160,6 +160,22 @@
     color: var(--color-ink-2);
 }
 
+/* Validation message under its field; the field itself turns red via
+   aria-invalid. Danger text on paper clears 4.5:1 in both themes. */
+.field__error {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    color: var(--color-danger);
+}
+
+.field__error svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
 .field__hint {
     font-size: var(--text-sm);
     color: var(--color-ink-3);
