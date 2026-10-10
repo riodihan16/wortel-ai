@@ -4,6 +4,7 @@ package tray
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"unsafe"
 
@@ -171,7 +172,16 @@ func Start(c Callbacks) error {
 
 	go runLoop()
 
-	return <-ready
+	err := <-ready
+	trace("Start returned err=" + errString(err))
+	return err
+}
+
+func errString(err error) string {
+	if err == nil {
+		return "<nil>"
+	}
+	return err.Error()
 }
 
 // Stop removes the icon and ends the message loop. No-op when not running.
@@ -183,8 +193,10 @@ func Stop() {
 	r := running
 	mu.Unlock()
 	if !r || h == 0 {
+		trace("Stop: no-op (not running)")
 		return
 	}
+	trace("Stop: posting WM_CLOSE")
 	_, _, _ = pPostMessage.Call(uintptr(h), uintptr(wmClose), 0, 0)
 }
 
@@ -197,6 +209,10 @@ func Running() bool {
 }
 
 func runLoop() {
+	// Win32 window + message queue are thread-affine: the goroutine MUST stay
+	// on one OS thread for CreateWindowEx/GetMessage/PostQuitMessage to work.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	if err := initTray(); err != nil {
 		mu.Lock()
 		setErr(err)
@@ -210,6 +226,7 @@ func runLoop() {
 	setErr(nil)
 	running = true
 	mu.Unlock()
+	trace("tray loop ready")
 	ready <- nil
 
 	var m msg
@@ -221,6 +238,7 @@ func runLoop() {
 		_, _, _ = pTranslateMessage.Call(uintptr(unsafe.Pointer(&m)))
 		_, _, _ = pDispatchMessage.Call(uintptr(unsafe.Pointer(&m)))
 	}
+	trace("tray message loop exited")
 	cleanup()
 
 	mu.Lock()
@@ -301,13 +319,14 @@ func initTray() error {
 		tip:             tipArr,
 	}
 	nid.size = uint32(unsafe.Sizeof(nid))
-	r, _, _ = pShellNotifyIcon.Call(uintptr(nimAdd), uintptr(unsafe.Pointer(&nid)))
-	if r == 0 {
+	if r, _, e := pShellNotifyIcon.Call(uintptr(nimAdd), uintptr(unsafe.Pointer(&nid))); r == 0 {
+		trace("Shell_NotifyIcon(NIM_ADD) failed: " + e.Error())
 		_, _, _ = pDestroyMenu.Call(mn)
 		_, _, _ = pDestroyWindow.Call(hw)
 		_, _, _ = pUnregisterClass.Call(uintptr(unsafe.Pointer(classBuf)), uintptr(hInst))
-		return windows.GetLastError()
+		return e
 	}
+	trace("Shell_NotifyIcon(NIM_ADD) ok")
 	return nil
 }
 
