@@ -1,7 +1,51 @@
+/* Theme tokens. Dark is default; [data-theme="light"] overrides.
+   Font scale drives :root --font-scale (docs 06 §6 accessibility). */
+:root {
+    --font-scale: 1;
+    --bg: #1b2636;
+    --surface: #243449;
+    --surface-2: #2a3b52;
+    --bg-deep: #101a26;
+    --bg-input: #0f172a;
+    --border: #334155;
+    --border-2: #3b4d63;
+    --accent: #2dd4bf;
+    --accent-2: #22d3ee;
+    --on-accent: #06281f;
+    --text: #ffffff;
+    --danger: #e11d48;
+    --danger-bg: #4a2430;
+    --danger-bg-2: #3f1d27;
+    --danger-border: #b04a5a;
+    --danger-text: #fca5a5;
+    --ok-bg: #1c2f26;
+}
+
+:root[data-theme="light"] {
+    --bg: #f1f5f9;
+    --surface: #e2e8f0;
+    --surface-2: #dbe3ec;
+    --bg-deep: #ffffff;
+    --bg-input: #ffffff;
+    --border: #cbd5e1;
+    --border-2: #b8c4d4;
+    --accent: #0d9488;
+    --accent-2: #0891b2;
+    --on-accent: #ffffff;
+    --text: #0f172a;
+    --danger: #dc2626;
+    --danger-bg: #fee2e2;
+    --danger-bg-2: #fee2e2;
+    --danger-border: #f0a0a8;
+    --danger-text: #b91c1c;
+    --ok-bg: #dcfce7;
+}
+
 html, body, #root {
     margin: 0;
     background: transparent;
     font-family: system-ui, sans-serif;
+    font-size: calc(14px * var(--font-scale));
 }
 
 #pet {
@@ -13,7 +57,7 @@ html, body, #root {
     justify-content: center;
     gap: 4px;
     background: transparent;
-    color: white;
+    color: var(--text);
     font-size: 12px;
 }
 
@@ -21,9 +65,9 @@ html, body, #root {
     width: 96px;
     height: 96px;
     border-radius: 50%;
-    border: 2px solid #22d3ee;
-    background: #1b2636;
-    color: white;
+    border: 2px solid var(--accent-2);
+    background: var(--bg);
+    color: var(--text);
     font-size: 20px;
     cursor: pointer;
 }
@@ -44,8 +88,8 @@ html, body, #root {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: #1b2636;
-    color: white;
+    background: var(--bg);
+    color: var(--text);
     border-radius: 12px;
     overflow: hidden;
 }
@@ -55,7 +99,7 @@ html, body, #root {
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    background: #243449;
+    background: var(--surface);
     cursor: move;
 }
 
@@ -108,14 +152,14 @@ button {
 
 .msg-user {
     align-self: flex-end;
-    background: #2dd4bf;
-    color: #06281f;
+    background: var(--accent);
+    color: var(--on-accent);
 }
 
 .msg-assistant {
     align-self: flex-start;
-    background: #2a3b52;
-    color: #fff;
+    background: var(--surface-2);
+    color: var(--text);
 }
 
 .msg-status {
@@ -129,8 +173,8 @@ button {
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    background: #4a2430;
-    border: 1px solid #b04a5a;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
     border-radius: 8px;
     padding: 6px 10px;
     font-size: 12px;
@@ -145,9 +189,9 @@ button {
     flex: 1;
     resize: none;
     border-radius: 8px;
-    border: 1px solid #3b4d63;
-    background: #101a26;
-    color: white;
+    border: 1px solid var(--border-2);
+    background: var(--bg-deep);
+    color: var(--text);
     padding: 6px 8px;
     font-size: 13px;
 }
@@ -160,8 +204,8 @@ button {
 }
 
 #btn-send {
-    background: #2dd4bf;
-    color: #06281f;
+    background: var(--accent);
+    color: var(--on-accent);
 }
 
 #btn-send:disabled {
@@ -169,8 +213,8 @@ button {
 }
 
 #btn-stop {
-    background: #e11d48;
-    color: white;
+    background: var(--danger);
+    color: var(--text);
 }
 
 #chat-state {
@@ -195,28 +239,28 @@ button {
 }
 
 #settings-error, #settings-form-error {
-    background: #3f1d27;
-    border: 1px solid #e11d48;
+    background: var(--danger-bg-2);
+    border: 1px solid var(--danger);
     padding: 6px 8px;
     border-radius: 8px;
 }
 
 #settings-test {
-    background: #1c2f26;
-    border: 1px solid #2dd4bf;
+    background: var(--ok-bg);
+    border: 1px solid var(--accent);
     padding: 6px 8px;
     border-radius: 8px;
 }
 
 .prov {
-    border: 1px solid #334155;
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 6px 8px;
     margin-bottom: 6px;
 }
 
 .prov-active {
-    border-color: #2dd4bf;
+    border-color: var(--accent);
 }
 
 .prov-meta {
@@ -232,7 +276,7 @@ button {
 }
 
 #settings-general {
-    border-top: 1px solid #334155;
+    border-top: 1px solid var(--border);
     padding-top: 8px;
     display: flex;
     flex-direction: column;
@@ -257,7 +301,7 @@ button {
 }
 
 #settings-general-error {
-    color: #fca5a5;
+    color: var(--danger-text);
     font-size: 12px;
 }
 
@@ -269,15 +313,61 @@ button {
 }
 
 .hotkey-combo {
-    background: #0f172a;
-    border: 1px solid #334155;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
     border-radius: 6px;
     padding: 2px 8px;
     font-family: monospace;
 }
 
 #settings-hotkey-error {
-    color: #fca5a5;
+    color: var(--danger-text);
+    font-size: 12px;
+}
+
+#settings-appearance {
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#settings-appearance h4 {
+    margin: 0;
+    font-size: 13px;
+}
+
+.appearance-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    gap: 8px;
+}
+
+.seg {
+    display: flex;
+    gap: 4px;
+}
+
+.seg button {
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+}
+
+.seg button.seg-on {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+#settings-appearance-error {
+    color: var(--danger-text);
     font-size: 12px;
 }
 
@@ -285,7 +375,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    border-top: 1px solid #334155;
+    border-top: 1px solid var(--border);
     padding-top: 8px;
 }
 
@@ -299,9 +389,9 @@ button {
 #settings-form input {
     padding: 6px 8px;
     border-radius: 8px;
-    border: 1px solid #334155;
-    background: #0f172a;
-    color: white;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
 }
 
 .keyrow {
@@ -328,9 +418,9 @@ button {
     flex: 1;
     padding: 4px 8px;
     border-radius: 8px;
-    border: 1px solid #334155;
-    background: #0f172a;
-    color: white;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
     font-size: 12px;
 }
 
@@ -343,9 +433,9 @@ button {
     flex: 1;
     padding: 4px 8px;
     border-radius: 8px;
-    border: 1px solid #334155;
-    background: #0f172a;
-    color: white;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
 }
 
 .md-para {
@@ -362,7 +452,7 @@ button {
 }
 
 .md-code {
-    background: #0f172a;
+    background: var(--bg-input);
     border-radius: 6px;
     padding: 6px 8px;
     overflow-x: auto;
@@ -371,7 +461,7 @@ button {
 }
 
 .msg-body code {
-    background: #0f172a;
+    background: var(--bg-input);
     border-radius: 4px;
     padding: 0 4px;
     font-size: 12px;
@@ -383,7 +473,7 @@ button {
 }
 
 .msg-body a {
-    color: #2dd4bf;
+    color: var(--accent);
 }
 
 .msg-user {

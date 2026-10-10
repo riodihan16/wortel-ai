@@ -1,5 +1,19 @@
 export namespace app {
 	
+	export class Appearance {
+	    theme: string;
+	    fontScale: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Appearance(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.theme = source["theme"];
+	        this.fontScale = source["fontScale"];
+	    }
+	}
 	export class ChatMessage {
 	    id: string;
 	    role: string;

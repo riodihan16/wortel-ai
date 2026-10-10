@@ -11,7 +11,8 @@ import {
     WindowSetAlwaysOnTop,
     WindowSetSize,
 } from '../wailsjs/runtime/runtime';
-import {AutostartEnabled, HideWindow, HotkeyError, SetAutostart, TrayError, TrayStatus} from '../wailsjs/go/main/App';
+import {AutostartEnabled, GetAppearance, HideWindow, HotkeyError, SetAppearance, SetAutostart, TrayError, TrayStatus} from '../wailsjs/go/main/App';
+import {app} from '../wailsjs/go/models';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {SettingsPanel} from './components/settings/SettingsPanel';
 import {useChat} from './hooks/useChat';
@@ -78,10 +79,31 @@ function App() {
     const [autostart, setAutostartOn] = useState<boolean>(false);
     const [autostartErr, setAutostartErr] = useState<string | null>(null);
     const [hotkeyErr, setHotkeyErr] = useState<string>("");
+    const [appearance, setAppearance] = useState<app.Appearance>({theme: 'dark', fontScale: 1});
+    const [appearanceErr, setAppearanceErr] = useState<string>("");
 
     useEffect(() => {
         AutostartEnabled().then(setAutostartOn).catch(() => setAutostartOn(false));
         HotkeyError().then(setHotkeyErr).catch(() => setHotkeyErr(""));
+        GetAppearance().then(setAppearance).catch(() => {});
+    }, []);
+
+    // Apply appearance to the document root. Theme drives the CSS token
+    // block; fontScale scales the base font size (docs 06 §6).
+    useEffect(() => {
+        const root = document.documentElement;
+        root.dataset.theme = appearance.theme;
+        root.style.setProperty('--font-scale', String(appearance.fontScale));
+    }, [appearance]);
+
+    const changeAppearance = useCallback(async (next: app.Appearance) => {
+        setAppearanceErr("");
+        try {
+            await SetAppearance(next);
+            setAppearance(next);
+        } catch (e) {
+            setAppearanceErr(e instanceof Error ? e.message : String(e));
+        }
     }, []);
 
     const toggleAutostart = useCallback(async () => {
@@ -119,7 +141,7 @@ function App() {
     if (mode === 'settings') {
         return (
             <div id="chat">
-                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} hotkeyErr={hotkeyErr} />
+                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} hotkeyErr={hotkeyErr} appearance={appearance} appearanceErr={appearanceErr} onAppearanceChange={changeAppearance} />
             </div>
         );
     }

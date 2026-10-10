@@ -112,6 +112,23 @@ func (a *App) HotkeyError() string {
 	return a.hotkeyErr
 }
 
+// GetAppearance returns stored theme + font scale, or defaults when unwired.
+func (a *App) GetAppearance() app.Appearance {
+	if a.provs == nil {
+		return app.DefaultAppearance()
+	}
+	return a.provs.GetAppearance()
+}
+
+// SetAppearance validates and stores appearance settings.
+// Group "Appearance" docs 06 §1; contrast + scrollability docs 06 §6.
+func (a *App) SetAppearance(in app.Appearance) error {
+	if a.provs == nil {
+		return errors.New("storage belum tersedia, restart aplikasi")
+	}
+	return a.provs.SetAppearance(in)
+}
+
 // TrayStatus reports whether the tray icon loop owns an icon.
 // Probe answers hide-vs-close: true = app alive in tray.
 func (a *App) TrayStatus() bool {

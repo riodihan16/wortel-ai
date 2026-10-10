@@ -11,6 +11,8 @@ export function DeleteConversation(arg1:string):Promise<void>;
 
 export function DeleteProvider(arg1:string):Promise<void>;
 
+export function GetAppearance():Promise<app.Appearance>;
+
 export function HideWindow():Promise<void>;
 
 export function History(arg1:string,arg2:number):Promise<Array<app.ChatMessage>>;
@@ -28,6 +30,8 @@ export function SaveProvider(arg1:app.SaveInput):Promise<config.ProviderProfile>
 export function SendMessage(arg1:string,arg2:string):Promise<string>;
 
 export function SetActiveProvider(arg1:string):Promise<void>;
+
+export function SetAppearance(arg1:app.Appearance):Promise<void>;
 
 export function SetAutostart(arg1:boolean):Promise<void>;
 

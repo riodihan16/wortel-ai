@@ -18,6 +18,10 @@ export function DeleteProvider(arg1) {
   return window['go']['main']['App']['DeleteProvider'](arg1);
 }
 
+export function GetAppearance() {
+  return window['go']['main']['App']['GetAppearance']();
+}
+
 export function HideWindow() {
   return window['go']['main']['App']['HideWindow']();
 }
@@ -52,6 +56,10 @@ export function SendMessage(arg1, arg2) {
 
 export function SetActiveProvider(arg1) {
   return window['go']['main']['App']['SetActiveProvider'](arg1);
+}
+
+export function SetAppearance(arg1) {
+  return window['go']['main']['App']['SetAppearance'](arg1);
 }
 
 export function SetAutostart(arg1) {

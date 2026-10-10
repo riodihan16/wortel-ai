@@ -19,6 +19,9 @@ interface Props {
   autostartErr: string | null;
   onToggleAutostart: () => void;
   hotkeyErr: string;
+  appearance: app.Appearance;
+  appearanceErr: string;
+  onAppearanceChange: (next: app.Appearance) => void;
 }
 
 const EMPTY = { name: "", baseURL: "https://", model: "", apiKey: "" };
@@ -83,6 +86,25 @@ export function SettingsPanel(p: Props) {
           <span className="hotkey-combo">Ctrl + Shift + W</span>
         </div>
         {p.hotkeyErr && <div id="settings-hotkey-error" role="alert">{p.hotkeyErr}</div>}
+      </div>
+      <div id="settings-appearance">
+        <h4>Tampilan</h4>
+        <div className="appearance-row">
+          <span>Mode warna</span>
+          <div className="seg">
+            <button className={p.appearance.theme === 'dark' ? 'seg-on' : ''} onClick={() => p.onAppearanceChange(new app.Appearance({ theme: 'dark', fontScale: p.appearance.fontScale }))}>Gelap</button>
+            <button className={p.appearance.theme === 'light' ? 'seg-on' : ''} onClick={() => p.onAppearanceChange(new app.Appearance({ theme: 'light', fontScale: p.appearance.fontScale }))}>Terang</button>
+          </div>
+        </div>
+        <div className="appearance-row">
+          <span>Ukuran teks</span>
+          <div className="seg">
+            {([[0.9, 'Kecil'], [1, 'Sedang'], [1.2, 'Besar']] as const).map(([scale, label]) => (
+              <button key={label} className={p.appearance.fontScale === scale ? 'seg-on' : ''} onClick={() => p.onAppearanceChange(new app.Appearance({ theme: p.appearance.theme, fontScale: scale }))}>{label}</button>
+            ))}
+          </div>
+        </div>
+        {p.appearanceErr && <div id="settings-appearance-error" role="alert">{p.appearanceErr}</div>}
       </div>
       <div id="settings-list">
         {p.providers.length === 0 && <p id="settings-empty">Belum ada provider. Tambahkan endpoint di bawah.</p>}
