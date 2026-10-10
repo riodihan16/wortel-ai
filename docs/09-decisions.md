@@ -112,7 +112,7 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Toggle:** `App.ToggleChat` menyimpan state `hidden` (Wails tak punya probe visibilitas), sembunyikan bila tampil, tampilkan + emit `app:toggle` bila tersembunyi. Tray callbacks sinkronkan state yang sama.
 - **Gagal registrasi:** error dikembalikan ke frontend lewat `HotkeyError()`, tampil di Settings sebagai peringatan (FR-010). Bukan fatal — aplikasi tetap jalan.
 - **Bukti:** `TestRegisterAndStop` lulus (registrasi + unregister idempoten). Probe konflik dua registrasi combo sama → "Hot key is already registered", jalur peringatan benar. Simulasi tombol via SendKeys tidak memicu hotkey OS (butuh input hardware); verifikasi hotkey nyata diserahkan ke uji manual user.
-- **Sisa:** rebind/disable via UI belum ada; hanya combo tetap. API `RegisterHotKey` mendukung, ditunda sampai diminta.
+- **Sisa:** tidak ada. Rebind/disable ada di ADR-023.
 
 ## ADR-021 — M5 appearance: theme + skala font (2026-10-10)
 
@@ -121,6 +121,15 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** default dark; override `:root[data-theme="light"]` pada blok token CSS. Semua warna hardcoded diganti variabel (`--bg`, `--surface`, `--text`, `--accent`, `--danger*`, `--ok-bg`, dst). Skala font lewat `--font-scale` → `font-size: calc(14px * var(--font-scale))` di root; opsi 0.9 / 1.0 / 1.2.
 - **Persist:** key `appearance_theme` + `appearance_font_scale` di `app_settings` (nonrahasia). Validasi backend menolak theme tak dikenal dan skala di luar 0.85–1.4, jadi UI tidak bisa dibuat tak terbaca.
 - **Bukti:** round-trip + penolakan nilai invalid (`appearance_test.go`). Render CSS nyata di Chromium: dark bg `#1b2636`/text `#ffffff`, light bg `#f1f5f9`/text `#0f172a`; skala 1.2 → font body 16.8px. Kontras teks/latar ≥ 15:1 (dark) dan ≥ 16:1 (light) — lolos WCAG AA (docs 06 §6).
+
+## ADR-023 — M5 shortcut rebindable + disableable (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** FR-010 baris 3: shortcut harus dapat diubah/dinonaktifkan bila API platform mendukung. `RegisterHotKey` mendukung, jadi rebind wajib, bukan opsional.
+- **Keputusan:** combo disimpan sebagai string di `app_settings` (`shortcut_enabled`, `shortcut_combo`), default `Ctrl+Shift+W` + enabled. `hotkey.Parse`/`String` menangani format ("Ctrl+Shift+W"), terima huruf/angka/F1–F12, wajib ≥1 modifier, selalu tambah `MOD_NOREPEAT`. `App.SetShortcut` validasi → persist → `applyShortcut` (Stop lalu Start) sehingga binding lama selalu dibebaskan.
+- **UI:** checkbox aktif + tombol "Ubah" yang menangkap keydown berikutnya (Escape batal; modifier saja diabaikan; tanpa modifier ditolak dengan pesan). Error registrasi OS tampil sebagai peringatan dan tidak menghentikan aplikasi.
+- **Keamanan:** combo rusak/ tak bisa di-parse jatuh kembali ke default (`ParseOrDefault`), jadi startup tidak pernah tanpa shortcut diam-diam.
+- **Bukti:** `combo_test.go` (round-trip, case-insensitive, tolak invalid/modifierless), `shortcut_test.go` (default, round-trip, tolak unparsable tanpa merusak state, fallback combo korup), `rebind_windows_test.go` (swap combo nyata: register → stop → register combo lain; Stop sebelum start aman). Render UI: state capture tampil dengan border accent.
 
 ## ADR-022 — M5 bundle portable + dokumentasi (2026-10-10)
 
