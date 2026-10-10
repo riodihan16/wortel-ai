@@ -29,7 +29,9 @@ Interaksi:
 - Drag: pindahkan posisi.
 - Klik kanan: menu opsional.
 - Escape: tidak boleh membuat aplikasi hilang tanpa cara memulihkan.
-- Shortcut global: toggle chat (P1).
+- Shortcut global (P1, ADR-050): jendela tersembunyi atau pet → buka chat; panel
+  terbuka → kembali ke pet. Shortcut tidak pernah menyembunyikan companion.
+  Hint hover pet menampilkan kombinasinya ("Klik atau Ctrl+Shift+W: chat").
 
 Batas desain:
 - Tidak ada teks permanen yang menutupi desktop. Pip 14 px bukan teks dan
@@ -97,6 +99,7 @@ Jangan menampilkan API key lama penuh setelah settings dibuka. Tampilkan “cred
 | `speaking` | Delta teks masuk | Animasi sangat sederhana atau indikator pulse terbatas. |
 | `error` | Request gagal | Gelengan singkat, alis cemas, mulut cemberut, daun layu, badge "!"; bukan warna saja. |
 | `offline` | Provider belum dikonfigurasi atau tes koneksi gagal | Hint saat dibuka, bukan popup berulang. |
+| `reply-ready` | Balasan selesai saat user di mode pet | Gelembung "Sudah!" sampai chat dibuka (ADR-050). Error yang sudah dilihat di chat tidak lagi membuat pet cemas. |
 
 Jangan menjanjikan bahwa state karakter mencerminkan “emosi AI” secara nyata. Ini hanya status UI.
 
@@ -125,8 +128,13 @@ Mendukung multi-monitor dan DPI scaling perlu dites. Jangan mengasumsikan koordi
 - Hindari efek glow/blur besar yang membutuhkan repaint intensif.
 - Hover feedback jelas tetapi tidak mengubah layout.
 - Semua tombol memiliki label/tooltip atau accessible name.
-- Loading indicator tidak boleh menutupi teks yang sudah diterima.
+- Loading indicator tidak boleh menutupi teks yang sudah diterima. Saat balasan
+  berjalan, footer chat menampilkan wortel kecil yang berpikir.
+- Transkrip hanya mengikuti stream selama user berada di dekat bawah; bila user
+  sedang membaca ke atas, chip "Balasan baru" muncul (ADR-050).
 - Saat error, pertahankan teks pengguna dan teks parsial agar tidak hilang.
+- `Keluar` (header chat dan rail pet) meminta konfirmasi inline, Batal
+  difokus lebih dulu (ADR-050).
 - Tombol destructive seperti Delete conversation dan Hapus provider diberi
   konfirmasi inline bertema (ADR-048, primitive `.confirm-row`). Jangan pakai `window.confirm`/`alert`/`prompt` maupun
   `<select>` native: WebView2 menggambar keduanya dengan chrome sistem di luar
@@ -146,7 +154,8 @@ Mendukung multi-monitor dan DPI scaling perlu dites. Jangan mengasumsikan koordi
 - Gunakan renderer yang tidak mengeksekusi HTML mentah.
 - Sanitasi atau nonaktifkan raw HTML.
 - Link eksternal dibuka melalui browser default setelah validasi skema (`https`/`http`); jangan mengaktifkan protokol arbitrer seperti `file:`.
-- Code block memiliki tombol Copy.
+- Code block memiliki tombol Copy; setiap balasan selesai punya `Salin` (sumber
+  markdown). Bila clipboard ditolak, tombol menulis "Gagal menyalin".
 - Teks panjang tidak boleh memperlebar panel; gunakan wrapping atau horizontal scroll di code block.
 - Token streaming harus tetap terbaca meskipun Markdown sementara belum lengkap (misalnya fenced code belum ditutup).
 
