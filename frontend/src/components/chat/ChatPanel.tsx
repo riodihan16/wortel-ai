@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { ChatMessage, ChatStatus } from "../../types/chat";
+import type { ProviderProfile } from "../../types/provider";
 import type { ConversationItem } from "../../hooks/useChat";
 import { SafeMarkdown } from "./SafeMarkdown";
 
@@ -20,6 +21,9 @@ interface Props {
   onDelete: (id: string) => void;
   draft: string;
   onDraftChange: (v: string) => void;
+  // Model picker: null when no provider is active.
+  activeProvider: ProviderProfile | null;
+  onModelChange: (id: string, model: string) => void;
 }
 
 function statusLabel(s: ChatStatus): string {
@@ -55,6 +59,8 @@ export function ChatPanel({
   onDelete,
   draft,
   onDraftChange,
+  activeProvider,
+  onModelChange,
 }: Props) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -86,6 +92,24 @@ export function ChatPanel({
 
   return (
     <div id="chat-main">
+      {activeProvider && activeProvider.models.length > 0 && (
+        <div id="model-bar">
+          <label htmlFor="model-select">Model</label>
+          <select
+            id="model-select"
+            value={activeProvider.activeModel || activeProvider.model}
+            onChange={(e) => onModelChange(activeProvider.id, e.target.value)}
+            disabled={busy}
+            title={`Provider: ${activeProvider.name}`}
+          >
+            {activeProvider.models.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div id="conv-bar">
         <select
           id="conv-select"

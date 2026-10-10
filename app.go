@@ -270,6 +270,24 @@ func (a *App) SetActiveProvider(id string) error {
 	return a.provs.SetActive(id)
 }
 
+// SetActiveModel switches the chat model on the active provider. The model
+// must already be in that provider's list.
+func (a *App) SetActiveModel(id, model string) error {
+	if a.provs == nil {
+		return errStorageUnavailable()
+	}
+	return a.provs.SetActiveModel(id, model)
+}
+
+// ActiveProvider returns the active provider's safe profile (models list,
+// active model). Second return is false when no provider is active.
+func (a *App) ActiveProvider() (config.ProviderProfile, bool) {
+	if a.provs == nil {
+		return config.ProviderProfile{}, false
+	}
+	return a.provs.ActiveProfile(a.ctx)
+}
+
 // TestProvider checks URL/model/credential with a minimal request.
 func (a *App) TestProvider(in app.SaveInput) (app.TestResult, error) {
 	if a.provs == nil {

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  ActiveProvider,
   DeleteProvider,
   ListProviders,
   SaveProvider,
+  SetActiveModel,
   SetActiveProvider,
   TestProvider,
 } from "../../wailsjs/go/main/App";
@@ -15,6 +17,7 @@ type SaveInput = app.SaveInput;
 export function useProviders() {
   const [providers, setProviders] = useState<ProviderProfile[]>([]);
   const [activeId, setActiveId] = useState<string>("");
+  const [activeProvider, setActiveProvider] = useState<ProviderProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [test, setTest] = useState<TestResult | null>(null);
@@ -24,6 +27,8 @@ export function useProviders() {
     try {
       const list = (await ListProviders()) as ProviderProfile[];
       setProviders(list ?? []);
+      const active = (await ActiveProvider()) as unknown as [ProviderProfile, boolean];
+      setActiveProvider(active && active[1] ? active[0] : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal memuat provider.");
     } finally {
@@ -71,11 +76,27 @@ export function useProviders() {
       try {
         await SetActiveProvider(id);
         setActiveId(id);
+        await refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Gagal mengaktifkan.");
       }
     },
-    []
+    [refresh]
+  );
+
+  // setModel switches the chat model on the active provider, then refreshes so
+  // the header picker and settings list stay consistent.
+  const setModel = useCallback(
+    async (id: string, model: string) => {
+      setError(null);
+      try {
+        await SetActiveModel(id, model);
+        await refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Gagal mengganti model.");
+      }
+    },
+    [refresh]
   );
 
   const runTest = useCallback(async (in_: SaveInput) => {
@@ -94,5 +115,5 @@ export function useProviders() {
     }
   }, []);
 
-  return { providers, activeId, loading, error, test, testing, save, remove, activate, runTest, refresh };
+  return { providers, activeId, activeProvider, loading, error, test, testing, save, remove, activate, setModel, runTest, refresh };
 }

@@ -50,6 +50,7 @@ export namespace app {
 	    id: string;
 	    name: string;
 	    baseURL: string;
+	    models: string[];
 	    model: string;
 	    apiKey: string;
 	    enabled: boolean;
@@ -63,6 +64,7 @@ export namespace app {
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.baseURL = source["baseURL"];
+	        this.models = source["models"];
 	        this.model = source["model"];
 	        this.apiKey = source["apiKey"];
 	        this.enabled = source["enabled"];
@@ -116,6 +118,8 @@ export namespace config {
 	    name: string;
 	    baseURL: string;
 	    model: string;
+	    models: string[];
+	    activeModel: string;
 	    credentialRef: string;
 	    hasCredential: boolean;
 	    enabled: boolean;
@@ -131,6 +135,8 @@ export namespace config {
 	        this.name = source["name"];
 	        this.baseURL = source["baseURL"];
 	        this.model = source["model"];
+	        this.models = source["models"];
+	        this.activeModel = source["activeModel"];
 	        this.credentialRef = source["credentialRef"];
 	        this.hasCredential = source["hasCredential"];
 	        this.enabled = source["enabled"];

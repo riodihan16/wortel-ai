@@ -58,11 +58,13 @@ Kelompok:
 Provider form minimum:
 - Display name.
 - Base URL.
-- Model ID.
+- Daftar Model ID: tambah/hapus model; radio memilih model aktif.
 - API key input dengan reveal/hide.
 - Save.
 - Test connection.
 - Status aktif.
+
+Chat header menampilkan pemilih model (dropdown) bila provider aktif punya lebih dari satu model, sehingga model bisa diganti tanpa membuka Settings.
 
 Jangan menampilkan API key lama penuh setelah settings dibuka. Tampilkan “credential tersimpan” dan sediakan aksi replace/remove.
 

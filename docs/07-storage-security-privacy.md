@@ -59,7 +59,9 @@ Kolom kandidat:
 - `id` TEXT PRIMARY KEY.
 - `name` TEXT NOT NULL.
 - `base_url` TEXT NOT NULL.
-- `model` TEXT NOT NULL.
+- `model` TEXT NOT NULL (legacy; rekan dari model aktif).
+- `models` TEXT NOT NULL (JSON array model ID; ditambahkan di v3).
+- `active_model` TEXT NOT NULL (model dipakai untuk chat; ditambahkan di v3).
 - `credential_ref` TEXT nullable.
 - `is_enabled` INTEGER NOT NULL.
 - `created_at`, `updated_at`.
@@ -107,7 +109,7 @@ Jika credential OS belum dapat diimplementasikan dengan aman, lebih baik tunda p
 ## 5. Privasi request
 
 Sebelum mengirim pesan, aplikasi mengirim ke provider:
-- Model ID.
+- Model ID (model aktif provider; hanya model itu yang dikirim, tidak seluruh daftar).
 - Isi pesan pengguna dan konteks percakapan terpilih.
 - Parameter request yang diperlukan.
 - API key pada header autentikasi.

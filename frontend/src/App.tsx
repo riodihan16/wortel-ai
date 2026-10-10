@@ -179,7 +179,7 @@ function App() {
                     <button onClick={Quit}>Quit</button>
                 </span>
             </div>
-            <ChatPanel messages={chat.messages} status={chat.status} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} />
+            <ChatPanel messages={chat.messages} status={chat.status} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} activeProvider={provs.activeProvider} onModelChange={provs.setModel} />
         </div>
     );
 }

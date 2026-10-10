@@ -138,6 +138,15 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** hapus `tailwindcss` + `@tailwindcss/vite`, ganti dengan reset CSS eksplisit (`box-sizing`, margin/padding nol, font inherit) di `style.css`. Styling tetap pakai token di `App.css`.
 - **Bukti:** CSS bundle 11.31 kB → 7.02 kB (gzip 2.97 → 1.76 kB). `tsc` dan `npm run build` bersih; UI terverifikasi render (pet mode tombol + header chat).
 
+## ADR-028 — Multi model per provider + markdown library (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** Dua temuan uji manual M6 oleh user: (1) respons AI tidak rapi karena `SafeMarkdown` hand-rolled menampilkan heading, blockquote, dan tabel sebagai teks literal; (2) Settings hanya mendukung satu model per provider. FR-006 semula mensyaratkan satu "Model ID"; multi model adalah penambahan scope yang disetujui user.
+- **Keputusan markdown:** ganti `SafeMarkdown` hand-rolled dengan `react-markdown` + `remark-gfm` + `rehype-sanitize`. Raw HTML tidak pernah dirender (tanpa `rehype-raw`); sanitize allowlist sebagai lapis kedua; link dibatasi http/https di schema protocol + override komponen (skema non-http dirender sebagai teks). Bundle CSS+JS naik: JS 207 kB → 372 kB (gzip 65 → 116 kB).
+- **Keputusan multi model:** `provider_profiles` menyimpan `models` (JSON array) + `active_model`; kolom lama `model` dipertahankan dan disinkronkan ke model aktif untuk pembaca lama. Migrasi v3 menseed baris lama (`models = json_array(model)`, `active_model = model`). Provider menyimpan daftar model; model aktif dipilih dari radio di Settings, atau dropdown di header chat. Model aktif tidak diubah per conversation (satu model aktif per provider) — percakapan tetap menyimpan `model` pada tiap pesan.
+- **Bukti:** `TestMigrationV2toV3`, `TestProviderModelsRoundTrip`, `TestSaveMultiModelAndSwitch`, `TestNormalizeModels*` (dedupe, trim, cap, fallback aktif), `TestValidateSingleModelFallback`. Render UI nyata: heading/tabel/blockquote/task-list/strike/kode benar; `<img src=x onerror>` tetap teks; `[x](javascript:...)` dirender tanpa link. Settings: tambah model, tolak duplikat, hapus model memindah aktif ke entri pertama.
+- **Risiko:** JSON array di satu kolom TEXT — tidak bisa di-query per model; cukup untuk MVP (daftar kecil, akses selalu lewat provider). Bundel markdown bertambah ~107 kB gzip.
+
 ## ADR-024 — M6 baseline performa + budget RAM (2026-10-10)
 
 - **Status:** Done (terukur pada build release).

@@ -11,7 +11,7 @@ import (
 )
 
 // Current schema version. Bump when adding migrations.
-const currentVersion = 2
+const currentVersion = 3
 
 // DB wraps the SQLite handle.
 type DB struct {
@@ -147,5 +147,16 @@ var migrations = map[int][]string{
 			updated_at TEXT NOT NULL
 		)`,
 		`CREATE INDEX idx_messages_conv ON messages(conversation_id, created_at)`,
+	},
+	// v3: multiple models per provider. `models` is a JSON array of model
+	// ids; `active_model` picks the one used for chat. Existing rows keep
+	// their single `model` and are seeded into `models` as a one-item list
+	// with `active_model` set to it, so pre-v3 data stays usable.
+	3: {
+		`ALTER TABLE provider_profiles ADD COLUMN models TEXT NOT NULL DEFAULT '[]'`,
+		`ALTER TABLE provider_profiles ADD COLUMN active_model TEXT NOT NULL DEFAULT ''`,
+		`UPDATE provider_profiles
+			SET models = json_array(model), active_model = model
+			WHERE models = '[]' OR models = ''`,
 	},
 }

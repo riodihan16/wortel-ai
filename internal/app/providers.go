@@ -69,18 +69,19 @@ func (p *Providers) List(ctx context.Context) ([]config.ProviderProfile, error) 
 
 // SaveInput carries the settings form. ID empty = create.
 type SaveInput struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	BaseURL string `json:"baseURL"`
-	Model   string `json:"model"`
-	APIKey  string `json:"apiKey"`
-	Enabled bool   `json:"enabled"`
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	BaseURL string   `json:"baseURL"`
+	Models  []string `json:"models"`
+	Model   string   `json:"model"`
+	APIKey  string   `json:"apiKey"`
+	Enabled bool     `json:"enabled"`
 }
 
 // Save validates, writes credential to OS store, persists profile.
 func (p *Providers) Save(ctx context.Context, in SaveInput) (config.ProviderProfile, error) {
-	endpoint, insecure, err := config.Validate(config.ProviderInput{
-		Name: in.Name, BaseURL: in.BaseURL, Model: in.Model,
+	endpoint, models, active, insecure, err := config.Validate(config.ProviderInput{
+		Name: in.Name, BaseURL: in.BaseURL, Models: in.Models, Model: in.Model,
 	})
 	if err != nil {
 		return config.ProviderProfile{}, err
@@ -103,7 +104,8 @@ func (p *Providers) Save(ctx context.Context, in SaveInput) (config.ProviderProf
 	}
 	row := storage.ProviderRow{
 		ID: id, Name: strings.TrimSpace(in.Name),
-		BaseURL: strings.TrimSpace(in.BaseURL), Model: strings.TrimSpace(in.Model),
+		BaseURL: strings.TrimSpace(in.BaseURL),
+		Models:  models, ActiveModel: active, Model: active,
 		CredentialRef: ref, Enabled: true,
 	}
 	if err := p.db.SaveProvider(row); err != nil {
@@ -117,6 +119,44 @@ func (p *Providers) Save(ctx context.Context, in SaveInput) (config.ProviderProf
 	prof := storage.ToPublic(row, has)
 	prof.InsecureTransport = insecure
 	return prof, nil
+}
+
+// SetActiveModel switches the model used for chat on one provider. The model
+// must already be in the provider's list; unknown models are rejected so a
+// typo cannot silently 404 at request time.
+func (p *Providers) SetActiveModel(id, model string) error {
+	id = strings.TrimSpace(id)
+	model = strings.TrimSpace(model)
+	if id == "" || model == "" {
+		return errors.New("provider atau model kosong")
+	}
+	rows, err := p.db.ListProviders()
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		if r.ID != id {
+			continue
+		}
+		models := r.Models
+		if len(models) == 0 && r.Model != "" {
+			models = []string{r.Model}
+		}
+		ok := false
+		for _, m := range models {
+			if m == model {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return errors.New("model tidak ada di daftar provider")
+		}
+		r.ActiveModel = model
+		r.Model = model
+		return p.db.SaveProvider(r)
+	}
+	return errors.New("provider tidak ditemukan")
 }
 
 // Delete removes profile + credential. Refuses when active.
@@ -192,19 +232,51 @@ func (p *Providers) Resolve(ctx context.Context) (*ai.OpenAICompatible, string, 
 				secret[i] = 0
 			}
 		}()
-		return &ai.OpenAICompatible{BaseURL: r.BaseURL, APIKey: key, Client: p.http}, r.Model, nil
+		model := r.ActiveModel
+		if model == "" {
+			model = r.Model
+		}
+		return &ai.OpenAICompatible{BaseURL: r.BaseURL, APIKey: key, Client: p.http}, model, nil
 	}
 	return nil, "", ErrNoActiveProvider
+}
+
+// ActiveProfile returns the safe profile of the active provider (or false when
+// none is active). Used by the chat UI to render the model picker; carries no
+// secret.
+func (p *Providers) ActiveProfile(ctx context.Context) (config.ProviderProfile, bool) {
+	id := p.ActiveID()
+	if id == "" {
+		return config.ProviderProfile{}, false
+	}
+	rows, err := p.db.ListProviders()
+	if err != nil {
+		return config.ProviderProfile{}, false
+	}
+	for _, r := range rows {
+		if r.ID != id {
+			continue
+		}
+		has, _ := p.creds.Exists(ctx, r.CredentialRef)
+		return storage.ToPublic(r, has), true
+	}
+	return config.ProviderProfile{}, false
 }
 
 // Test checks URL/model/credential with a minimal non-stream request.
 // Uses the form API key when given, else the stored credential for id.
 func (p *Providers) Test(ctx context.Context, in SaveInput) TestResult {
-	_, insecure, err := config.Validate(config.ProviderInput{
-		Name: firstOr(in.Name, "test"), BaseURL: in.BaseURL, Model: in.Model,
+	_, models, active, insecure, err := config.Validate(config.ProviderInput{
+		Name: firstOr(in.Name, "test"), BaseURL: in.BaseURL,
+		Models: in.Models, Model: in.Model,
 	})
 	if err != nil {
 		return TestResult{Message: err.Error()}
+	}
+	_ = models
+	testModel := strings.TrimSpace(in.Model)
+	if testModel == "" {
+		testModel = active
 	}
 	endpoint, err := ai.NormalizeBaseURL(in.BaseURL)
 	if err != nil {
@@ -232,7 +304,7 @@ func (p *Providers) Test(ctx context.Context, in SaveInput) TestResult {
 	tctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	payload, _ := json.Marshal(map[string]any{
-		"model":      strings.TrimSpace(in.Model),
+		"model":      testModel,
 		"messages":   []ai.Message{{Role: "user", Content: "ping"}},
 		"stream":     false,
 		"max_tokens": 1,

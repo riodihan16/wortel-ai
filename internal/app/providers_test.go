@@ -56,6 +56,43 @@ func TestSaveAndResolve(t *testing.T) {
 	}
 }
 
+func TestSaveMultiModelAndSwitch(t *testing.T) {
+	ctx := context.Background()
+	p := testProviders(t)
+	saved, err := p.Save(ctx, SaveInput{
+		Name: "Kenari", BaseURL: "https://kenari.id/v1",
+		Models: []string{"m1", "m2", "m3"}, Model: "m2", APIKey: "k",
+	})
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	if len(saved.Models) != 3 || saved.ActiveModel != "m2" {
+		t.Fatalf("models not persisted: %+v", saved)
+	}
+	// Resolve must use the active model.
+	_, model, err := p.Resolve(ctx)
+	if err != nil || model != "m2" {
+		t.Fatalf("resolve active: %v %q", err, model)
+	}
+	// Switch to another model in the list.
+	if err := p.SetActiveModel(saved.ID, "m3"); err != nil {
+		t.Fatalf("switch: %v", err)
+	}
+	_, model, err = p.Resolve(ctx)
+	if err != nil || model != "m3" {
+		t.Fatalf("resolve after switch: %v %q", err, model)
+	}
+	// Unknown model is rejected (no silent typo).
+	if err := p.SetActiveModel(saved.ID, "nope"); err == nil {
+		t.Fatal("unknown model must be rejected")
+	}
+	// ActiveProfile carries the list for the picker.
+	prof, ok := p.ActiveProfile(ctx)
+	if !ok || len(prof.Models) != 3 || prof.ActiveModel != "m3" {
+		t.Fatalf("active profile: %+v ok=%v", prof, ok)
+	}
+}
+
 func TestSaveRequiresKeyForNew(t *testing.T) {
 	p := testProviders(t)
 	if _, err := p.Save(context.Background(), SaveInput{

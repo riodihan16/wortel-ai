@@ -75,13 +75,14 @@ Pengguna dapat membuat, mengedit, memilih, menguji, dan menghapus konfigurasi pr
 **Field minimum**
 - Nama tampilan.
 - Base URL.
-- Model ID.
+- Daftar Model ID (minimal satu; model aktif dipilih dari daftar).
 - API key (secret).
 - Provider aktif.
 
 **Kriteria penerimaan**
 - Base URL hanya menerima `http` atau `https`; `https` disarankan sebagai default.
 - Validasi URL dan field wajib dilakukan sebelum request.
+- Pengguna dapat menyimpan lebih dari satu model per provider dan mengganti model aktif tanpa mengedit ulang provider (ditambahkan 2026-10-10; lihat ADR-028).
 - Tombol Test Connection memberi sukses/gagal yang bermakna, tanpa menampilkan API key.
 - Mengganti provider tidak menghapus percakapan yang ada.
 - Secret tidak dikembalikan ke frontend setelah disimpan; UI hanya menampilkan status configured/not configured atau mask.

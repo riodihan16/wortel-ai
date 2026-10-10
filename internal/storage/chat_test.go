@@ -3,6 +3,7 @@ package storage
 import (
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestChatHistoryRoundTrip(t *testing.T) {
@@ -95,5 +96,79 @@ func TestMigrationV1toV2(t *testing.T) {
 	defer db2.Close()
 	if err := db2.EnsureConversation("c", "t"); err != nil {
 		t.Fatalf("write after reopen: %v", err)
+	}
+}
+
+// TestMigrationV2toV3 builds a v2 provider row by hand (no models/active_model
+// columns), then reopens: migration must add the columns and seed models from
+// the legacy single-model column so existing providers stay usable.
+func TestMigrationV2toV3(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "mig3.db")
+	db, err := Open(path)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	// Simulate a pre-v3 row: drop the new columns and stamp version 2.
+	if _, err := db.inner.Exec(`
+		CREATE TABLE pp_v2 AS SELECT id, name, base_url, model, credential_ref,
+			is_enabled, created_at, updated_at FROM provider_profiles;
+		DROP TABLE provider_profiles;
+		ALTER TABLE pp_v2 RENAME TO provider_profiles;
+		DELETE FROM schema_version WHERE version = 3;
+	`); err != nil {
+		t.Fatalf("downgrade: %v", err)
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err := db.inner.Exec(`INSERT INTO provider_profiles
+		(id, name, base_url, model, credential_ref, is_enabled, created_at, updated_at)
+		VALUES ('old','Old','https://a.id/v1','legacy-model','ref-old',1,?,?)`, now, now); err != nil {
+		t.Fatalf("seed v2 row: %v", err)
+	}
+	_ = db.Close()
+
+	db2, err := Open(path)
+	if err != nil {
+		t.Fatalf("reopen (migrate): %v", err)
+	}
+	defer db2.Close()
+	list, err := db2.ListProviders()
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list after migration: %+v %v", list, err)
+	}
+	p := list[0]
+	if len(p.Models) != 1 || p.Models[0] != "legacy-model" {
+		t.Fatalf("models not seeded: %+v", p.Models)
+	}
+	if p.ActiveModel != "legacy-model" {
+		t.Fatalf("active_model not seeded: %q", p.ActiveModel)
+	}
+}
+
+// TestProviderModelsRoundTrip covers multi-model persistence + legacy column sync.
+func TestProviderModelsRoundTrip(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "models.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer db.Close()
+	if err := db.SaveProvider(ProviderRow{
+		ID: "p1", Name: "n", BaseURL: "https://a.id/v1",
+		Models: []string{"m1", "m2", "m3"}, ActiveModel: "m2",
+		CredentialRef: "r", Enabled: true,
+	}); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	list, err := db.ListProviders()
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list: %+v %v", list, err)
+	}
+	got := list[0]
+	if len(got.Models) != 3 || got.Models[2] != "m3" || got.ActiveModel != "m2" {
+		t.Fatalf("models round-trip: %+v", got)
+	}
+	// Legacy column must mirror the active model for old readers.
+	if got.Model != "m2" {
+		t.Fatalf("legacy model column not synced: %q", got.Model)
 	}
 }

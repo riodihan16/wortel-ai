@@ -28,7 +28,7 @@ Contoh ini hanya format ilustratif. Jangan menyimpan field `apiKey` di object ya
 MVP minimum:
 - Display name.
 - Base URL.
-- Model ID.
+- Daftar Model ID (minimal satu; satu ditandai aktif).
 - API key.
 - Aktif/nonaktif dan provider aktif.
 

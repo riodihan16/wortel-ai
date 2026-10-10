@@ -29,14 +29,23 @@ interface Props {
   onAppearanceChange: (next: app.Appearance) => void;
 }
 
-const EMPTY = { name: "", baseURL: "https://", model: "", apiKey: "" };
+const EMPTY = { name: "", baseURL: "https://", models: [] as string[], activeModel: "", apiKey: "" };
 
 function toSave(form: typeof EMPTY, id: string): SaveInput {
-  return new app.SaveInput({ id, name: form.name, baseURL: form.baseURL, model: form.model, apiKey: form.apiKey, enabled: true });
+  return new app.SaveInput({
+    id,
+    name: form.name,
+    baseURL: form.baseURL,
+    models: form.models,
+    model: form.activeModel,
+    apiKey: form.apiKey,
+    enabled: true,
+  });
 }
 
 export function SettingsPanel(p: Props) {
   const [form, setForm] = useState(EMPTY);
+  const [modelDraft, setModelDraft] = useState("");
   const [editing, setEditing] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
@@ -50,14 +59,51 @@ export function SettingsPanel(p: Props) {
     if (!found) return;
     setEditing(id);
     // Never fill apiKey: stored secret stays hidden, field means "replace".
-    setForm({ name: found.name, baseURL: found.baseURL, model: found.model, apiKey: "" });
+    setForm({
+      name: found.name,
+      baseURL: found.baseURL,
+      models: [...found.models],
+      activeModel: found.activeModel || found.model,
+      apiKey: "",
+    });
     setFormError(null);
+  };
+
+  // Adds the trimmed draft to the model list. Duplicates are ignored so the
+  // active model is unambiguous; the first model added becomes active.
+  const addModel = () => {
+    const m = modelDraft.trim();
+    if (!m) return;
+    if (form.models.includes(m)) {
+      setFormError(`Model "${m}" sudah ada di daftar.`);
+      return;
+    }
+    setFormError(null);
+    setForm({
+      ...form,
+      models: [...form.models, m],
+      activeModel: form.activeModel || m,
+    });
+    setModelDraft("");
+  };
+
+  const removeModel = (m: string) => {
+    const models = form.models.filter((x) => x !== m);
+    setForm({
+      ...form,
+      models,
+      activeModel: form.activeModel === m ? (models[0] ?? "") : form.activeModel,
+    });
   };
 
   const submit = async () => {
     setFormError(null);
-    if (!form.name.trim() || !form.model.trim()) {
-      setFormError("Nama dan model wajib diisi.");
+    if (!form.name.trim()) {
+      setFormError("Nama wajib diisi.");
+      return;
+    }
+    if (form.models.length === 0) {
+      setFormError("Tambahkan minimal satu model.");
       return;
     }
     if (!editing && !form.apiKey.trim()) {
@@ -68,6 +114,7 @@ export function SettingsPanel(p: Props) {
     if (saved) {
       setEditing("");
       setForm(EMPTY);
+      setModelDraft("");
       setShowKey(false);
     }
   };
@@ -126,7 +173,7 @@ export function SettingsPanel(p: Props) {
         {p.providers.map((pr) => (
           <div key={pr.id} className={`prov${p.activeId === pr.id ? " prov-active" : ""}`}>
             <div className="prov-name">{pr.name} {p.activeId === pr.id ? "(aktif)" : ""}</div>
-            <div className="prov-meta">{pr.baseURL} · {pr.model} · {pr.hasCredential ? "key tersimpan" : "tanpa key"}</div>
+            <div className="prov-meta">{pr.baseURL} · {pr.activeModel || pr.model} · {pr.models.length} model · {pr.hasCredential ? "key tersimpan" : "tanpa key"}</div>
             <div className="prov-actions">
               {p.activeId !== pr.id && <button onClick={() => p.onActivate(pr.id)}>Aktifkan</button>}
               <button onClick={() => pick(pr.id)}>Ubah</button>
@@ -139,7 +186,41 @@ export function SettingsPanel(p: Props) {
         <h4>{editing ? "Ubah provider" : "Provider baru"}</h4>
         <label>Nama<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Provider pribadi" /></label>
         <label>Base URL<input value={form.baseURL} onChange={(e) => setForm({ ...form, baseURL: e.target.value })} placeholder="https://api.example.com/v1" inputMode="url" /></label>
-        <label>Model<input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="example-model" /></label>
+        <label>Model
+          <span className="model-add">
+            <input
+              value={modelDraft}
+              onChange={(e) => setModelDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addModel();
+                }
+              }}
+              placeholder="example-model"
+            />
+            <button type="button" onClick={addModel} disabled={!modelDraft.trim()}>Tambah</button>
+          </span>
+        </label>
+        {form.models.length > 0 && (
+          <div className="model-list">
+            {form.models.map((m) => (
+              <div key={m} className={`model-item${form.activeModel === m ? " model-active" : ""}`}>
+                <label className="model-pick" title="Pakai model ini untuk chat">
+                  <input
+                    type="radio"
+                    name={`active-${editing || "new"}`}
+                    checked={form.activeModel === m}
+                    onChange={() => setForm({ ...form, activeModel: m })}
+                  />
+                  <span>{m}</span>
+                </label>
+                <button type="button" onClick={() => removeModel(m)} title="Hapus model">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="field-hint">Radio memilih model aktif untuk chat.</div>
         <label>API key {editing && "(kosong = pakai tersimpan)"}
           <span className="keyrow">
             <input type={showKey ? "text" : "password"} value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} placeholder={editing ? "•••••• (tersimpan)" : "sk-..."} autoComplete="off" />

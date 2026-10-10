@@ -41,7 +41,8 @@ Prinsip utamanya:
 | Backend | Go 1.26.4 | Syarat Wails v2: Go 1.21+. Versi terpasang 1.26.4, dikunci untuk M0. |
 | Frontend | React 19.1.0 + TS 5.6.3 + Vite 7.3.7 | Dari template `wails init` react-ts M0, dikunci 2026-10-09. |
 | Styling | CSS biasa dengan design token (variabel tema) | Tailwind dihapus 2026-10-10: hanya preflight-nya terpakai, tidak ada utility class di JSX. Token di `App.css`. |
-| Chat API | OpenAI-compatible Chat Completions | Tidak semua provider mendukung seluruh parameter dengan cara yang sama. |
+| Chat API | OpenAI-compatible Chat Completions | Tidak semua provider mendukung seluruh parameter dengan cara yang sama. Setiap provider menyimpan daftar model; satu ditandai aktif. |
+| Render markdown | react-markdown + remark-gfm + rehype-sanitize | AI output = input tidak tepercaya. Tanpa raw HTML; sanitize allowlist; link hanya http/https. |
 | Streaming | SSE yang diparse di backend Go | Frontend menerima token/chunk melalui event Wails. |
 | Penyimpanan | SQLite | Percakapan dan preferensi nonrahasia. |
 | Secret | Windows Credential Manager atau mekanisme OS yang sesuai | Jangan simpan API key dalam SQLite atau JSON biasa. |

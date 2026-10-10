@@ -198,11 +198,12 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - [x] Error provider tidak membuat aplikasi crash. → error mapping 400/401/403/404/408/429/5xx + timeout + diskonek tengah + malformed JSON (`provider_test.go`, `sse_test.go`); DB failure = error bukan panic (`db_test.go`).
 - [x] Percakapan bertahan setelah restart. → `TestChatHistoryRoundTrip`, `TestMigrationV1toV2`, `TestSwitchActiveKeepsHistory`; DB nyata di `%LOCALAPPDATA%\WortelAI\wortel.db`.
 - [x] Pengaturan provider dapat diubah dan dites. → `TestProviderCRUD`, `TestTestConnectionMapping`, `TestValidate*`.
+- [x] Multi model per provider + ganti model aktif. → `TestMigrationV2toV3`, `TestProviderModelsRoundTrip`, `TestSaveMultiModelAndSwitch`, `TestNormalizeModels*`; UI: editor daftar model di Settings + dropdown model di header chat (ADR-028).
 
 ### Keamanan
 - [x] Tidak ada API key di repository, log, SQLite, dan event frontend. → `provider_profiles` tanpa kolom secret; grep pola `sk-` pada DB nyata = tidak ada; `ChatEvent` tanpa secret; tidak ada `log.Printf` pada request/header; secret di-wipe (`secret[i]=0`).
-- [x] Markdown raw HTML dimatikan/disanitasi. → render live: `<img onerror>`, `<script>` → teks escaped, 0 elemen img/script.
-- [x] Link eksternal menggunakan allowlist scheme. → live: `javascript:`/`data:` tidak jadi link, hanya `http/https/#`.
+- [x] Markdown raw HTML dimatikan/disanitasi. → `react-markdown` tanpa `rehype-raw` + `rehype-sanitize` allowlist. Render live: `<img src=x onerror=alert(1)>` tetap teks literal, 0 elemen img/script (ADR-028).
+- [x] Link eksternal menggunakan allowlist scheme. → schema protocol `href: [http, https]` + override komponen; live: `[jahat](javascript:alert(1))` dirender sebagai teks tanpa `<a>`, hanya `https://` jadi link.
 - [x] Redirect cross-host tidak membawa Authorization. → `TestSafeClientDropsAuthOnCrossHost` + `TestSafeClientKeepsAuthOnSameHost` (ADR-026).
 - [x] Tidak ada command execution atau screenshot capture. → tidak ada kode shell/screenshot/clipboard di repo.
 - [x] HTTP endpoint non-TLS mendapat warning yang sesuai. → `config.Validate` set `InsecureTransport` untuk `http://` non-loopback (`TestValidateHTTPFlagsInsecure`).
@@ -224,10 +225,10 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 ### Artifact rilis 0.1.0
 
 - **File:** `build/bin/companion.exe`
-- **Ukuran:** 15,505,408 byte (~14.8 MB)
-- **SHA-256:** `25254c1edc21ace3c86d264edb4c011182399ac704edcf2db6053fbb8916023d`
+- **Ukuran:** 15,680,512 byte (~15.0 MB)
+- **SHA-256:** `cf8e4070565de5c33fbea53b69c11b906fc141ad981a2c37df77b0ad57537b61`
 - **Perintah build:** `wails build -ldflags "-X main.Version=0.1.0"` dari clean checkout (setelah `rm -rf frontend/dist build/bin`).
-- **Verifikasi:** versi `0.1.0` tertanam di binary; aplikasi start dan tercatat `[WebView2] Environment created successfully`.
+- **Verifikasi:** versi `0.1.0` tertanam di binary; aplikasi start dan tercatat `[WebView2] Environment created successfully`. Migrasi DB user nyata v2→v3 terverifikasi (kolom `models`/`active_model` bertambah, baris lama di-seed dari `model`).
 
 ### Known issues (0.1.0)
 
