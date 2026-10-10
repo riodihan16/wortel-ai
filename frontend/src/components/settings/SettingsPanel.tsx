@@ -3,7 +3,7 @@
 // behind "Tambah provider" once a provider exists, opened in place under the
 // card being edited. Provider delete asks inline (ADR-048 pattern) and is never
 // offered on the active provider, which the backend refuses.
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { app } from "../../../wailsjs/go/models";
 import type { ProviderProfile, TestResult } from "../../types/provider";
 import { IconAlert, IconCheck, IconChevronDown, IconPlus } from "../ui/Icon";
@@ -125,7 +125,7 @@ export function SettingsPanel(p: Props) {
 
   const formFor = (profile: ProviderProfile | null) => (
     <ProviderForm
-      key={profile?.id ?? "new"}
+      key={profile ? `edit-${profile.id}` : "new"}
       profile={profile}
       test={p.test}
       testing={p.testing}
@@ -171,70 +171,72 @@ export function SettingsPanel(p: Props) {
             <div id="settings-list">
               {p.providers.map((pr) => {
                 const active = p.activeId === pr.id;
-                return [
-                  <div key={pr.id} className={active ? "card card--active" : "card"} role="group" aria-label={`Provider ${pr.name}`}>
-                    <div className="prov-head">
-                      <span className="prov-name" title={pr.name}>{pr.name}</span>
-                      {active && <span className="prov-badge">Aktif</span>}
-                    </div>
-                    <div className="prov-meta">
-                      <span className="prov-meta__url" title={pr.baseURL}>{pr.baseURL}</span>
-                      <span>
-                        {pr.activeModel || pr.model} · {pr.models.length} model · {pr.hasCredential ? "key tersimpan" : "tanpa key"}
-                      </span>
-                    </div>
-                    <div className="prov-actions">
-                      {!active && <button type="button" className="btn btn--sm" onClick={() => p.onActivate(pr.id)} aria-label={`Aktifkan provider ${pr.name}`}>Aktifkan</button>}
-                      <button
-                        type="button"
-                        className="btn btn--sm"
-                        ref={register(editBtns.current, pr.id)}
-                        onClick={() => startEdit(pr.id)}
-                        aria-label={`Ubah provider ${pr.name}`}
-                        aria-expanded={editing === pr.id}
-                      >
-                        Ubah
-                      </button>
-                      {!active && (
+                return (
+                  <Fragment key={pr.id}>
+                    <div className={active ? "card card--active" : "card"} role="group" aria-label={`Provider ${pr.name}`}>
+                      <div className="prov-head">
+                        <span className="prov-name" title={pr.name}>{pr.name}</span>
+                        {active && <span className="prov-badge">Aktif</span>}
+                      </div>
+                      <div className="prov-meta">
+                        <span className="prov-meta__url" title={pr.baseURL}>{pr.baseURL}</span>
+                        <span>
+                          {pr.activeModel || pr.model} · {pr.models.length} model · {pr.hasCredential ? "key tersimpan" : "tanpa key"}
+                        </span>
+                      </div>
+                      <div className="prov-actions">
+                        {!active && <button type="button" className="btn btn--sm" onClick={() => p.onActivate(pr.id)} aria-label={`Aktifkan provider ${pr.name}`}>Aktifkan</button>}
                         <button
                           type="button"
-                          className="btn btn--sm btn--danger"
-                          ref={register(delBtns.current, pr.id)}
-                          onClick={() => setConfirmDel(pr.id)}
-                          aria-label={`Hapus provider ${pr.name}`}
-                          aria-expanded={armedDel === pr.id}
+                          className="btn btn--sm"
+                          ref={register(editBtns.current, pr.id)}
+                          onClick={() => startEdit(pr.id)}
+                          aria-label={`Ubah provider ${pr.name}`}
+                          aria-expanded={editing === pr.id}
                         >
-                          Hapus
+                          Ubah
                         </button>
+                        {!active && (
+                          <button
+                            type="button"
+                            className="btn btn--sm btn--danger"
+                            ref={register(delBtns.current, pr.id)}
+                            onClick={() => setConfirmDel(pr.id)}
+                            aria-label={`Hapus provider ${pr.name}`}
+                            aria-expanded={armedDel === pr.id}
+                          >
+                            Hapus
+                          </button>
+                        )}
+                      </div>
+                      {armedDel === pr.id && (
+                        <div
+                          className="confirm-row confirm-row--wrap"
+                          role="group"
+                          aria-label="Konfirmasi hapus provider"
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") cancelDelete(pr.id);
+                          }}
+                        >
+                          <IconAlert size={14} />
+                          <span className="confirm-row__msg">
+                            <span>Hapus “</span>
+                            <span className="confirm-row__title">{pr.name}</span>
+                            <span>” dan API key-nya?</span>
+                          </span>
+                          <button type="button" className="btn btn--sm btn--danger" onClick={() => confirmDelete(pr.id)}>
+                            Hapus
+                          </button>
+                          {/* Focused first: Enter on an armed row must not delete. */}
+                          <button type="button" className="btn btn--sm" onClick={() => cancelDelete(pr.id)} autoFocus>
+                            Batal
+                          </button>
+                        </div>
                       )}
                     </div>
-                    {armedDel === pr.id && (
-                      <div
-                        className="confirm-row confirm-row--wrap"
-                        role="group"
-                        aria-label="Konfirmasi hapus provider"
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") cancelDelete(pr.id);
-                        }}
-                      >
-                        <IconAlert size={14} />
-                        <span className="confirm-row__msg">
-                          <span>Hapus “</span>
-                          <span className="confirm-row__title">{pr.name}</span>
-                          <span>” dan API key-nya?</span>
-                        </span>
-                        <button type="button" className="btn btn--sm btn--danger" onClick={() => confirmDelete(pr.id)}>
-                          Hapus
-                        </button>
-                        {/* Focused first: Enter on an armed row must not delete. */}
-                        <button type="button" className="btn btn--sm" onClick={() => cancelDelete(pr.id)} autoFocus>
-                          Batal
-                        </button>
-                      </div>
-                    )}
-                  </div>,
-                  editingProfile?.id === pr.id ? formFor(editingProfile) : null,
-                ];
+                    {editingProfile?.id === pr.id && formFor(editingProfile)}
+                  </Fragment>
+                );
               })}
             </div>
           )}

@@ -126,7 +126,6 @@ ul, ol {
 :focus-visible {
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
-    border-radius: var(--radius-xs);
 }
 
 /* Scrollbars follow the surface ramp instead of the OS default. */

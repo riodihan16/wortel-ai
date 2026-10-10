@@ -449,7 +449,7 @@
 
 .section__title {
     margin: 0;
-    font-size: var(--text-md);
+    font-size: var(--text-lg);
     font-weight: 600;
     line-height: var(--leading-tight);
     color: var(--color-ink);

@@ -138,6 +138,9 @@ export function ChatPanel({
   const armed = deleting === conversationId ? deleting : null;
 
   const cur = conversations.find((c) => c.id === conversationId);
+  // A new conversation exists only locally until its first message is
+  // saved: nothing to rename or delete yet.
+  const saved = cur !== undefined;
   const curTitle = cur?.title || conversationId.slice(0, 8);
   const label = busyLabel(status);
   const last = messages.at(-1);
@@ -167,7 +170,7 @@ export function ChatPanel({
           }}
           title="Ubah judul"
           aria-label="Ubah judul"
-          disabled={busy || !conversationId}
+          disabled={busy || !saved}
         >
           <IconPencil size={15} />
         </button>
@@ -182,7 +185,7 @@ export function ChatPanel({
           title="Hapus percakapan"
           aria-label="Hapus percakapan"
           aria-expanded={armed !== null}
-          disabled={busy || !conversationId}
+          disabled={busy || !saved}
         >
           <IconTrash size={15} />
         </button>
