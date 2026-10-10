@@ -13,7 +13,9 @@ var (
 // typing in. An unknown window counts as not foreground, so the shortcut
 // brings it forward rather than collapsing it.
 func IsForeground() bool {
+	mu.Lock() // mainWindow's cache is shared with Apply and the drag guard
 	h, err := mainWindow()
+	mu.Unlock()
 	if err != nil {
 		return false
 	}
@@ -26,7 +28,9 @@ func IsForeground() bool {
 // was in. The process that receives WM_HOTKEY may take the foreground, so
 // this succeeds from the shortcut path (ADR-051).
 func Activate() error {
+	mu.Lock()
 	h, err := mainWindow()
+	mu.Unlock()
 	if err != nil {
 		return err
 	}

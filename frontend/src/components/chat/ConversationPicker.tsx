@@ -103,8 +103,6 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
         <IconChevronDown size={14} />
       </button>
       {open && (
-        // tabIndex -1: a press on the menu's padding or scrollbar focuses the
-        // menu itself instead of <body>, so the blur rule above keeps it open.
         // The search box and empty note sit outside role="menu", which may
         // only own menu items; arrows from the box are forwarded to the list.
         // tabIndex -1: a press on the padding or the empty note focuses this
@@ -120,7 +118,9 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "ArrowDown" || e.key === "ArrowUp") moveMenuFocus(e, menuRef.current);
+                // Down enters the list; Up has nowhere to go above the box.
+                if (e.key === "ArrowDown") moveMenuFocus(e, menuRef.current);
+                if (e.key === "ArrowUp") e.preventDefault();
                 // Enter opens the first match only once the user has typed.
                 if (e.key === "Enter" && needle && shown.length > 0) {
                   e.preventDefault();
