@@ -39,6 +39,7 @@ async function switchTo(mode: Mode, setMode: (m: Mode) => void): Promise<void> {
 
 function App() {
     const [mode, setMode] = useState<Mode>('pet');
+    const [focusSignal, setFocusSignal] = useState(0);
     const modeRef = useRef<Mode>(mode);
     modeRef.current = mode;
     const chat = useChat();
@@ -53,7 +54,7 @@ function App() {
             void switchTo('settings', setMode);
         });
         EventsOn('app:toggle', () => {
-            void switchTo('chat', setMode);
+            void switchTo('chat', setMode).then(() => setFocusSignal((n) => n + 1));
         });
         // Global shortcut while the panel is open: chat goes back to the pet;
         // Settings goes to chat, like Kembali (ADR-050).
@@ -201,7 +202,7 @@ function App() {
                 onHide={() => HideWindow()}
                 onQuit={Quit}
             />
-            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={chat.send} onCancel={chat.cancel} onRetry={chat.retry} onDismissError={chat.clearError} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} onOpenSettings={() => setMode('settings')} hasProvider={provs.activeProvider !== null} />
+            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={chat.send} onCancel={chat.cancel} onRetry={chat.retry} onDismissError={chat.clearError} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} onOpenSettings={() => setMode('settings')} hasProvider={provs.activeProvider !== null} focusSignal={focusSignal} />
         </div>
     );
 }

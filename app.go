@@ -120,8 +120,12 @@ func (a *App) ToggleChat() {
 	case toggleToPet:
 		runtime.EventsEmit(a.ctx, "app:pet")
 	default:
-		if hidden {
-			runtime.WindowShow(a.ctx)
+		// Always show and take the foreground: the shortcut's promise is
+		// "press, then type", and a visible pet behind another app would
+		// otherwise open chat without keyboard focus (ADR-051).
+		runtime.WindowShow(a.ctx)
+		if err := window.Activate(); err != nil {
+			runtime.LogWarningf(a.ctx, "activate: %v", err)
 		}
 		runtime.EventsEmit(a.ctx, "app:toggle")
 	}

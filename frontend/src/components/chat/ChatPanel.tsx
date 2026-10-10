@@ -46,6 +46,8 @@ interface Props {
   modelPicker: ReactNode;
   onOpenSettings: () => void;
   hasProvider: boolean;
+  /** Bumped by the global shortcut: put the caret in the composer. */
+  focusSignal?: number;
 }
 
 // Footer status speaks only while work is in flight; outcomes (failed,
@@ -76,6 +78,7 @@ export function ChatPanel({
   modelPicker,
   onOpenSettings,
   hasProvider,
+  focusSignal = 0,
 }: Props): JSX.Element {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -130,9 +133,10 @@ export function ChatPanel({
     setNewBelow(false);
   };
 
+  // On mount, and again whenever the shortcut opens chat: "press, then type".
   useEffect(() => {
     composerRef.current?.focus();
-  }, []);
+  }, [focusSignal]);
 
   const submit = () => {
     if (!draft.trim() || busy || !hasProvider) return;

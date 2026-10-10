@@ -15,3 +15,6 @@ func Apply(m Mode) error {
 
 // KeepOnScreen is Windows-only; elsewhere drags are left to the OS.
 func KeepOnScreen() error { return errors.ErrUnsupported }
+
+// Activate is Windows-only; elsewhere WindowShow is all the app does.
+func Activate() error { return errors.ErrUnsupported }
