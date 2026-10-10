@@ -223,3 +223,11 @@
     color: var(--carrot-ink);
     white-space: nowrap;
 }
+
+/* The pet window is a fixed 180px, so its text does not follow the text-size
+   setting: scaled up it would only be cut off (hint and quit rail were
+   measured at 183/170px and 178/180px at "Besar"). The panel keeps scaling. */
+#pet {
+    --text-xs: 11px;
+    --text-sm: 12px;
+}

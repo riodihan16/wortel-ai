@@ -163,8 +163,11 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
 
   // Field edits clear their own error mark and any test result they outdate.
   const change = (patch: Partial<FormState>, field?: Field) => {
-    setForm({ ...form, ...patch });
-    if (field && invalid === field) setInvalid(null);
+    setForm((f) => ({ ...f, ...patch }));
+    if (field && invalid === field) {
+      setInvalid(null);
+      setFormError(null);
+    }
     if (patch.baseURL !== undefined || patch.apiKey !== undefined || patch.models !== undefined || patch.activeModel !== undefined) {
       onDirty?.();
     }
@@ -258,7 +261,10 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
               value={modelDraft}
               onChange={(e) => {
                 setModelDraft(e.target.value);
-                if (invalid === "model") setInvalid(null);
+                if (invalid === "model") {
+                  setInvalid(null);
+                  setFormError(null);
+                }
                 onDirty?.();
               }}
               onKeyDown={enterAdds}

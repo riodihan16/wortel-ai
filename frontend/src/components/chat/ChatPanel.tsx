@@ -89,6 +89,7 @@ export function ChatPanel({
   // user's own send always land at the bottom.
   const stick = useRef(true);
   const lastCount = useRef(messages.length);
+  const lastLen = useRef(messages.at(-1)?.content.length ?? 0);
   const [newBelow, setNewBelow] = useState(false);
 
   useEffect(() => {
@@ -98,13 +99,18 @@ export function ChatPanel({
   useEffect(() => {
     const el = listRef.current;
     const grew = messages.length > lastCount.current;
+    const len = messages.at(-1)?.content.length ?? 0;
+    // New text = a new message or the newest one getting longer; a retry
+    // dropping a failed reply or a status-only update is not news.
+    const news = grew || (messages.length === lastCount.current && len > lastLen.current);
     lastCount.current = messages.length;
+    lastLen.current = len;
     if (!el) return;
     if (stick.current || (grew && messages.at(-1)?.role === "user")) {
       el.scrollTop = el.scrollHeight;
       stick.current = true;
       setNewBelow(false);
-    } else {
+    } else if (news) {
       setNewBelow(true);
     }
   }, [messages]);

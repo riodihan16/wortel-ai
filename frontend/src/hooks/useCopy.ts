@@ -8,9 +8,12 @@ export type CopyState = "idle" | "copied" | "failed";
 export function useCopy(resetMs = 1500): { state: CopyState; copy: (text: string) => Promise<void> } {
   const [state, setState] = useState<CopyState>("idle");
   const timer = useRef<number | null>(null);
+  const alive = useRef(true);
 
   useEffect(() => {
+    alive.current = true;
     return () => {
+      alive.current = false;
       if (timer.current !== null) window.clearTimeout(timer.current);
     };
   }, []);
@@ -27,6 +30,8 @@ export function useCopy(resetMs = 1500): { state: CopyState; copy: (text: string
       } catch {
         next = "failed";
       }
+      // The clipboard write is async; the button may be gone by now.
+      if (!alive.current) return;
       setState(next);
       if (timer.current !== null) window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setState("idle"), resetMs);

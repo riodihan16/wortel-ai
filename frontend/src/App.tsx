@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
     EventsOff,
     EventsOn,
@@ -39,6 +39,8 @@ async function switchTo(mode: Mode, setMode: (m: Mode) => void): Promise<void> {
 
 function App() {
     const [mode, setMode] = useState<Mode>('pet');
+    const modeRef = useRef<Mode>(mode);
+    modeRef.current = mode;
     const chat = useChat();
     const provs = useProviders();
 
@@ -53,9 +55,10 @@ function App() {
         EventsOn('app:toggle', () => {
             void switchTo('chat', setMode);
         });
-        // Global shortcut while the panel is open: back to the pet (ADR-050).
+        // Global shortcut while the panel is open: chat goes back to the pet;
+        // Settings goes to chat, like Kembali (ADR-050).
         EventsOn('app:pet', () => {
-            void switchTo('pet', setMode);
+            void switchTo(modeRef.current === 'settings' ? 'chat' : 'pet', setMode);
         });
         return () => {
             EventsOff('app:show');

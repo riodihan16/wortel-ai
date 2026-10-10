@@ -47,3 +47,22 @@ describe("usePetSignal", () => {
     expect(r.result.current.petStatus).toBe("error");
   });
 });
+
+describe("usePetSignal error seen", () => {
+  it("does not count Settings as having seen the error", () => {
+    const r = run({ mode: "pet", status: "error" });
+    r.rerender({ mode: "settings", status: "error" });
+    r.rerender({ mode: "pet", status: "error" });
+    expect(r.result.current.petStatus).toBe("error");
+  });
+});
+
+describe("usePetSignal reply ready via Settings", () => {
+  it("keeps the bubble when only Settings was opened", () => {
+    const r = run({ mode: "pet", status: "streaming" });
+    r.rerender({ mode: "pet", status: "complete" });
+    r.rerender({ mode: "settings", status: "complete" });
+    r.rerender({ mode: "pet", status: "complete" });
+    expect(r.result.current.replyReady).toBe(true);
+  });
+});

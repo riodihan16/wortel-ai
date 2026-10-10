@@ -8,6 +8,7 @@ export type ViewMode = "pet" | "chat" | "settings";
 //   until chat is opened (the pet's "Sudah!" bubble).
 // - petStatus: the chat status, except a failure the user has already seen
 //   in chat no longer keeps the pet worried; the next failure does again.
+//   Only chat counts as seen: the reason is shown there, not in Settings.
 export function usePetSignal(mode: ViewMode, status: ChatStatus): { petStatus: ChatStatus; replyReady: boolean } {
   const [replyReady, setReplyReady] = useState(false);
   const [errorSeen, setErrorSeen] = useState(false);
@@ -20,12 +21,12 @@ export function usePetSignal(mode: ViewMode, status: ChatStatus): { petStatus: C
   }, [mode, status]);
 
   useEffect(() => {
-    if (mode !== "pet") setReplyReady(false);
+    if (mode === "chat") setReplyReady(false);
   }, [mode]);
 
   useEffect(() => {
     if (status !== "error") setErrorSeen(false);
-    else if (mode !== "pet") setErrorSeen(true);
+    else if (mode === "chat") setErrorSeen(true);
   }, [mode, status]);
 
   return {
