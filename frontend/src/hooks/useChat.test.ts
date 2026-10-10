@@ -1,0 +1,140 @@
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import type { ChatEvent } from "../types/chat";
+
+// Test doubles for the Go bindings. Keep the responses in refs so each test
+// can steer the backend without re-mocking the module.
+const backend = {
+  history: vi.fn(async () => [] as unknown[]),
+  list: vi.fn(async () => [] as unknown[]),
+  send: vi.fn(async () => "req-1"),
+  cancel: vi.fn(async () => {}),
+  rename: vi.fn(async () => {}),
+  remove: vi.fn(async () => {}),
+};
+
+vi.mock("../../wailsjs/go/main/App", () => ({
+  History: (...a: unknown[]) => backend.history(...(a as [])),
+  ListConversations: () => backend.list(),
+  SendMessage: (...a: unknown[]) => backend.send(...(a as [])),
+  CancelGeneration: (...a: unknown[]) => backend.cancel(...(a as [])),
+  RenameConversation: (...a: unknown[]) => backend.rename(...(a as [])),
+  DeleteConversation: (...a: unknown[]) => backend.remove(...(a as [])),
+}));
+
+import { runtimeMock } from "../test/wails";
+import { useChat } from "../hooks/useChat";
+
+function emit(ev: Partial<ChatEvent> & { type: ChatEvent["type"] }, conversationId: string) {
+  runtimeMock.emit("chat:event", {
+    requestId: ev.requestId ?? "req-1",
+    conversationId,
+    messageId: ev.messageId ?? "m1",
+    type: ev.type,
+    delta: ev.delta,
+    error: ev.error,
+  });
+}
+
+async function mountChat() {
+  const r = renderHook(() => useChat());
+  await waitFor(() => expect(r.result.current.conversationId).not.toBe(""));
+  return r;
+}
+
+beforeEach(() => {
+  runtimeMock.reset();
+  vi.clearAllMocks();
+  backend.history.mockResolvedValue([]);
+  backend.list.mockResolvedValue([]);
+  backend.send.mockResolvedValue("req-1");
+});
+
+describe("useChat streaming reducer", () => {
+  it("adopts the backend requestId from the started event", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+
+    act(() => emit({ type: "started", messageId: "m1" }, conv));
+    expect(result.current.status).toBe("streaming");
+
+    act(() => emit({ type: "delta", delta: "Ha", messageId: "m1" }, conv));
+    act(() => emit({ type: "delta", delta: "lo", messageId: "m1" }, conv));
+    expect(result.current.messages.at(-1)?.content).toBe("Halo");
+  });
+
+  it("ignores deltas whose requestId does not match the active request", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+
+    act(() => emit({ type: "started", requestId: "req-1", messageId: "m1" }, conv));
+    act(() => emit({ type: "delta", requestId: "OTHER", delta: "X", messageId: "m1" }, conv));
+    expect(result.current.messages.at(-1)?.content).toBe("");
+  });
+
+  it("ignores events for a different conversation", async () => {
+    const { result } = await mountChat();
+    act(() => emit({ type: "started", messageId: "m1" }, "some-other-conv"));
+    expect(result.current.status).toBe("idle");
+    expect(result.current.messages).toHaveLength(0);
+  });
+
+  it("marks the message complete and clears busy on completed", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+    act(() => emit({ type: "started", messageId: "m1" }, conv));
+    act(() => emit({ type: "delta", delta: "hi", messageId: "m1" }, conv));
+    act(() => emit({ type: "completed", messageId: "m1" }, conv));
+    expect(result.current.status).toBe("complete");
+    expect(result.current.messages.at(-1)?.status).toBe("complete");
+  });
+
+  it("keeps partial text and sets cancelled on a cancelled event", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+    act(() => emit({ type: "started", messageId: "m1" }, conv));
+    act(() => emit({ type: "delta", delta: "partial", messageId: "m1" }, conv));
+    act(() => emit({ type: "cancelled", messageId: "m1" }, conv));
+    expect(result.current.status).toBe("cancelled");
+    expect(result.current.messages.at(-1)?.content).toBe("partial");
+  });
+
+  it("surfaces the error message on a failed event", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+    act(() => emit({ type: "started", messageId: "m1" }, conv));
+    act(() =>
+      emit(
+        {
+          type: "failed",
+          messageId: "m1",
+          error: { code: "http_401", message: "API key ditolak", retryable: false },
+        },
+        conv
+      )
+    );
+    expect(result.current.status).toBe("error");
+    expect(result.current.error).toBe("API key ditolak");
+  });
+});
+
+describe("useChat send guard", () => {
+  it("rejects an empty or whitespace-only message", async () => {
+    const { result } = await mountChat();
+    await act(async () => {
+      await result.current.send("   ");
+    });
+    expect(backend.send).not.toHaveBeenCalled();
+  });
+
+  it("does not fire a second request while one is in flight", async () => {
+    const { result } = await mountChat();
+    await act(async () => {
+      await result.current.send("halo");
+    });
+    await act(async () => {
+      await result.current.send("lagi");
+    });
+    expect(backend.send).toHaveBeenCalledTimes(1);
+  });
+});

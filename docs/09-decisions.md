@@ -267,6 +267,16 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Frontend:** `useChat` kelola daftar + `conversationId` aktif, `ChatPanel` dropdown + baru/rename/hapus (konfirmasi), `SafeMarkdown` tanpa deps: paragraf/list/code/`code`/bold/italic/link, raw HTML tak render, link allowlist http/https saja.
 - **Verifikasi:** `go test ./...` ok, `tsc` bersih, `gofmt` bersih, `wails build` ok → `build/bin/companion.exe`. Tes `TestConversationCRUD` (rename/cascade/missing).
 - **Sisa M4:** smoke manual Windows (baru/buka/rename/hapus + restart persist + markdown render + hapus saat streaming ditolak).
+## ADR-035 — M6 hardening: regression suite frontend (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** Known issue lama: "UI frontend belum punya test runner permanen"; regresi UI hanya terjaga oleh probe browser sekali pakai. Logika paling rawan adalah reducer event streaming di hook (matching `conversationId`, adopsi `requestId` dari event `started`, guard kirim ganda) dan kebijakan link markdown (input tak tepercaya).
+- **Pilihan:** (a) probe browser sekali pakai (status quo), (b) `vitest`+`jsdom` dengan binding Wails di-mock, (c) tambah runner E2E (Playwright) atas binary Wails.
+- **Keputusan:** (b). Paling kecil yang menjangkau logika berisiko tanpa binary/WebView2. `frontend/vitest.config.ts` terpisah dari `vite.config.ts` supaya build app tak menarik plugin test. `src/test/wails.ts` mengganti `wailsjs/runtime` (bus event) dengan emitter in-memory; `wailsjs/go/main/App` di-`vi.mock` per file test. Assertion menargetkan invariant perilaku (0 elemen berbahaya, link jahat jadi teks), bukan snapshot.
+- **Bukti:** 12 tes lolos (`npm test`). Deteksi regresi diverifikasi dua arah: menghapus guard `requestId` di `useChat.ts` → 1 tes gagal; menetralkan guard link `SafeMarkdown` → 2 tes gagal; keduanya kembali hijau setelah restore. `tsc --noEmit` bersih; `npm run build` sukses; bundle produksi tidak memuat kode test.
+- **Konsekuensi:** `npm test` masuk gate. E2E atas binary Wails tetap manual.
+- **Sisa:** Enter vs Shift+Enter, busy state kontrol, dan render provider key belum otomatis.
+
 ## ADR-027 — Alias tampilan per model + Settings draggable (2026-10-10)
 
 - **Status:** Done, perlu smoke manual Windows.

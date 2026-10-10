@@ -76,6 +76,7 @@ Verifikasi:
 ```bash
 go test ./...        # unit test backend
 gofmt -l app.go main.go internal/
+cd frontend && npm test        # unit test frontend (vitest + jsdom)
 cd frontend && npm run build   # typecheck + bundle frontend
 ```
 

@@ -139,13 +139,18 @@ Jangan menjadikan test suite wajib bergantung ke API berbayar/internet. Smoke te
 
 ### Frontend test
 
-- Composer mengirim/menolak input kosong.
-- Enter vs Shift+Enter.
-- State Send/Stop.
-- Delta dengan request ID yang salah diabaikan.
-- Error notice dan retry state.
-- Provider key tidak muncul dalam state visible/persisted.
-- Markdown link scheme dibatasi.
+Runner: `vitest` + `jsdom` (`frontend/vitest.config.ts`). Jalankan `npm test` di `frontend/`.
+Binding Go dan event bus Wails diganti test double di `src/test/wails.ts`; tidak ada network
+atau backend Go yang dibutuhkan.
+
+- Composer mengirim/menolak input kosong. → `useChat.test.ts` (spasi saja tidak dikirim).
+- Enter vs Shift+Enter. → belum (butuh test komponen composer; ditunda).
+- State Send/Stop. → status `streaming`/`complete`/`cancelled`/`error` di `useChat.test.ts`.
+- Delta dengan request ID yang salah diabaikan. → `useChat.test.ts` (guard terbukti: menghapus guard membuat tes gagal).
+- Error notice dan retry state. → pesan error dari event `failed` muncul di state `useChat.test.ts`.
+- Provider key tidak muncul dalam state visible/persisted. → belum di runner; dibuktikan lewat pemeriksaan DB nyata + `ChatEvent` tanpa secret.
+- Markdown link scheme dibatasi. → `SafeMarkdown.test.tsx` (4 tes; `javascript:`/`data:` jadi teks, raw HTML inert).
+- Delta untuk conversation lain diabaikan. → `useChat.test.ts`.
 
 ### Manual test Windows
 
@@ -233,10 +238,11 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 ### Artifact rilis 0.1.0
 
 - **File:** `build/bin/companion.exe`
-- **Ukuran:** 15,682,048 byte (~15.0 MB)
-- **SHA-256:** `ff466fa92d0c8d98e7610381676a2aff348b11bd51b77b71ec5e9d87a277e0fb`
+- **Ukuran:** 15,686,144 byte (~15.0 MB)
+- **SHA-256:** `8a665dab5be232121cbe095335a8abeeba4b621464f9f1f2ed0b1ea20bbc6764`
 - **Perintah build:** `wails build -ldflags "-X main.Version=0.1.0"` dari clean checkout (setelah `rm -rf frontend/dist build/bin`).
-- **Verifikasi:** versi `0.1.0` tertanam di binary; aplikasi start dan tercatat `[WebView2] Environment created successfully`. Migrasi DB user nyata v2→v3 terverifikasi (kolom `models`/`active_model` bertambah, baris lama di-seed dari `model`).
+- **Verifikasi:** versi `0.1.0` tertanam di binary (mekanisme `-X main.Version` dibuktikan balik lewat probe `go run`); aplikasi start dan tercatat `[WebView2] Environment created successfully`. Migrasi DB user nyata v2→v3 dan v3→v4 terverifikasi (kolom `models`/`active_model`; migrasi v4 mengubah daftar model string menjadi entri `{id,alias}`).
+- **Catatan:** hash diperbarui pada M6 hardening (ADR-027 alias + ADR-035 regression suite frontend) setelah build ulang dari clean checkout.
 
 ### Known issues (0.1.0)
 
@@ -244,6 +250,6 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - Executable belum ditandatangani → peringatan SmartScreen (lihat Distribusi).
 - Beberapa item diuji manual oleh user pada release build dan lulus: drag karakter, hide/show tray (ikon), hotkey global `Ctrl+Shift+W`, perilaku display-change, dan streaming ke endpoint OpenAI-compatible sungguhan.
 - Race detector tidak dapat dijalankan di mesin build (tanpa gcc/CGO). Kebersihan konkurensi dibuktikan lewat tes logika + mutex eksplisit.
-- UI frontend belum punya test runner permanen (probe browser sekali pakai); regresi UI tidak terjaga otomatis.
+- UI frontend kini punya runner permanen: `vitest`+`jsdom`, 12 tes (`useChat` reducer/guard, `SafeMarkdown` allowlist link). Sisa yang belum ditutup otomatis: composer Enter vs Shift+Enter, busy state kontrol, dan render provider key; masih mengandalkan probe/manual.
 
 
