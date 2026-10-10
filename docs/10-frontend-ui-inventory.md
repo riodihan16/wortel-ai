@@ -50,7 +50,7 @@ karakter (docs 06 §2, ditunda), state `thinking`/`speaking` visual pada karakte
 | Bubble user | `.msg-user` | ✔ | Accent fill. |
 | Bubble assistant | `.msg-assistant` | ✔ | `--surface-2` fill. |
 | Status pesan | `.msg-status` | ✔ | Teks kecil di bawah bubble. |
-| Error banner | `#chat-error` | ✔ | Punya tombol retry. |
+| Error banner | `#chat-error` | ✔ | Hanya untuk error yang bukan milik balasan; bisa ditutup. Balasan gagal memakai kartu inline + `Coba lagi` (ADR-049). |
 | Composer | `#chat-composer` + `textarea` | ✔ | Autosize belum ada (fixed `rows={2}`). |
 | Tombol kirim/stop | `#btn-send`, `#btn-stop` | ✔ | Toggle by `busy`. |
 | Footer model + status | `#chat-footer`, `#chat-footer-model`, `#chat-state` | ✔ | `#chat-footer-model` **tanpa style** (0 rule). |

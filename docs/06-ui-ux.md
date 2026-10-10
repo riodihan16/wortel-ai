@@ -12,11 +12,15 @@ Karakter 2D kecil dengan tampilan modern, hangat, dan tidak terlalu ramai. UI di
 
 Elemen:
 - Karakter 2D.
-- Indikator status pip 14 px tepat di samping sisi kanan badan wortel (~6 px),
-  ikut animasi melayang karakter, selalu tampak (ADR-044). Bentuk membedakan state, jadi warna bukan satu-satunya pembawa
-  makna (WCAG 1.4.1): cincin kosong = `idle`, cakram terisi berdenyut =
-  `thinking`, cakram + ikon seru = `error`. Teks status tetap tersedia bagi
-  screen reader lewat `.sr-only`.
+- Status dibawa oleh wortel itu sendiri, tanpa pip terpisah (ADR-049,
+  menggantikan pip ADR-044). Bentuk membedakan state, jadi warna bukan
+  satu-satunya pembawa makna (WCAG 1.4.1): `idle` = senyum; `thinking` = mata
+  melirik ke atas + gelembung pikiran "…"; `error` = alis cemas, mulut
+  cemberut, daun layu, dan badge "!". Teks status tetap tersedia bagi screen
+  reader lewat `.sr-only`.
+- Warna karakter tetap (`--carrot-*`) dan tidak ikut tema Gelap/Terang: pet
+  duduk di atas wallpaper, bukan di atas kertas aplikasi. Outline cokelat gelap
+  menjaga siluet terbaca di wallpaper terang maupun gelap.
 - Tooltip atau hint singkat ketika hover, bukan dialog mengganggu.
 - Context menu sederhana: Open chat, Hide, Settings, Exit (menu dapat ditunda sampai tray tersedia).
 
@@ -63,14 +67,23 @@ Kelompok:
 
 Provider form minimum:
 - Display name.
-- Base URL.
+- Base URL (dengan hint: endpoint kompatibel OpenAI, biasanya berakhiran `/v1`).
 - Daftar Model ID: tambah/hapus model; radio memilih model aktif.
-- API key input dengan reveal/hide.
-- Save.
-- Test connection.
-- Status aktif.
+- API key input dengan reveal/hide, plus keterangan bahwa key disimpan di
+  Windows Credential Manager dan tidak ditampilkan lagi.
+- `Tes koneksi` (sebelum) `Simpan`.
+- Status aktif (badge `Aktif` mengikuti `ActiveProvider()` dari backend).
 
-Header menampilkan judul aplikasi dan tombol kontrol (Settings, Pet, Hide, Quit). Di bawah kotak pesan, satu baris footer menampilkan tombol pemilih model (label `Model: <aktif>`) di kiri dan indikator `status: <state>` di kanan, sehingga model bisa diganti tanpa membuka Settings (ADR-029, ADR-034).
+Implementasi (ADR-049): form provider baru tersembunyi di balik
+`+ Tambah provider` begitu ada satu provider; pada run pertama form langsung
+terbuka. Form provider baru menawarkan preset (OpenAI, OpenRouter, Groq,
+LM Studio, Ollama) yang hanya mengisi nama dan Base URL; nama model tetap
+contoh di placeholder. `Ubah` membuka form tepat di bawah kartunya dan memfokus
+`Nama`. `Hapus` provider meminta konfirmasi inline (pola ADR-048) dan tidak
+ditawarkan untuk provider aktif, karena backend menolaknya. Simpan pertama
+menampilkan "tersimpan dan aktif" dengan tombol `Mulai chat`.
+
+Header menampilkan judul aplikasi dan tombol kontrol (Settings, Kecilkan jadi wortel, Hide, Quit); versi aplikasi ada di Settings › Tentang. Di bawah kotak pesan, satu baris footer menampilkan tombol pemilih model (nama aksesibel `Model <aktif>, provider <nama>`) di kiri, dan di kanan status hanya selama ada pekerjaan (`Mengirim…`, `Wortel mengetik…`), sehingga model bisa diganti tanpa membuka Settings (ADR-029, ADR-034, ADR-049).
 
 Jangan menampilkan API key lama penuh setelah settings dibuka. Tampilkan “credential tersimpan” dan sediakan aksi replace/remove.
 
@@ -78,21 +91,23 @@ Jangan menampilkan API key lama penuh setelah settings dibuka. Tampilkan “cred
 
 | State | Trigger | Visual yang disarankan |
 |---|---|---|
-| `idle` | Tidak ada interaksi/request | Gerakan kecil berkala atau pose statis; pip cincin kosong. |
+| `idle` | Tidak ada interaksi/request | Pose statis, senyum; berkedip ~120 ms tiap 6 detik (hanya di pet). |
 | `hover` | Pointer berada di atas karakter | Reaksi singkat, bukan animasi panjang. |
-| `thinking` | Request diterima dan menunggu token | Pose/indikator ringan; mulai hanya saat request; pip cakram aksen berdenyut. |
+| `thinking` | Request diterima dan menunggu token | Lompatan kecil saat mulai, mata ke atas, gelembung "…" yang titiknya berdenyut bergantian. |
 | `speaking` | Delta teks masuk | Animasi sangat sederhana atau indikator pulse terbatas. |
-| `error` | Request gagal | Ekspresi/indikator error; jangan hanya mengandalkan warna — pip error memakai cakram + ikon seru. |
+| `error` | Request gagal | Gelengan singkat, alis cemas, mulut cemberut, daun layu, badge "!"; bukan warna saja. |
 | `offline` | Provider belum dikonfigurasi atau tes koneksi gagal | Hint saat dibuka, bukan popup berulang. |
 
 Jangan menjanjikan bahwa state karakter mencerminkan “emosi AI” secara nyata. Ini hanya status UI.
 
-Pemetaan pip di kode: `PetSurface.petStatus()` memetakan `sending`/`streaming` →
-`thinking`, `error` → `error`, selain itu → `idle`. `speaking` belum dibedakan
-dari `thinking` karena delta token dan fase tunggu memakai status chat yang sama.
-Saat `prefers-reduced-motion: reduce`, animasi denyut berhenti di frame akhirnya
-(`animation-iteration-count: 1` di `base.css`), sehingga cakram tetap terlihat
-tanpa gerak.
+Pemetaan di kode: `moodFor()` di `PetSurface` memetakan `sending`/`streaming` →
+`thinking`, `error` → `error`, selain itu → `idle`; komponen `Carrot` menggambar
+wajah per mood dan dipakai juga di empty state chat serta sebagai avatar setiap
+balasan (wajahnya mengikuti status balasan itu). `speaking` belum dibedakan dari
+`thinking` karena delta token dan fase tunggu memakai status chat yang sama.
+Saat `prefers-reduced-motion: reduce`, lompatan, gelengan, pop, dan kedip
+berhenti (`base.css`); denyut titik "…" tetap jalan karena hanya opacity dan
+satu-satunya tanda bahwa balasan masih datang.
 
 ## 4. Ukuran dan jendela
 
@@ -112,8 +127,8 @@ Mendukung multi-monitor dan DPI scaling perlu dites. Jangan mengasumsikan koordi
 - Semua tombol memiliki label/tooltip atau accessible name.
 - Loading indicator tidak boleh menutupi teks yang sudah diterima.
 - Saat error, pertahankan teks pengguna dan teks parsial agar tidak hilang.
-- Tombol destructive seperti Delete conversation diberi konfirmasi inline
-  bertema (ADR-048). Jangan pakai `window.confirm`/`alert`/`prompt` maupun
+- Tombol destructive seperti Delete conversation dan Hapus provider diberi
+  konfirmasi inline bertema (ADR-048, primitive `.confirm-row`). Jangan pakai `window.confirm`/`alert`/`prompt` maupun
   `<select>` native: WebView2 menggambar keduanya dengan chrome sistem di luar
   tema.
 
@@ -141,16 +156,20 @@ Mendukung multi-monitor dan DPI scaling perlu dites. Jangan mengasumsikan koordi
 
 Tampilkan sapaan pendek dan satu contoh prompt, tetapi jangan mengirimnya otomatis.
 
+Implementasi (ADR-049): wortel + "Mau tanya apa?" + satu contoh yang bila
+diklik mengisi composer (tidak terkirim sampai pengguna menekan Enter).
+
 ### Belum ada provider
 
 Tampilkan instruksi untuk menambahkan endpoint/model/API key. Jangan tampilkan chat seolah-olah sudah siap.
 
 Implementasi: `ChatPanel` bercabang pada prop `hasProvider` (dihitung dari
-`provs.activeProvider`). Tanpa provider aktif, empty state menampilkan heading
-“Belum ada provider”, langkah konkret, dan tombol `Buka Pengaturan`; contoh
-prompt tidak ditampilkan karena belum ada yang bisa menjawab. Contoh prompt
-hanya muncul saat provider sudah aktif, sehingga tidak menjanjikan hal yang
-belum bisa dilakukan.
+`provs.activeProvider`). Tanpa provider aktif, empty state menampilkan wortel,
+heading “Wortel belum tersambung”, satu kalimat langkah, dan tombol
+`Hubungkan provider`; composer dan tombol kirim dinonaktifkan dengan placeholder
+"Hubungkan provider dulu untuk mulai chat" (ADR-049). Contoh prompt hanya
+muncul saat provider sudah aktif, sehingga tidak menjanjikan hal yang belum
+bisa dilakukan.
 
 ### Loading
 
@@ -163,6 +182,15 @@ Sertakan:
 - Kategori atau HTTP status jika aman.
 - Langkah berikutnya yang spesifik.
 - Retry manual bila masuk akal.
+
+Implementasi (ADR-049): balasan gagal tampil sebagai kartu error di tempat
+balasan itu (alasan + `Coba lagi` hanya pada giliran terbaru). `Coba lagi`
+memanggil `RetryMessage`: balasan gagal dibuang dan pesan user yang sudah
+tersimpan dipakai ulang, jadi pertanyaan tidak muncul dua kali di layar maupun
+di riwayat. Banner `#chat-error` hanya untuk error yang bukan milik balasan
+(mis. gagal ganti judul) dan bisa ditutup. Balasan yang dihentikan diberi
+penanda "— Dihentikan" di dalam balasannya; tombol Stop adalah tombol tinta
+terisi 32 px dan Escape di composer juga menghentikan.
 
 ## 9. Design tokens final
 
@@ -185,8 +213,9 @@ biaya file woff2 variabel (latin + latin-ext) dinilai dapat diterima.
 
 **Permukaan (dark = default, `:root[data-theme="light"]` override):** ramp
 `--color-paper` (permukaan utama) · `--color-paper-2` (kartu/isi) · `--color-paper-3`
-(hover) · `--color-well` (input/kolom dalam). Bukan hitam murni — hue netral dingin
-(280) pada lightness 17%. Tema terang memakai ramp terang dengan hue sama.
+(hover) · `--color-well` (input/kolom dalam). Bukan hitam murni — netral hangat "Tanah"
+(hue 70, chroma rendah) pada lightness 17%; sebelum ADR-049 hue dingin 280.
+Tema terang memakai ramp terang dengan hue sama.
 
 **Tinta:** `--color-ink` (utama) · `--color-ink-2` (sekunder) · `--color-ink-3`
 (metadata). Kontras pada `--color-paper` berturut-turut **16.5:1, 8.0:1, 6.2:1**
@@ -201,18 +230,21 @@ untuk komponen UI, WCAG 1.4.11).
 
 **Accent:** oranye wortel tunggal (ADR-047) — `--color-accent`, dengan
 `--color-accent-soft` (latar pill/banner) dan `--color-accent-ink` (teks di atas
-accent). Dark memakai hue yang sama dengan `--color-brand` (`#f68c36`); light
+accent). Dark memakai hue yang sama dengan `--carrot-body` (`#f68c36`); light
 memakai wortel gelap (`#ac4403`) agar teks accent tetap ≥ 4.5:1.
 
 **Semantik:** `--color-danger`/`--color-danger-soft`, `--color-success`/`--color-success-soft`.
-**Brand:** `--color-brand` (oranye wortel) + `--color-brand-leaf` — hanya untuk
-karakter, tidak pernah untuk chrome UI.
+**Karakter:** `--carrot-body`, `--carrot-shade`, `--carrot-leaf`, `--carrot-ink`
+(outline), `--carrot-cheek`, `--carrot-shine`, `--carrot-alert` — tetap, tidak
+di-override tema, hanya untuk karakter dan `BrandMark` (ADR-049; menggantikan
+`--color-brand*`).
 
 **Shadow:** tiga tingkat (`--shadow-1/2/3`), blur tunggal per tingkat, tanpa
 tumpukan berlapis.
 
 **Motion:** `--dur-fast` 110 ms · `--dur` 170 ms · `--dur-slow` 260 ms, dengan
-`--ease-out` / `--ease-in-out`; `prefers-reduced-motion` mematikan semuanya.
+`--ease-out` / `--ease-in-out`; `prefers-reduced-motion` mematikan semuanya
+kecuali denyut opacity titik "…" (lihat §3).
 
 **Fokus:** satu perlakuan global `--focus-ring` (2 px accent, offset 2 px) pada
 `:focus-visible`.

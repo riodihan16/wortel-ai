@@ -50,7 +50,7 @@ Tidak bertanggung jawab untuk:
 Fungsi ini menjadi facade yang diikat ke Wails. Hindari menjadikan facade sebagai tempat semua logika.
 
 Tanggung jawab:
-- Menyediakan method seperti `ListProviders`, `SaveProvider`, `SetActiveProvider`, `ListConversations`, `SendMessage`, `CancelGeneration`, dan `GetSettings`.
+- Menyediakan method seperti `ListProviders`, `SaveProvider`, `SetActiveProvider`, `ListConversations`, `SendMessage`, `RetryMessage` (ulang giliran terakhir yang gagal tanpa menyimpan pesan user dua kali, ADR-049), `CancelGeneration`, dan `GetSettings`.
 - Memvalidasi masukan dan meneruskan ke service yang tepat.
 - Emit event UI melalui runtime Wails.
 - Menangani lifecycle request dan shutdown.
