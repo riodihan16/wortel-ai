@@ -40,11 +40,13 @@ const (
 )
 
 // toggleFor decides what the global shortcut does. It is labelled "buka
-// chat": a hidden window or the pet opens chat; an open panel (chat or
-// Settings) goes back to the pet. Hiding is left to the explicit Sembunyikan
-// actions, so the shortcut never makes the companion disappear (ADR-050).
-func toggleFor(hidden bool, mode string) toggleAction {
-	if hidden || mode != string(window.Panel) {
+// chat": a hidden window or the pet opens chat; an open panel the user is
+// working in (focused) goes back to the pet; an open panel behind another
+// app comes forward with the caret in the composer ("press, then type",
+// ADR-051). Hiding is left to the explicit Sembunyikan actions, so the
+// shortcut never makes the companion disappear (ADR-050).
+func toggleFor(hidden bool, mode string, focused bool) toggleAction {
+	if hidden || mode != string(window.Panel) || !focused {
 		return toggleShowChat
 	}
 	return toggleToPet
@@ -116,7 +118,7 @@ func (a *App) ToggleChat() {
 	hidden, mode := a.hidden, a.mode
 	a.hidden = false
 	a.mu.Unlock()
-	switch toggleFor(hidden, mode) {
+	switch toggleFor(hidden, mode, window.IsForeground()) {
 	case toggleToPet:
 		runtime.EventsEmit(a.ctx, "app:pet")
 	default:

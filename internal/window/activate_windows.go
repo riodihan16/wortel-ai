@@ -4,7 +4,22 @@ package window
 
 import "fmt"
 
-var pSetForegroundWindow = user32.NewProc("SetForegroundWindow")
+var (
+	pSetForegroundWindow = user32.NewProc("SetForegroundWindow")
+	pGetForegroundWindow = user32.NewProc("GetForegroundWindow")
+)
+
+// IsForeground reports whether the companion is the window the user is
+// typing in. An unknown window counts as not foreground, so the shortcut
+// brings it forward rather than collapsing it.
+func IsForeground() bool {
+	h, err := mainWindow()
+	if err != nil {
+		return false
+	}
+	fg, _, _ := pGetForegroundWindow.Call()
+	return fg == uintptr(h)
+}
 
 // Activate makes the companion the foreground window so keys typed right
 // after the global shortcut reach the composer instead of the app the user

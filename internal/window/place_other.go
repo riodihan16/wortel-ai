@@ -18,3 +18,6 @@ func KeepOnScreen() error { return errors.ErrUnsupported }
 
 // Activate is Windows-only; elsewhere WindowShow is all the app does.
 func Activate() error { return errors.ErrUnsupported }
+
+// IsForeground is Windows-only; elsewhere the panel is assumed focused.
+func IsForeground() bool { return true }
