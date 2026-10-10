@@ -8,3 +8,5 @@ logs/
 *.exe
 .env
 .env.local
+.impeccable
+
