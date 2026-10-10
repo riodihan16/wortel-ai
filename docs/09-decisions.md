@@ -131,6 +131,33 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keamanan:** combo rusak/ tak bisa di-parse jatuh kembali ke default (`ParseOrDefault`), jadi startup tidak pernah tanpa shortcut diam-diam.
 - **Bukti:** `combo_test.go` (round-trip, case-insensitive, tolak invalid/modifierless), `shortcut_test.go` (default, round-trip, tolak unparsable tanpa merusak state, fallback combo korup), `rebind_windows_test.go` (swap combo nyata: register → stop → register combo lain; Stop sebelum start aman). Render UI: state capture tampil dengan border accent.
 
+## ADR-024 — M6 baseline performa + budget RAM (2026-10-10)
+
+- **Status:** Done (terukur pada build release).
+- **Konteks:** docs 08 §4 minta pengukuran RAM/CPU pada build release dan budget RAM final dari baseline M0; konsumsi WebView2 tidak boleh disembunyikan.
+- **Metode:** `scripts/perf.ps1` — jalankan `build/bin/companion.exe`, tunggu window, scope proses ke pohon anak companion (companion.exe + `msedgewebview2.exe` turunannya), sampel `TotalProcessorTime` selama 30 detik idle setelah 6 detik settle.
+- **Hasil (Windows 11 26200, 12 core, build re-sponsor 0.1.0, WebView2 Runtime terpasang):**
+  - Startup ke window tampil: **< 250 ms**.
+  - Idle CPU: **0.00%** (3 run: 0/0/0).
+  - RAM companion.exe: **~33 MB**; WebView2 (6 proses): **~308 MB**; total **~341 MB** (3 run: 340.6/340.9/343.7).
+- **Budget yang ditetapkan:** proses utama ≤ 60 MB; total termasuk WebView2 ≤ 450 MB; idle CPU < 1%; startup < 2 s. Semua target docs 08 terpenuhi dengan margin.
+- **Catatan:** angka WebView2 bervariasi dengan versi runtime sistem; anggap total sebagai angka gabungan, bukan janji per-build. Race detector tidak tersedia (tanpa gcc/CGO).
+
+## ADR-025 — M6 versi aplikasi + shutdown deterministik (2026-10-10)
+
+- **Status:** Done.
+- **Konteks 1 (versi):** checklist distribusi docs 08 minta "versi aplikasi ditampilkan"; sebelumnya tidak ada sumber versi di app maupun manifest.
+- **Konteks 2 (shutdown):** `CancelAll` hanya memicu `cancel()` tanpa menunggu goroutine generation selesai — berpotensi menulis DB saat proses teardown (race), dan map `requests` tumbuh tanpa bound (leak).
+- **Keputusan:** `var Version` di `main.go` distamp saat build (`wails build -ldflags "-X main.Version=0.1.0"`), binding `App.Version()`, ditampilkan kecil di header chat (`v0.1.0`, "dev" bila tak distamp). `wails.json` `info.productVersion` untuk metadata exe. Service menambah `sync.WaitGroup`; setiap goroutine generation `wg.Add/Done`; `CancelAll` menunggu `wg.Wait()` setelah cancel; `requests[requestID]` dihapus saat selesai.
+- **Bukti:** `TestCancelAllWaitsForGoroutines` (3 stream; `CancelAll` kembali hanya setelah 3 event terminal, `active`/`requests` kosong), `TestOpenRejectsEmptyPath`/`TestOpenFailsWhenDirUncreatable`/`TestUseAfterCloseDoesNotPanic` (DB failure = error, bukan panic). `0.1.0` terverifikasi tertanam di binary. `go test ./...`, `tsc`, `wails build` bersih.
+
+## ADR-026 — M6 redirect cross-host tidak membawa Authorization (2026-10-10)
+
+- **Status:** Done.
+- **Masalah:** client HTTP bawaan menyalin semua header (termasuk `Authorization: Bearer`) ke setiap hop redirect. Provider yang mengembalikan 3xx ke host lain → bearer token bocor ke host itu.
+- **Keputusan:** `ai.SafeClient()` memasang `CheckRedirect` yang menghapus header `Authorization` bila scheme/host redirect berbeda dari request awal; same-host (trailing slash, kanonikalisasi path) tetap membawa token. Dipakai untuk stream chat dan Test Connection.
+- **Bukti:** `TestSafeClientDropsAuthOnCrossHost` (redirect ke host lain → header kosong) dan `TestSafeClientKeepsAuthOnSameHost` (redirect same-host → token utuh).
+
 ## ADR-022 — M5 bundle portable + dokumentasi (2026-10-10)
 
 - **Status:** Done, installer penuh ditunda.
