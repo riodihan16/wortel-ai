@@ -267,6 +267,16 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Frontend:** `useChat` kelola daftar + `conversationId` aktif, `ChatPanel` dropdown + baru/rename/hapus (konfirmasi), `SafeMarkdown` tanpa deps: paragraf/list/code/`code`/bold/italic/link, raw HTML tak render, link allowlist http/https saja.
 - **Verifikasi:** `go test ./...` ok, `tsc` bersih, `gofmt` bersih, `wails build` ok → `build/bin/companion.exe`. Tes `TestConversationCRUD` (rename/cascade/missing).
 - **Sisa M4:** smoke manual Windows (baru/buka/rename/hapus + restart persist + markdown render + hapus saat streaming ditolak).
+## ADR-036 — M6 hardening: race detector aktif (MinGW-w64) (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** `go test -race` butuh CGO + compiler C; mesin build sebelumnya tanpa gcc, sehingga kebersihan konkurensi hanya dibuktikan manual. Service goroutine-heavy (streaming, cancel, `CancelAll`, tray, hotkey).
+- **Pilihan:** (a) biarkan `-race` tak dijalankan, (b) pasang MinGW-w64 permanen, (c) runner CI terpisah.
+- **Keputusan:** (b). `winget install BrechtSanders.WinLibs.POSIX.UCRT` (gcc 16.2.0, UCRT). PATH user menunjuk ke `…\WinGet\Packages\…\mingw64\bin`, dikelola winget (bisa uninstall/upgrade). Rilis **tetap** `CGO_ENABLED=0` — artefak tidak memakai CGO, jadi compiler hanya dibutuhkan untuk verifikasi dev.
+- **Temuan:** `-race` menemukan 2 data race, keduanya di **kode test** (bukan produksi): emitter `events = append(...)` di `TestSendAndCancel` dan `TestCancelAllStopsStreams` ditulis dari goroutine stream layanan lalu dibaca loop test tanpa sinkronisasi. Diperbaiki dengan `eventSink` ber-mutex (`emit`/`terminal`/`snapshot`).
+- **Bukti:** `CGO_ENABLED=1 go test -race -count=1 ./...` hijau (8 paket). Detektor dibuktikan berfungsi: menghapus mutex di `eventSink.emit` → race terdeteksi (`DATA RACE`, rc=1), restore → hijau. `go vet` bersih, `gofmt -l` kosong.
+- **Konsekuensi:** `-race` masuk gate backend. Toolchain mesin berubah (gcc permanen); didokumentasikan di README + known issues.
+
 ## ADR-035 — M6 hardening: regression suite frontend (2026-10-10)
 
 - **Status:** Done.

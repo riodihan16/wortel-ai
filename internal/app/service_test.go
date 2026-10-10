@@ -9,11 +9,41 @@ import (
 	"companion/internal/ai"
 )
 
+// eventSink collects emitted ChatEvents. The service calls the emitter from
+// its streaming goroutine, so every append and read must hold the mutex;
+// without this the race detector flags test code, not production code.
+type eventSink struct {
+	mu     sync.Mutex
+	events []ai.ChatEvent
+}
+
+func (s *eventSink) emit(_ string, e ai.ChatEvent) {
+	s.mu.Lock()
+	s.events = append(s.events, e)
+	s.mu.Unlock()
+}
+
+func (s *eventSink) terminal() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n := 0
+	for _, e := range s.events {
+		if e.Type == "cancelled" || e.Type == "completed" {
+			n++
+		}
+	}
+	return n
+}
+
+func (s *eventSink) snapshot() []ai.ChatEvent {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]ai.ChatEvent(nil), s.events...)
+}
+
 func TestSendAndCancel(t *testing.T) {
-	var events []ai.ChatEvent
-	svc := NewService(&ai.MockProvider{Delay: 20 * time.Millisecond}, func(_ string, e ai.ChatEvent) {
-		events = append(events, e)
-	})
+	var sink eventSink
+	svc := NewService(&ai.MockProvider{Delay: 20 * time.Millisecond}, sink.emit)
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
 	reqID, err := svc.SendMessage(ctx, "c1", "halo")
@@ -27,18 +57,12 @@ func TestSendAndCancel(t *testing.T) {
 	svc.CancelGeneration("c1")
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		done := false
-		for _, e := range events {
-			if e.Type == "cancelled" || e.Type == "completed" {
-				done = true
-			}
-		}
-		if done {
+		if sink.terminal() > 0 {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatalf("no terminal event: %+v", events)
+	t.Fatalf("no terminal event: %+v", sink.snapshot())
 }
 
 func TestEmptyRejected(t *testing.T) {
@@ -49,10 +73,8 @@ func TestEmptyRejected(t *testing.T) {
 }
 
 func TestCancelAllStopsStreams(t *testing.T) {
-	var events []ai.ChatEvent
-	svc := NewService(&ai.MockProvider{Delay: 50 * time.Millisecond}, func(_ string, e ai.ChatEvent) {
-		events = append(events, e)
-	})
+	var sink eventSink
+	svc := NewService(&ai.MockProvider{Delay: 50 * time.Millisecond}, sink.emit)
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
 	for _, c := range []string{"c1", "c2"} {
@@ -63,18 +85,12 @@ func TestCancelAllStopsStreams(t *testing.T) {
 	svc.CancelAll()
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		n := 0
-		for _, e := range events {
-			if e.Type == "cancelled" || e.Type == "completed" {
-				n++
-			}
-		}
-		if n >= 2 {
+		if sink.terminal() >= 2 {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatalf("expected 2 terminal events: %+v", events)
+	t.Fatalf("expected 2 terminal events: %+v", sink.snapshot())
 }
 
 // TestCancelAllWaitsForGoroutines proves CancelAll blocks until every

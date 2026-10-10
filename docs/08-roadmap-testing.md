@@ -124,6 +124,9 @@ Definition of done:
 - Credential reference lifecycle (mock credential store untuk test).
 - Cancellation dan request ID mapping.
 
+Gate backend: `gofmt -l .`, `go vet ./...`, `go test ./...`, dan `CGO_ENABLED=1 go test -race ./...`
+(MinGW-w64 terpasang; lihat Known issues untuk asal gcc).
+
 ### Integration test
 
 Gunakan HTTP test server lokal atau mock provider untuk:
@@ -249,7 +252,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - **Bug redirect diperbaiki sebelum rilis:** sebelumnya redirect cross-host membawa `Authorization`; kini dihapus (ADR-026).
 - Executable belum ditandatangani → peringatan SmartScreen (lihat Distribusi).
 - Beberapa item diuji manual oleh user pada release build dan lulus: drag karakter, hide/show tray (ikon), hotkey global `Ctrl+Shift+W`, perilaku display-change, dan streaming ke endpoint OpenAI-compatible sungguhan.
-- Race detector tidak dapat dijalankan di mesin build (tanpa gcc/CGO). Kebersihan konkurensi dibuktikan lewat tes logika + mutex eksplisit.
+- `go test -race ./...` hijau. Mesin build punya MinGW-w64 (WinLibs POSIX/UCRT, `gcc` di PATH user via `winget install BrechtSanders.WinLibs.POSIX.UCRT`). Jalankan race dengan `CGO_ENABLED=1 go test -race ./...`. Dua data race di **kode test** ditemukan dan diperbaiki: emitter tidak sinkron di `TestSendAndCancel` dan `TestCancelAllStopsStreams` kini lewat `eventSink` ber-mutex. Produksi tidak terpengaruh (`s.mu` sudah menjaga map; buffer streaming lokal per goroutine). Build rilis tetap `CGO_ENABLED=0` (artefak tidak memakai CGO).
 - UI frontend kini punya runner permanen: `vitest`+`jsdom`, 12 tes (`useChat` reducer/guard, `SafeMarkdown` allowlist link). Sisa yang belum ditutup otomatis: composer Enter vs Shift+Enter, busy state kontrol, dan render provider key; masih mengandalkan probe/manual.
 
 
