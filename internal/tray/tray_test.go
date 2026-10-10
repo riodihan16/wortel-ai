@@ -1,6 +1,15 @@
 package tray
 
-import "testing"
+import (
+	"testing"
+	"unsafe"
+)
+
+func TestNIDSize(t *testing.T) {
+	if got := unsafe.Sizeof(notifyIconData{}); got != wantNIDSize {
+		t.Fatalf("sizeof(notifyIconData)=%d want %d", got, wantNIDSize)
+	}
+}
 
 func TestActionForMenuID(t *testing.T) {
 	cases := map[uint32]Action{

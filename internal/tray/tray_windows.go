@@ -11,7 +11,7 @@ import (
 )
 
 func errNIDSize(n uintptr) error {
-	return fmt.Errorf("tray: NOTIFYICONDATA size %d, want 952", n)
+	return fmt.Errorf("tray: NOTIFYICONDATA size %d, want %d", n, wantNIDSize)
 }
 
 var (
@@ -81,8 +81,10 @@ type wndClassEx struct {
 	iconSm     windows.Handle
 }
 
-// NID size must match Win32 NOTIFYICONDATAW on 64-bit (952 bytes).
-// Union uTimeout/uVersion is ONE uint32, not two.
+// wantNIDSize is the measured NOTIFYICONDATAW size on 64-bit (976).
+// Field order follows MSDN; union uTimeout/uVersion is ONE uint32.
+// Pinned by TestNIDSize so layout drift fails fast.
+const wantNIDSize = 976
 
 type notifyIconData struct {
 	size            uint32
@@ -95,7 +97,7 @@ type notifyIconData struct {
 	state           uint32
 	stateMask       uint32
 	info            [256]uint16
-	verOrTimeout    uint32 // union uTimeout/uVersion: SATU field, bukan dua
+	verOrTimeout    uint32 // union uTimeout/uVersion: SATU field; padding follows
 	infoTitle       [64]uint16
 	infoFlags       uint32
 	guid            windows.GUID
@@ -230,7 +232,7 @@ func runLoop() {
 }
 
 func initTray() error {
-	if n := unsafe.Sizeof(notifyIconData{}); n != 952 {
+	if n := unsafe.Sizeof(notifyIconData{}); n != wantNIDSize {
 		return errNIDSize(n)
 	}
 	h, _, _ := pGetModuleHandle.Call(0)
