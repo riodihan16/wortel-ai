@@ -10,6 +10,7 @@ import type { ChatMessage } from "../../types/chat";
 import { Carrot, type CarrotMood } from "../ui/Carrot";
 import { IconAlert, IconCheck, IconCopy } from "../ui/Icon";
 import { useCopy } from "../../hooks/useCopy";
+import { markdownToText } from "../../lib/markdownToText";
 import { SafeMarkdown } from "./SafeMarkdown";
 
 interface Props {
@@ -27,8 +28,8 @@ export function MessageItem({ message: m, isLast, busy, onRetry }: Props): JSX.E
   const showBody = !(failed && !m.content);
   const mood: CarrotMood = failed ? "error" : m.status === "streaming" ? "thinking" : "idle";
   // Copying the answer is the most likely next step after a reply (brief
-  // §core loop 6). The markdown source is copied, so formatting survives a
-  // paste into chat apps.
+  // §core loop 6). Plain text, not markdown source: "**Kamis**" must not land
+  // literally in WhatsApp or email (ADR-051).
   const canCopy = m.role === "assistant" && !!m.content && (m.status === "complete" || m.status === "cancelled");
   const { state: copyState, copy } = useCopy();
   const copyLabel = copyState === "copied" ? "Tersalin" : copyState === "failed" ? "Gagal menyalin" : "Salin balasan";
@@ -57,9 +58,9 @@ export function MessageItem({ message: m, isLast, busy, onRetry }: Props): JSX.E
         )}
         {canCopy && (
           <div className="msg-actions">
-            <button type="button" className="btn btn--sm btn--ghost" onClick={() => copy(m.content)} aria-label={copyLabel} title={copyLabel}>
+            <button type="button" className="btn btn--sm btn--ghost" onClick={() => copy(markdownToText(m.content))} aria-label={copyLabel} title={copyLabel}>
               {copyState === "copied" ? <IconCheck size={13} /> : <IconCopy size={13} />}
-              {copyState === "copied" ? "Tersalin" : copyState === "failed" ? "Gagal" : "Salin"}
+              {copyState === "copied" ? "Tersalin" : copyState === "failed" ? "Gagal menyalin" : "Salin balasan"}
             </button>
           </div>
         )}
