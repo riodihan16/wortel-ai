@@ -3,7 +3,7 @@
 import {config} from '../models';
 import {app} from '../models';
 
-export function ActiveProvider():Promise<config.ProviderProfile|boolean>;
+export function ActiveProvider():Promise<config.ProviderProfile>;
 
 export function AutostartEnabled():Promise<boolean>;
 

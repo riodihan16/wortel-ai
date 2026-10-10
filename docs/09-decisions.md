@@ -138,6 +138,16 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** hapus `tailwindcss` + `@tailwindcss/vite`, ganti dengan reset CSS eksplisit (`box-sizing`, margin/padding nol, font inherit) di `style.css`. Styling tetap pakai token di `App.css`.
 - **Bukti:** CSS bundle 11.31 kB → 7.02 kB (gzip 2.97 → 1.76 kB). `tsc` dan `npm run build` bersih; UI terverifikasi render (pet mode tombol + header chat).
 
+## ADR-031 — `ActiveProvider` tak pernah muncul di header: bug binding Wails multi-return (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** Setelah ADR-030 (header overflow diperbaiki), pemilih model tetap tidak muncul di build nyata.
+- **Akar:** `App.ActiveProvider()` mengembalikan `(config.ProviderProfile, bool)`. Binder Wails (`internal/binding/boundMethod.go`, `Call`) untuk `OutputCount()==2` memperlakukan hasil kedua sebagai **slot error**: `returnValue = callResults[0]`, dan hanya mengisi `err` bila hasil kedua bertipe `error`. Hasil kedua `bool` dibuang. Jadi frontend menerima profil saja, bukan tuple `[profile, ok]`.
+- **Efek:** Hook menulis `active[1] ? active[0] : null`; `active[1]` dari struct = `undefined`, sehingga `activeProvider` **selalu null** dan `ModelPicker` tak pernah render. Settings tetap tampil karena memakai `ListProviders` (single return).
+- **Perbaikan:** `ActiveProvider()` mengembalikan `*config.ProviderProfile`; `nil` -> JSON `null` saat tak ada provider aktif. Hook memetakan nilai apa adanya (`active ?? null`). Binding Wails tetap terdeklarasi `Promise<config.ProviderProfile>`.
+- **Bukti:** probe hook nyata — `activeProvider.name = "Wortel AI"`, `models = [deepseek-v4-1-flash, glm-5-3, qwen3-8-flash]`; jalur `null` juga terpetakan `null`. `tsc`, `go test ./...`, clean release build, app start bersih.
+- **Aturan:** binding Wails **tidak** mendukung `(T, bool)` sebagai "value + ok". Gunakan satu nilai saja (`error` sebagai return terakhir bila perlu error), atau pointer untuk membedakan "tidak ada" dari nilai kosong.
+
 ## ADR-030 — Perbaikan hasil uji manual kedua: pet hint, header overflow, percakapan baru terkunci (2026-10-10)
 
 - **Status:** Done.

@@ -280,12 +280,21 @@ func (a *App) SetActiveModel(id, model string) error {
 }
 
 // ActiveProvider returns the active provider's safe profile (models list,
-// active model). Second return is false when no provider is active.
-func (a *App) ActiveProvider() (config.ProviderProfile, bool) {
+// active model), or null when no provider is active.
+//
+// Wails drops a second non-error return value (its binder treats output 2 as
+// the error slot), so a (config.ProviderProfile, bool) tuple reaches the
+// frontend as a bare struct and a zero profile cannot be told from a real
+// one. Use a pointer instead: nil marshals to JSON null.
+func (a *App) ActiveProvider() *config.ProviderProfile {
 	if a.provs == nil {
-		return config.ProviderProfile{}, false
+		return nil
 	}
-	return a.provs.ActiveProfile(a.ctx)
+	profile, ok := a.provs.ActiveProfile(a.ctx)
+	if !ok {
+		return nil
+	}
+	return &profile
 }
 
 // TestProvider checks URL/model/credential with a minimal request.

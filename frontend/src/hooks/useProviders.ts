@@ -27,8 +27,10 @@ export function useProviders() {
     try {
       const list = (await ListProviders()) as ProviderProfile[];
       setProviders(list ?? []);
-      const active = (await ActiveProvider()) as unknown as [ProviderProfile, boolean];
-      setActiveProvider(active && active[1] ? active[0] : null);
+      // ActiveProvider returns the profile directly, or null when none is
+      // active (Wails drops a second non-error return value).
+      const active = (await ActiveProvider()) as ProviderProfile | null;
+      setActiveProvider(active ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal memuat provider.");
     } finally {
