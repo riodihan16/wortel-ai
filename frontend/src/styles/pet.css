@@ -6,7 +6,8 @@
  */
 
 /* Transparent by contract: the desktop shows through everywhere except the
-   character itself. No background, no border, no shadow on this box. */
+   character itself. No background, no border, no shadow on this box. The
+   empty area is inert, so it keeps the default cursor rather than `move`. */
 #pet {
     position: relative;
     width: 100%;
@@ -17,7 +18,6 @@
     justify-content: center;
     gap: var(--space-1);
     background: transparent;
-    cursor: move;
 }
 
 /* ---- character ---- */
@@ -33,6 +33,15 @@
     cursor: pointer;
     transition: transform var(--dur) var(--ease-out),
     filter var(--dur) var(--ease-out);
+    /* Hit area = the painted carrot, not this 116px box: the box and the svg
+       are skipped by hit testing and only the shapes below accept the
+       pointer. Events from a shape still bubble to this button, so the
+       usePetDrag handlers, :hover and keyboard focus all keep working. */
+    pointer-events: none;
+}
+
+#pet .pet__btn :is(path, circle) {
+    pointer-events: visiblePainted;
 }
 
 #pet .pet__btn:hover:not(:disabled),
