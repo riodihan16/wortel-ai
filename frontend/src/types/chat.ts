@@ -23,4 +23,6 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   status: ChatStatus;
+  /** Why this reply failed, from the backend's failed event. */
+  errorText?: string;
 }

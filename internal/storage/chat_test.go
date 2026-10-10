@@ -323,3 +323,25 @@ func TestPrepareRetryRefusesWhenTextDiffers(t *testing.T) {
 		t.Fatalf("rows touched: %d", len(rows))
 	}
 }
+
+func TestPrepareRetryTreatsStaleStreamingReplyAsFailed(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "retry3.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer db.Close()
+	_ = db.EnsureConversation("c1", "x")
+	// A crash mid-stream leaves the reply "streaming"; no generation is live
+	// when a retry runs (the service allows one per conversation).
+	_ = db.AppendMessage(MessageRow{ID: "u1", ConversationID: "c1", Role: "user", Content: "halo", Status: "complete"})
+	_ = db.AppendMessage(MessageRow{ID: "a1", ConversationID: "c1", Role: "assistant", Content: "sete", Status: "streaming"})
+
+	reused, err := db.PrepareRetry("c1", "halo")
+	if err != nil || !reused {
+		t.Fatalf("PrepareRetry = %v, %v; want true, nil", reused, err)
+	}
+	rows, _ := db.RecentRows("c1", 10)
+	if len(rows) != 1 || rows[0].ID != "u1" {
+		t.Fatalf("rows after retry = %+v; want only u1", rows)
+	}
+}

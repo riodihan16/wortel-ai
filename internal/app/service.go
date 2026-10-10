@@ -117,21 +117,26 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 			s.mu.Unlock()
 			s.wg.Done()
 		}()
+		db := s.db()
+		// Reconcile a retry before anything can fail, so history and the UI
+		// (which drops the failed bubble once the retry is accepted) agree.
+		// On a DB error, assume the user row is there: appending it again
+		// would duplicate the question, which is the bug retry exists to avoid.
+		reused := false
+		if retry && db != nil {
+			ok, err := db.PrepareRetry(conversationID, text)
+			reused = ok || err != nil
+		}
 		live, model, resolveErr := s.resolve(genCtx)
 		if resolveErr != nil {
 			s.emit("chat:event", ai.ChatEvent{Type: "failed", RequestID: requestID, ConversationID: conversationID, MessageID: messageID, Error: &ai.PublicError{Code: "no_provider", Message: resolveErr.Error()}})
 			return
 		}
-		db := s.db()
 		userMsgID := uuid.NewString()
 		if db != nil {
 			// Persistence is best-effort by design: a DB failure must not abort
 			// an in-flight stream. The error surfaces later when the history
 			// list is empty after restart; see ADR-037.
-			reused := false
-			if retry {
-				reused, _ = db.PrepareRetry(conversationID, text)
-			}
 			_ = db.EnsureConversation(conversationID, storage.TitleFor(text))
 			if !reused {
 				_ = db.AppendMessage(storage.MessageRow{ID: userMsgID, ConversationID: conversationID, Role: "user", Content: text, Status: "complete", Model: model})

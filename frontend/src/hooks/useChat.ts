@@ -39,6 +39,10 @@ export function useChat() {
   convRef.current = conversationId;
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
+  // Requests that already ended. A fast failure can deliver started+failed
+  // over the event bus before the binding call returns its requestId; without
+  // this, begin() would re-arm an ended request and lock send() for good.
+  const settled = useRef(new Set<string>());
 
   const refreshList = useCallback(async (): Promise<ConversationItem[]> => {
     try {
@@ -103,6 +107,9 @@ export function useChat() {
   useEffect(() => {
     const handler = (ev: ChatEvent) => {
       if (ev.conversationId !== convRef.current) return;
+      if (ev.type === "completed" || ev.type === "failed" || ev.type === "cancelled") {
+        settled.current.add(ev.requestId);
+      }
       // Started dikirim backend sebelum requestId tiba di frontend, adopsi di sini.
       if (ev.type === "started" && activeRequest.current === null) {
         activeRequest.current = ev.requestId;
@@ -143,10 +150,15 @@ export function useChat() {
           refreshList();
           break;
         case "failed":
+          // The reason belongs to this reply (MessageItem shows it inline);
+          // `error` stays for failures that belong to no reply.
           setStatus("error");
-          setError(ev.error?.message ?? "Request gagal.");
           setMessages((prev) =>
-            prev.map((m) => (m.id === ev.messageId ? { ...m, status: "error" } : m))
+            prev.map((m) =>
+              m.id === ev.messageId
+                ? { ...m, status: "error", errorText: ev.error?.message ?? "Request gagal." }
+                : m
+            )
           );
           activeRequest.current = null;
           sendingRef.current = false;
@@ -162,10 +174,16 @@ export function useChat() {
   // begin hands one turn to the backend. The requestId arrives after the
   // backend's "started" event may already have been adopted (see handler).
   const begin = useCallback(
-    async (conv: string, text: string, call: (c: string, t: string) => Promise<string>) => {
+    async (
+      conv: string,
+      text: string,
+      call: (c: string, t: string) => Promise<string>,
+      onAccepted?: () => void
+    ) => {
       try {
         const requestId = await call(conv, text);
-        activeRequest.current = requestId;
+        if (!settled.current.has(requestId)) activeRequest.current = requestId;
+        onAccepted?.();
       } catch (e) {
         setStatus("error");
         setError(e instanceof Error ? e.message : "Gagal mengirim.");
@@ -213,10 +231,13 @@ export function useChat() {
     sendingRef.current = true;
     setError(null);
     setStatus("sending");
-    setMessages((prev) =>
-      prev.filter((m, i) => !(i > lastUser && m.role === "assistant" && m.status === "error"))
+    // Drop the failed bubble only once the backend accepted the retry; a
+    // rejected retry leaves it in place, matching what history still holds.
+    await begin(conv, text, RetryMessage, () =>
+      setMessages((prev) =>
+        prev.filter((m, i) => !(i > lastUser && m.role === "assistant" && m.status === "error"))
+      )
     );
-    await begin(conv, text, RetryMessage);
   }, [begin]);
 
   const clearError = useCallback(() => setError(null), []);
@@ -236,6 +257,14 @@ export function useChat() {
       sendingRef.current = false;
       activeRequest.current = null;
       setStatus("idle");
+      // The backend's own "cancelled" event arrives after the guard is
+      // released and is dropped by the requestId filter, so mark the stopped
+      // reply here; otherwise it would keep its typing dots forever.
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.role === "assistant" && m.status === "streaming" ? { ...m, status: "cancelled" } : m
+        )
+      );
     }
   }, []);
 

@@ -117,7 +117,10 @@ describe("useChat streaming reducer", () => {
       )
     );
     expect(result.current.status).toBe("error");
-    expect(result.current.error).toBe("API key ditolak");
+    // The reason belongs to the failed reply; the global error stays free
+    // for errors that belong to no reply (rename, delete, send rejection).
+    expect(result.current.messages.at(-1)).toMatchObject({ status: "error", errorText: "API key ditolak" });
+    expect(result.current.error).toBeNull();
   });
 });
 
@@ -226,8 +229,47 @@ describe("useChat retry", () => {
   });
 
   it("clearError drops a banner error", async () => {
-    const { result } = await failOnce();
+    const { result } = await mountChat();
+    backend.send.mockRejectedValueOnce(new Error("IPC putus"));
+    await act(() => result.current.send("halo"));
+    expect(result.current.error).toBe("IPC putus");
     act(() => result.current.clearError());
     expect(result.current.error).toBeNull();
+  });
+
+  it("keeps the failed reply when the retry itself is rejected", async () => {
+    const { result } = await failOnce();
+    backend.retry.mockRejectedValueOnce(new Error("generation already active"));
+    await act(() => result.current.retry());
+    expect(result.current.messages.some((m) => m.status === "error")).toBe(true);
+  });
+});
+
+describe("useChat request lifecycle races", () => {
+  it("does not stay busy when the reply fails before SendMessage resolves", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+    // Fast failure (e.g. local server down): started + failed arrive over the
+    // event bus before the binding call returns its requestId.
+    backend.send.mockImplementationOnce(async () => {
+      emit({ type: "started", requestId: "req-9", messageId: "m9" }, conv);
+      emit({ type: "failed", requestId: "req-9", messageId: "m9", error: { code: "network", message: "x", retryable: true } }, conv);
+      return "req-9";
+    });
+    await act(() => result.current.send("halo"));
+    await act(() => result.current.send("lagi"));
+    expect(backend.send).toHaveBeenCalledTimes(2);
+  });
+
+  it("marks the stopped reply cancelled even though the late event is dropped", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+    await act(() => result.current.send("halo"));
+    act(() => emit({ type: "started", messageId: "m1" }, conv));
+    act(() => emit({ type: "delta", delta: "seten", messageId: "m1" }, conv));
+    await act(() => result.current.cancel());
+    act(() => emit({ type: "cancelled", messageId: "m1" }, conv));
+
+    expect(result.current.messages.at(-1)).toMatchObject({ id: "m1", status: "cancelled", content: "seten" });
   });
 });

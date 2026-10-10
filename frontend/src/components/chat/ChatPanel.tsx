@@ -1,7 +1,7 @@
 // ChatPanel owns #chat-main: conv-bar, list, error, composer, footer.
 // Invariants: draft clears only on success (submit); error never clears
-// draft. A failed reply shows its error inline (MessageItem); the banner is
-// only for errors that belong to no reply. Escape in the composer stops a
+// draft. A failed reply shows its own reason inline (MessageItem); the
+// banner carries errors that belong to no reply. Escape in the composer stops a
 // running reply. Rename and delete-confirm rows are mutually
 // exclusive, Escape cancels either; no window-level Escape. Delete asks inline,
 // never through window.confirm: WebView2 draws that natively, outside the theme.
@@ -144,7 +144,6 @@ export function ChatPanel({
   const curTitle = cur?.title || conversationId.slice(0, 8);
   const label = busyLabel(status);
   const last = messages.at(-1);
-  const replyFailed = last?.role === "assistant" && last.status === "error";
   // SendMessage itself threw: the question is on screen with no reply yet.
   const sendFailed = status === "error" && last?.role === "user";
 
@@ -273,13 +272,12 @@ export function ChatPanel({
             key={m.id}
             message={m}
             isLast={i === messages.length - 1}
-            error={error}
             busy={busy}
             onRetry={onRetry}
           />
         ))}
       </div>
-      {error && !replyFailed && (
+      {error && (
         <div id="chat-error" className="banner banner--error" role="alert">
           <IconAlert size={15} />
           <span className="banner__text">{error}</span>

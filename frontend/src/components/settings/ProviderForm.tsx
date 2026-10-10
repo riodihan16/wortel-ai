@@ -65,6 +65,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   const [formError, setFormError] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
   const [preset, setPreset] = useState<ProviderPreset | null>(null);
+  const [saving, setSaving] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const firstPresetRef = useRef<HTMLButtonElement>(null);
@@ -128,6 +129,9 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   };
 
   const submit = async () => {
+    // A second press while the first save is in flight would create a second
+    // profile (a new provider has no id yet).
+    if (saving) return;
     setFormError(null);
     if (!form.name.trim()) {
       setFormError("Nama wajib diisi.");
@@ -141,8 +145,13 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       setFormError("API key wajib diisi untuk provider baru.");
       return;
     }
-    const saved = await onSave(toSave(form, editing));
-    if (saved) onSaved(saved);
+    setSaving(true);
+    try {
+      const saved = await onSave(toSave(form, editing));
+      if (saved) onSaved(saved);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const enterAdds = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -269,7 +278,10 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
           {testing && <span className="spinner" aria-hidden="true" />}
           {testing ? "Mengetes…" : "Tes koneksi"}
         </button>
-        <button type="button" className="btn btn--primary" onClick={submit}>Simpan</button>
+        <button type="button" className="btn btn--primary" onClick={submit} disabled={saving}>
+          {saving && <span className="spinner" aria-hidden="true" />}
+          {saving ? "Menyimpan…" : "Simpan"}
+        </button>
         {onCancel && <button type="button" className="btn btn--ghost" onClick={onCancel}>Batal</button>}
       </div>
     </div>

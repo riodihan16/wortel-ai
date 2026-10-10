@@ -73,7 +73,12 @@ export function SettingsPanel(p: Props) {
   const editingProfile = p.providers.find((x) => x.id === editing) ?? null;
   const showNewForm = adding || firstRun;
   // Rows for a provider that no longer exists must not stay armed.
-  const armedDel = p.providers.some((x) => x.id === confirmDel) ? confirmDel : null;
+  // The active provider cannot be deleted (backend refuses), so a row armed
+  // before that provider became active disarms itself.
+  const armedDel =
+    confirmDel !== null && confirmDel !== p.activeId && p.providers.some((x) => x.id === confirmDel)
+      ? confirmDel
+      : null;
 
   const register = (map: Map<string, HTMLButtonElement>, id: string) => (el: HTMLButtonElement | null) => {
     if (el) map.set(id, el);
@@ -185,7 +190,7 @@ export function SettingsPanel(p: Props) {
                         </span>
                       </div>
                       <div className="prov-actions">
-                        {!active && <button type="button" className="btn btn--sm" onClick={() => p.onActivate(pr.id)} aria-label={`Aktifkan provider ${pr.name}`}>Aktifkan</button>}
+                        {!active && <button type="button" className="btn btn--sm" onClick={() => { setConfirmDel(null); p.onActivate(pr.id); }} aria-label={`Aktifkan provider ${pr.name}`}>Aktifkan</button>}
                         <button
                           type="button"
                           className="btn btn--sm"

@@ -66,15 +66,23 @@ func (d *DB) UpdateMessage(id, content, status string) error {
 
 // PrepareRetry readies a conversation to regenerate its newest turn without
 // storing the user's text twice. When the newest rows are that user message
-// followed by a failed reply, the failed reply is deleted and the user row is
-// kept for reuse (true). A user row with no reply yet is reused as is. Any
-// other shape (a completed reply, different text, nothing stored because the
-// first attempt never reached the DB) returns false and changes nothing, so
-// the caller stores the user message as a normal send would.
+// followed by an unfinished reply (failed, or still "streaming" after a crash;
+// the service never retries while a generation is live), the reply is deleted
+// and the user row is kept for reuse (true). A user row with no reply yet is
+// reused as is. Any other shape (a completed reply, different text, nothing
+// stored because the first attempt never reached the DB) returns false and
+// changes nothing, so the caller stores the user message as a normal send
+// would. Check and delete run in one transaction.
 func (d *DB) PrepareRetry(conversationID, text string) (bool, error) {
+	tx, err := d.inner.Begin()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback() //nolint:errcheck // no-op after Commit
+
 	// rowid breaks ties: a user row and its reply are written in the same
 	// second, so created_at alone does not order them.
-	rows, err := d.inner.Query(`SELECT id, role, content, status FROM messages
+	rows, err := tx.Query(`SELECT id, role, content, status FROM messages
 		WHERE conversation_id=? ORDER BY created_at DESC, rowid DESC LIMIT 2`, conversationID)
 	if err != nil {
 		return false, err
@@ -98,9 +106,14 @@ func (d *DB) PrepareRetry(conversationID, text string) (bool, error) {
 	switch {
 	case len(last) >= 1 && last[0].role == "user" && last[0].content == text:
 		return true, nil
-	case len(last) == 2 && last[0].role == "assistant" && last[0].status == "failed" &&
+	case len(last) == 2 && last[0].role == "assistant" &&
+		(last[0].status == "failed" || last[0].status == "streaming") &&
 		last[1].role == "user" && last[1].content == text:
-		if _, err := d.inner.Exec(`DELETE FROM messages WHERE id=?`, last[0].id); err != nil {
+		if _, err := tx.Exec(`DELETE FROM messages WHERE id=? AND conversation_id=?
+			AND role='assistant' AND status IN ('failed','streaming')`, last[0].id, conversationID); err != nil {
+			return false, err
+		}
+		if err := tx.Commit(); err != nil {
 			return false, err
 		}
 		return true, nil
