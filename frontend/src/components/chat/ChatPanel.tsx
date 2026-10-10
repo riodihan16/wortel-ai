@@ -94,7 +94,11 @@ export function ChatPanel({
           title="Pilih percakapan"
           disabled={busy}
         >
-          {conversations.length === 0 && (
+          {/* A freshly created conversation has an id that is not in the list
+              yet. Without a matching option the browser silently forces the
+              select to the first entry, and picking that entry then fires no
+              change event. Keep a placeholder option for the current id. */}
+          {!conversations.some((c) => c.id === conversationId) && (
             <option value={conversationId}>Percakapan baru</option>
           )}
           {conversations.map((c) => (

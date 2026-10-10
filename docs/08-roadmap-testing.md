@@ -202,6 +202,9 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - [x] Kontrol di dalam area drag tidak butuh klik ganda. → `.header-actions` dan kontrol pet menyetel `--wails-draggable: none`; terukur pada probe (ADR-029).
 - [x] Kontras teks/latar memenuhi WCAG AA di kedua tema. → terukur: gelap terendah 8.48, terang terendah 5.47 (ADR-029).
 - [x] Spasi antar baris respons wajar. → hapus `white-space: pre-wrap` dari `.msg` (react-markdown newline tak lagi jadi baris kosong); `<p>` = 18px + 6px margin (ADR-029).
+- [x] Teks pet hint terbaca di kedua tema. → `#pet-hint` warna teks putih tetap di pill gelap (ADR-030).
+- [x] Semua kontrol header muat di jendela chat 400px. → judul menyusut (`min-width: 0`), `.header-actions` `flex-shrink: 0`, `#btn-model` max 132px; tanpa overflow (ADR-030).
+- [x] Percakapan baru tidak mengunci pemilihan history. → placeholder `<option>` untuk id aktif yang belum tersimpan (ADR-030).
 
 ### Keamanan
 - [x] Tidak ada API key di repository, log, SQLite, dan event frontend. → `provider_profiles` tanpa kolom secret; grep pola `sk-` pada DB nyata = tidak ada; `ChatEvent` tanpa secret; tidak ada `log.Printf` pada request/header; secret di-wipe (`secret[i]=0`).
@@ -229,7 +232,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 
 - **File:** `build/bin/companion.exe`
 - **Ukuran:** 15,682,048 byte (~15.0 MB)
-- **SHA-256:** `b08a961afaaa326a3a453833c5a1740e42aa8511b139283b71e13665ffe73ee8`
+- **SHA-256:** `f751c29734d2c8f4811c1d867d8433c1a30e06f94f5390835d65154942fe0ee0`
 - **Perintah build:** `wails build -ldflags "-X main.Version=0.1.0"` dari clean checkout (setelah `rm -rf frontend/dist build/bin`).
 - **Verifikasi:** versi `0.1.0` tertanam di binary; aplikasi start dan tercatat `[WebView2] Environment created successfully`. Migrasi DB user nyata v2→v3 terverifikasi (kolom `models`/`active_model` bertambah, baris lama di-seed dari `model`).
 

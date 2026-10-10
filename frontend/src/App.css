@@ -77,7 +77,9 @@ html, body, #root {
 }
 
 #pet-hint {
-    background: rgba(0, 0, 0, 0.6);
+    /* Always a dark pill, independent of theme: fixed light text. */
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
     padding: 2px 8px;
     border-radius: 8px;
     --wails-draggable: none;
@@ -104,9 +106,19 @@ html, body, #root {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 6px;
     padding: 8px 12px;
     background: var(--surface);
     cursor: move;
+}
+
+#chat-header > span:first-child {
+    /* Let the title shrink instead of pushing the controls out of a 400px
+       window; controls stay fixed width. */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 #app-version {
@@ -445,6 +457,7 @@ button:disabled {
     display: flex;
     align-items: center;
     gap: 4px;
+    flex-shrink: 0;
     /* #chat-header sets --wails-draggable: drag, and custom properties
        inherit, so every control inside the header would start a window drag
        on the first click. Reset it here (any value != "drag" opts out). */
@@ -457,11 +470,12 @@ button:disabled {
 }
 
 #btn-model {
-    max-width: 180px;
+    max-width: 132px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: calc(11px * var(--font-scale));
+    padding: 3px 8px;
 }
 
 #model-menu {

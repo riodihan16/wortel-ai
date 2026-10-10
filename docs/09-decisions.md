@@ -138,6 +138,16 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** hapus `tailwindcss` + `@tailwindcss/vite`, ganti dengan reset CSS eksplisit (`box-sizing`, margin/padding nol, font inherit) di `style.css`. Styling tetap pakai token di `App.css`.
 - **Bukti:** CSS bundle 11.31 kB → 7.02 kB (gzip 2.97 → 1.76 kB). `tsc` dan `npm run build` bersih; UI terverifikasi render (pet mode tombol + header chat).
 
+## ADR-030 — Perbaikan hasil uji manual kedua: pet hint, header overflow, percakapan baru terkunci (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** Uji manual user pada build sebelumnya menemukan tiga masalah lanjutan.
+- **Bug 1 — teks pet hint tak terbaca di tema terang:** `#pet-hint` punya `background: rgba(0,0,0,0.6)` (selalu gelap) tetapi mewarisi `color: var(--text)`, yang di tema terang = `#0f172a` (gelap) → gelap di gelap. Perbaikan: `#pet-hint` diset `color: #ffffff` eksplisit, independen tema (pill selalu gelap).
+- **Bug 2 — dropdown model tak muncul:** `ModelPicker` merender, tapi `#chat-header` meluber: judul + tombol model + 4 tombol kontrol melebihi lebar jendela 400px (terukur `scrollWidth 452 > clientWidth 400`), mendorong tombol `Quit` keluar. Perbaikan: judul `min-width: 0` + `text-overflow: ellipsis` agar menyusut; `.header-actions` `flex-shrink: 0`; `#btn-model` diramping (`max-width` 180 → 132px). Terukur ulang: tidak ada overflow, semua tombol di dalam 400px.
+- **Bug 3 — setelah "Percakapan baru" tak bisa kembali ke history:** `newConversation` membuat id baru yang belum ada di DB, jadi id itu tidak ada di `conversations`. `<select value={conversationId}>` tanpa `<option>` yang cocok → browser memaksa select ke opsi pertama secara diam-diam tanpa event `change`; memilih opsi pertama itu lalu menghasilkan `change` value yang sama → tak ada event → tampak terkunci. Perbaikan: render `<option value={conversationId}>Percakapan baru</option>` selama id aktif tidak ada di daftar. Terverifikasi: setelah "Percakapan baru", memilih history lama memicu `onSwitch` dan memuat percakapan itu.
+- **Bukti:** probe browser nyata — `ModelPicker` label/daftar/pilih benar, header tanpa overflow (`allInside: true`), option placeholder ada, switch balik ke `old-1` tercatat. `tsc`, `go test ./...`, clean release build, app start bersih.
+- **Risiko:** setiap pembuatan percakapan baru harus punya opsi di select selama percakapan itu belum tersimpan; jangan hapus placeholder option tanpa mengganti mekanisme pemilihan.
+
 ## ADR-029 — Perbaikan hasil uji manual: drag inheritance, kontras, spacing, pemilih model (2026-10-10)
 
 - **Status:** Done.
