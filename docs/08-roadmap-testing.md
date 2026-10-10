@@ -191,9 +191,9 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 
 ### Fungsional
 - [x] Build release berhasil dari clean checkout. → `wails build -ldflags "-X main.Version=0.1.0"` → `build/bin/companion.exe`, app start (WebView2 Environment created).
-- [~] Companion bisa tampil, drag, hide/show. → tampil + hide/show via tombol & tray API terverifikasi; **drag fisik** perlu uji manual mouse (spike M0 mencatat drag mulus).
+- [x] Companion bisa tampil, drag, hide/show. → tampil + hide/show via tombol & tray API terverifikasi; drag fisik dan hide/show via ikon tray diuji manual oleh user pada release build (lulus).
 - [x] Panel chat bisa dibuka dan ditutup. → mode pet/chat/settings; draft bertahan lewat switch (probe browser live).
-- [~] Pesan terkirim ke provider yang dipilih. → mock provider E2E lulus; endpoint OpenAI-compatible nyata = smoke manual dengan credential lokal (docs 08 §3).
+- [x] Pesan terkirim ke provider yang dipilih. → mock provider E2E lulus; endpoint OpenAI-compatible nyata diuji manual dengan credential lokal pada release build (streaming + cancel, lulus).
 - [x] Streaming berfungsi dan dapat dibatalkan. → `TestStreamDeltasFromServer`, `TestSendAndCancel`, `TestCancelAllStopsStreams`; UI Stop↔Kirim toggle terverifikasi.
 - [x] Error provider tidak membuat aplikasi crash. → error mapping 400/401/403/404/408/429/5xx + timeout + diskonek tengah + malformed JSON (`provider_test.go`, `sse_test.go`); DB failure = error bukan panic (`db_test.go`).
 - [x] Percakapan bertahan setelah restart. → `TestChatHistoryRoundTrip`, `TestMigrationV1toV2`, `TestSwitchActiveKeepsHistory`; DB nyata di `%LOCALAPPDATA%\WortelAI\wortel.db`.
@@ -212,7 +212,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - [x] Idle CPU/RAM diukur pada release build. → `scripts/perf.ps1`: idle CPU 0.00%, app ~33 MB, WebView2 ~308 MB, total ~341 MB (ADR-024).
 - [x] Tidak ada goroutine/request yang tertinggal setelah cancel/exit. → `sync.WaitGroup` + `CancelAll` menunggu; `TestCancelAllWaitsForGoroutines` (state `active`/`requests` kosong).
 - [x] UI tetap merespons saat streaming. → event-driven (`chat:event`); render live busy: Stop tampil, kontrol lain disabled, delta render.
-- [~] Window tidak hilang di luar area layar setelah monitor berubah. → logika clamp ada dari M0/M5; **display-change fisik** perlu uji manual.
+- [x] Window tidak hilang di luar area layar setelah monitor berubah. → logika clamp dari M0/M5; display-change fisik diuji manual oleh user pada monitor nyata (lulus).
 - [x] Database failure memberikan pesan yang jelas. → `TestOpenRejectsEmptyPath`, `TestOpenFailsWhenDirUncreatable`, `TestUseAfterCloseDoesNotPanic`; `errNoDB` = "storage belum tersedia, restart aplikasi".
 
 ### Distribusi
@@ -234,7 +234,8 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 
 - **Bug redirect diperbaiki sebelum rilis:** sebelumnya redirect cross-host membawa `Authorization`; kini dihapus (ADR-026).
 - Executable belum ditandatangani → peringatan SmartScreen (lihat Distribusi).
-- Beberapa item perlu uji manual pada build nyata dengan mouse/monitor fisik: drag karakter, hide/show tray, hotkey global (input hardware), perilaku display-change, dan respons provider OpenAI-compatible sungguhan. Tidak bisa diverifikasi otomatis; diuji manual oleh user.
+- Beberapa item diuji manual oleh user pada release build dan lulus: drag karakter, hide/show tray (ikon), hotkey global `Ctrl+Shift+W`, perilaku display-change, dan streaming ke endpoint OpenAI-compatible sungguhan.
 - Race detector tidak dapat dijalankan di mesin build (tanpa gcc/CGO). Kebersihan konkurensi dibuktikan lewat tes logika + mutex eksplisit.
+- UI frontend belum punya test runner permanen (probe browser sekali pakai); regresi UI tidak terjaga otomatis.
 
 
