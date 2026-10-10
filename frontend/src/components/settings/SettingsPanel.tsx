@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { app } from "../../../wailsjs/go/models";
-import type { ProviderProfile, TestResult } from "../../types/provider";
+import type { ModelEntry, ProviderProfile, TestResult } from "../../types/provider";
 
 type SaveInput = app.SaveInput;
 
@@ -29,14 +29,14 @@ interface Props {
   onAppearanceChange: (next: app.Appearance) => void;
 }
 
-const EMPTY = { name: "", baseURL: "https://", models: [] as string[], activeModel: "", apiKey: "" };
+const EMPTY = { name: "", baseURL: "https://", models: [] as ModelEntry[], activeModel: "", apiKey: "" };
 
 function toSave(form: typeof EMPTY, id: string): SaveInput {
   return new app.SaveInput({
     id,
     name: form.name,
     baseURL: form.baseURL,
-    models: form.models,
+    models: form.models.map((m) => ({ id: m.id, alias: m.alias })),
     model: form.activeModel,
     apiKey: form.apiKey,
     enabled: true,
@@ -46,6 +46,7 @@ function toSave(form: typeof EMPTY, id: string): SaveInput {
 export function SettingsPanel(p: Props) {
   const [form, setForm] = useState(EMPTY);
   const [modelDraft, setModelDraft] = useState("");
+  const [aliasDraft, setAliasDraft] = useState("");
   const [editing, setEditing] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
@@ -59,10 +60,11 @@ export function SettingsPanel(p: Props) {
     if (!found) return;
     setEditing(id);
     // Never fill apiKey: stored secret stays hidden, field means "replace".
+    // Copy both id and alias so the existing alias round-trips into the form.
     setForm({
       name: found.name,
       baseURL: found.baseURL,
-      models: [...found.models],
+      models: found.models.map((m) => ({ id: m.id, alias: m.alias })),
       activeModel: found.activeModel || found.model,
       apiKey: "",
     });
@@ -72,27 +74,37 @@ export function SettingsPanel(p: Props) {
   // Adds the trimmed draft to the model list. Duplicates are ignored so the
   // active model is unambiguous; the first model added becomes active.
   const addModel = () => {
-    const m = modelDraft.trim();
-    if (!m) return;
-    if (form.models.includes(m)) {
-      setFormError(`Model "${m}" sudah ada di daftar.`);
+    const id = modelDraft.trim();
+    if (!id) return;
+    if (form.models.some((m) => m.id === id)) {
+      setFormError(`Model "${id}" sudah ada di daftar.`);
       return;
     }
     setFormError(null);
     setForm({
       ...form,
-      models: [...form.models, m],
-      activeModel: form.activeModel || m,
+      models: [...form.models, { id, alias: aliasDraft.trim() }],
+      activeModel: form.activeModel || id,
     });
     setModelDraft("");
+    setAliasDraft("");
   };
 
-  const removeModel = (m: string) => {
-    const models = form.models.filter((x) => x !== m);
+  // Renames the display alias of an entry. The id is the identity and never
+  // changes here; to change the id, remove the entry and add it again.
+  const renameAlias = (id: string, alias: string) => {
+    setForm({
+      ...form,
+      models: form.models.map((m) => (m.id === id ? { ...m, alias } : m)),
+    });
+  };
+
+  const removeModel = (id: string) => {
+    const models = form.models.filter((x) => x.id !== id);
     setForm({
       ...form,
       models,
-      activeModel: form.activeModel === m ? (models[0] ?? "") : form.activeModel,
+      activeModel: form.activeModel === id ? (models[0]?.id ?? "") : form.activeModel,
     });
   };
 
@@ -115,6 +127,7 @@ export function SettingsPanel(p: Props) {
       setEditing("");
       setForm(EMPTY);
       setModelDraft("");
+      setAliasDraft("");
       setShowKey(false);
     }
   };
@@ -199,23 +212,41 @@ export function SettingsPanel(p: Props) {
               }}
               placeholder="example-model"
             />
+            <input
+              value={aliasDraft}
+              onChange={(e) => setAliasDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addModel();
+                }
+              }}
+              placeholder="Alias (opsional)"
+            />
             <button type="button" onClick={addModel} disabled={!modelDraft.trim()}>Tambah</button>
           </span>
         </label>
         {form.models.length > 0 && (
           <div className="model-list">
             {form.models.map((m) => (
-              <div key={m} className={`model-item${form.activeModel === m ? " model-active" : ""}`}>
+              <div key={m.id} className={`model-item${form.activeModel === m.id ? " model-active" : ""}`}>
                 <label className="model-pick" title="Pakai model ini untuk chat">
                   <input
                     type="radio"
                     name={`active-${editing || "new"}`}
-                    checked={form.activeModel === m}
-                    onChange={() => setForm({ ...form, activeModel: m })}
+                    checked={form.activeModel === m.id}
+                    onChange={() => setForm({ ...form, activeModel: m.id })}
                   />
-                  <span>{m}</span>
+                  <span>{m.alias ? `${m.alias} (${m.id})` : m.id}</span>
                 </label>
-                <button type="button" onClick={() => removeModel(m)} title="Hapus model">✕</button>
+                <input
+                  className="model-alias"
+                  value={m.alias}
+                  onChange={(e) => renameAlias(m.id, e.target.value)}
+                  placeholder="Alias"
+                  aria-label={`Alias untuk ${m.id}`}
+                />
+                <button type="button" onClick={() => removeModel(m.id)} title="Hapus model">✕</button>
               </div>
             ))}
           </div>

@@ -15,7 +15,7 @@ type ProviderRow struct {
 	// Model is the legacy single-model column. Kept in sync with the first
 	// entry of Models so a v2 reader still works; Models is authoritative.
 	Model         string
-	Models        []string
+	Models        []config.ModelEntry
 	ActiveModel   string
 	CredentialRef string
 	Enabled       bool
@@ -24,7 +24,7 @@ type ProviderRow struct {
 }
 
 // encodeModels marshals the model list for storage. Nil -> "[]".
-func encodeModels(models []string) (string, error) {
+func encodeModels(models []config.ModelEntry) (string, error) {
 	if models == nil {
 		return "[]", nil
 	}
@@ -35,13 +35,13 @@ func encodeModels(models []string) (string, error) {
 	return string(b), nil
 }
 
-// decodeModels parses the stored JSON array. Malformed values degrade to an
-// empty list rather than failing the whole provider read.
-func decodeModels(raw string) []string {
+// decodeModels parses the stored JSON array of entries. Malformed values
+// degrade to nil rather than failing the whole provider read.
+func decodeModels(raw string) []config.ModelEntry {
 	if raw == "" {
 		return nil
 	}
-	var out []string
+	var out []config.ModelEntry
 	if err := json.Unmarshal([]byte(raw), &out); err != nil {
 		return nil
 	}
@@ -61,7 +61,7 @@ func (d *DB) SaveProvider(p ProviderRow) error {
 	if p.ActiveModel != "" {
 		legacy = p.ActiveModel
 	} else if len(p.Models) > 0 {
-		legacy = p.Models[0]
+		legacy = p.Models[0].ID
 	}
 	modelsJSON, err := encodeModels(p.Models)
 	if err != nil {
@@ -136,11 +136,11 @@ func (d *DB) SetSetting(key, value string) error {
 func ToPublic(p ProviderRow, hasCredential bool) config.ProviderProfile {
 	models := p.Models
 	if len(models) == 0 && p.Model != "" {
-		models = []string{p.Model}
+		models = []config.ModelEntry{{ID: p.Model}}
 	}
 	active := p.ActiveModel
 	if active == "" && len(models) > 0 {
-		active = models[0]
+		active = models[0].ID
 	}
 	return config.ProviderProfile{
 		ID:            p.ID,

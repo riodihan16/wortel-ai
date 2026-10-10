@@ -269,6 +269,10 @@ button:disabled {
     padding: 12px;
     overflow-y: auto;
     font-size: calc(13px * var(--font-scale));
+    /* Settings #chat root is a drag region, and custom properties inherit,
+       so opt the scroll area out to keep scrolling working. The header
+       below re-enables drag explicitly. */
+    --wails-draggable: none;
 }
 
 #settings-header {
@@ -276,6 +280,14 @@ button:disabled {
     justify-content: space-between;
     align-items: center;
     font-weight: 700;
+    cursor: move;
+    --wails-draggable: drag;
+}
+
+#settings-header button {
+    /* Inside the drag handle: any value != "drag" opts out so the first
+       click hits the button instead of starting a window drag. */
+    --wails-draggable: none;
 }
 
 #settings-error, #settings-form-error {
@@ -583,6 +595,11 @@ button:disabled {
 .model-item button {
     padding: 0 6px;
     line-height: 1.4;
+}
+
+.model-alias {
+    width: 110px;
+    flex-shrink: 0;
 }
 
 .field-hint {

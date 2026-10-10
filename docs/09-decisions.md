@@ -267,6 +267,16 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Frontend:** `useChat` kelola daftar + `conversationId` aktif, `ChatPanel` dropdown + baru/rename/hapus (konfirmasi), `SafeMarkdown` tanpa deps: paragraf/list/code/`code`/bold/italic/link, raw HTML tak render, link allowlist http/https saja.
 - **Verifikasi:** `go test ./...` ok, `tsc` bersih, `gofmt` bersih, `wails build` ok → `build/bin/companion.exe`. Tes `TestConversationCRUD` (rename/cascade/missing).
 - **Sisa M4:** smoke manual Windows (baru/buka/rename/hapus + restart persist + markdown render + hapus saat streaming ditolak).
+## ADR-027 — Alias tampilan per model + Settings draggable (2026-10-10)
+
+- **Status:** Done, perlu smoke manual Windows.
+- **Konteks:** Nama Model ID sering panjang/teknis; user ingin label singkat tanpa mengubah ID yang dikirim ke endpoint. Juga: window Settings tidak bisa dipindah (hanya pet/chat yang bisa).
+- **Pilihan:** (a) ubah ID jadi label, (b) field alias terpisah per entri model.
+- **Keputusan:** (b). `config.ModelEntry{ID, Alias}` menggantikan `[]string` di input/profile/row, storage, dan binding. Alias kosong → UI pakai ID. ID tetap identitas dan tetap dikirim ke API. Migrasi v4 (idempoten) mengubah `models` JSON `["a","b"]` → `[{"id":"a","alias":""},...]`; baris objek tak disentuh; `active_model` dipertahankan.
+- **Drag Settings:** `#chat` root Settings = drag region, `#settings` scroll area di-opt-out (`--wails-draggable: none`), `#settings-header` jadi handle (`cursor: move`), tombol/input di header opt-out agar klik pertama kena kontrol. Pola sama dengan header chat/pet.
+- **Verifikasi:** `go test ./...` ok, `go vet` bersih, `gofmt` bersih, `tsc --noEmit` bersih, `wails build` ok → `build/bin/companion.exe`. Probe browser: picker tampil alias + fallback ID, `onModelChange` kirim ID (bukan alias); Settings root/header `drag`, scroll `none`, tombol `none`. Migrasi diuji pada salinan DB v3 user → v4, array string jadi entri objek, `active_model` utuh. Tes baru: `TestNormalizeModelsAliases`, `TestMigrationV3toV4`.
+- **Sisa:** smoke manual Windows (rename alias lalu Simpan → picker chat menampilkan alias; drag Settings; DB user ter-migrasi saat buka app).
+
 ## ADR-018 — M5 tray Win32 murni + exit bersih (2026-10-10)
 
 - **Status:** Implemented, perlu smoke manual Windows.

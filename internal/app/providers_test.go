@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"companion/internal/config"
 	"companion/internal/credentials"
 	"companion/internal/storage"
 )
@@ -61,13 +62,16 @@ func TestSaveMultiModelAndSwitch(t *testing.T) {
 	p := testProviders(t)
 	saved, err := p.Save(ctx, SaveInput{
 		Name: "Kenari", BaseURL: "https://kenari.id/v1",
-		Models: []string{"m1", "m2", "m3"}, Model: "m2", APIKey: "k",
+		Models: []config.ModelEntry{{ID: "m1"}, {ID: "m2", Alias: "Two"}, {ID: "m3"}}, Model: "m2", APIKey: "k",
 	})
 	if err != nil {
 		t.Fatalf("save: %v", err)
 	}
 	if len(saved.Models) != 3 || saved.ActiveModel != "m2" {
 		t.Fatalf("models not persisted: %+v", saved)
+	}
+	if saved.Models[1].Alias != "Two" {
+		t.Fatalf("alias not persisted: %+v", saved.Models)
 	}
 	// Resolve must use the active model.
 	_, model, err := p.Resolve(ctx)

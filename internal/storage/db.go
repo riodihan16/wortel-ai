@@ -11,7 +11,7 @@ import (
 )
 
 // Current schema version. Bump when adding migrations.
-const currentVersion = 3
+const currentVersion = 4
 
 // DB wraps the SQLite handle.
 type DB struct {
@@ -156,7 +156,17 @@ var migrations = map[int][]string{
 		`ALTER TABLE provider_profiles ADD COLUMN models TEXT NOT NULL DEFAULT '[]'`,
 		`ALTER TABLE provider_profiles ADD COLUMN active_model TEXT NOT NULL DEFAULT ''`,
 		`UPDATE provider_profiles
-			SET models = json_array(model), active_model = model
-			WHERE models = '[]' OR models = ''`,
+            SET models = json_array(model), active_model = model
+            WHERE models = '[]' OR models = ''`,
+	},
+	// v4: model entries gain a display alias. `models` changes from a JSON
+	// array of bare strings (v3) to an array of {"id","alias"} objects.
+	// Bare strings become entries with empty alias. Idempotent: rows whose
+	// first element is already an object are left untouched.
+	4: {
+		`UPDATE provider_profiles
+            SET models = (SELECT json_group_array(json_object('id', value, 'alias', ''))
+                FROM json_each(provider_profiles.models))
+            WHERE json_valid(models) AND models <> '[]' AND json_type(models, '$[0]') = 'text'`,
 	},
 }

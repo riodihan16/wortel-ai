@@ -163,7 +163,7 @@ function App() {
 
     if (mode === 'settings') {
         return (
-            <div id="chat">
+            <div id="chat" style={{'--wails-draggable': 'drag'} as CSSProperties}>
                 <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} hotkeyErr={hotkeyErr} appearance={appearance} appearanceErr={appearanceErr} onAppearanceChange={changeAppearance} shortcut={shortcut} shortcutErr={shortcutErr} onShortcutChange={changeShortcut} capturing={capturing} onCaptureToggle={() => setCapturing((v) => !v)} />
             </div>
         );

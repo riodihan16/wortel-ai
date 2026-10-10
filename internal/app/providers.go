@@ -69,13 +69,13 @@ func (p *Providers) List(ctx context.Context) ([]config.ProviderProfile, error) 
 
 // SaveInput carries the settings form. ID empty = create.
 type SaveInput struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	BaseURL string   `json:"baseURL"`
-	Models  []string `json:"models"`
-	Model   string   `json:"model"`
-	APIKey  string   `json:"apiKey"`
-	Enabled bool     `json:"enabled"`
+	ID      string              `json:"id"`
+	Name    string              `json:"name"`
+	BaseURL string              `json:"baseURL"`
+	Models  []config.ModelEntry `json:"models"`
+	Model   string              `json:"model"`
+	APIKey  string              `json:"apiKey"`
+	Enabled bool                `json:"enabled"`
 }
 
 // Save validates, writes credential to OS store, persists profile.
@@ -140,11 +140,11 @@ func (p *Providers) SetActiveModel(id, model string) error {
 		}
 		models := r.Models
 		if len(models) == 0 && r.Model != "" {
-			models = []string{r.Model}
+			models = []config.ModelEntry{{ID: r.Model}}
 		}
 		ok := false
 		for _, m := range models {
-			if m == model {
+			if m.ID == model {
 				ok = true
 				break
 			}

@@ -34,6 +34,8 @@ export function ModelPicker({ provider, busy, onModelChange }: Props) {
   if (!provider || provider.models.length === 0) return null;
 
   const active = provider.activeModel || provider.model;
+  const activeEntry = provider.models.find((m) => m.id === active);
+  const activeLabel = (activeEntry && activeEntry.alias) || active;
 
   return (
     <div id="model-picker" ref={boxRef}>
@@ -44,23 +46,23 @@ export function ModelPicker({ provider, busy, onModelChange }: Props) {
         disabled={busy}
         title={`Provider: ${provider.name}`}
       >
-        {provider.models.length > 1 ? `Model: ${active} ▾` : `Model: ${active}`}
+        {provider.models.length > 1 ? `Model: ${activeLabel} ▾` : `Model: ${activeLabel}`}
       </button>
       {open && (
         <div id="model-menu" role="menu">
           {provider.models.map((m) => (
             <button
-              key={m}
+              key={m.id}
               type="button"
               role="menuitemradio"
-              aria-checked={m === active}
-              className={`model-option${m === active ? " model-option-on" : ""}`}
+              aria-checked={m.id === active}
+              className={`model-option${m.id === active ? " model-option-on" : ""}`}
               onClick={() => {
                 setOpen(false);
-                if (m !== active) onModelChange(provider.id, m);
+                if (m.id !== active) onModelChange(provider.id, m.id);
               }}
             >
-              {m}
+              {m.alias || m.id}
             </button>
           ))}
         </div>

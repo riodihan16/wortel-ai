@@ -1,3 +1,8 @@
+export interface ModelEntry {
+  id: string;
+  alias: string;
+}
+
 export interface ProviderProfile {
   id: string;
   name: string;
@@ -5,7 +10,7 @@ export interface ProviderProfile {
   /** Active model (mirror of activeModel for older readers). */
   model: string;
   /** All models configured for this provider. */
-  models: string[];
+  models: ModelEntry[];
   /** Model used for chat on this provider. */
   activeModel: string;
   credentialRef: string;
@@ -18,7 +23,7 @@ export interface SaveInput {
   id?: string;
   name: string;
   baseURL: string;
-  models: string[];
+  models: ModelEntry[];
   model: string;
   apiKey: string;
   enabled?: boolean;
