@@ -211,6 +211,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - [x] Kontras teks/latar memenuhi WCAG AA di kedua tema. → terukur: gelap terendah 8.48, terang terendah 5.47 (ADR-029).
 - [x] Spasi antar baris respons wajar. → hapus `white-space: pre-wrap` dari `.msg` (react-markdown newline tak lagi jadi baris kosong); `<p>` = 18px + 6px margin (ADR-029).
 - [x] Teks pet hint terbaca di kedua tema. → `#pet-hint` warna teks putih tetap di pill gelap (ADR-030).
+- [~] Latar pet transparan, W bisa diklik dan digeser. → probe piksel release build: sudut window = piksel desktop, tengah = `--bg`; klik vs geser di `usePetDrag.test.ts` (10 tes). Drag native di app nyata menunggu uji manual user (ADR-041).
 - [x] Semua kontrol header muat di jendela chat 400px. → judul menyusut (`min-width: 0`), `.header-actions` `flex-shrink: 0`, `#btn-model` max 132px; tanpa overflow (ADR-030).
 - [x] Percakapan baru tidak mengunci pemilihan history. → placeholder `<option>` untuk id aktif yang belum tersimpan (ADR-030).
 - [x] Pemilih model di header tampil pada build nyata. → `ActiveProvider()` ganti ke `*config.ProviderProfile` (binding Wails buang return kedua non-error); hook memetakan profile/null apa adanya (ADR-031).
@@ -228,7 +229,8 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - [x] Idle CPU/RAM diukur pada release build. → `scripts/perf.ps1`: idle CPU 0.00%, app ~33 MB, WebView2 ~308 MB, total ~341 MB (ADR-024).
 - [x] Tidak ada goroutine/request yang tertinggal setelah cancel/exit. → `sync.WaitGroup` + `CancelAll` menunggu; `TestCancelAllWaitsForGoroutines` (state `active`/`requests` kosong).
 - [x] UI tetap merespons saat streaming. → event-driven (`chat:event`); render live busy: Stop tampil, kontrol lain disabled, delta render.
-- [x] Window tidak hilang di luar area layar setelah monitor berubah. → logika clamp dari M0/M5; display-change fisik diuji manual oleh user pada monitor nyata (lulus).
+- [x] Window tidak hilang di luar area layar setelah monitor berubah. → display-change fisik diuji manual oleh user pada monitor nyata (lulus). Koreksi 2026-10-10: klaim "logika clamp dari M0/M5" keliru, kode tidak punya clamp; clamp nyata ditambah di ADR-042.
+- [~] Panel chat tidak terpotong tepi monitor; drag berhenti di tepi. → `internal/window` (`Placer`, `KeepOnScreen`), 13 unit test; probe app nyata: pet di pojok kanan-bawah → panel `panelInsideWork=True`. Drag live di tepi menunggu uji manual user (ADR-042).
 - [x] Database failure memberikan pesan yang jelas. → `TestOpenRejectsEmptyPath`, `TestOpenFailsWhenDirUncreatable`, `TestUseAfterCloseDoesNotPanic`; `errNoDB` = "storage belum tersedia, restart aplikasi".
 
 ### Distribusi

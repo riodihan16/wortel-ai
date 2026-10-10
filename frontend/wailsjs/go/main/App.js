@@ -82,6 +82,10 @@ export function SetShortcut(arg1) {
   return window['go']['main']['App']['SetShortcut'](arg1);
 }
 
+export function SetWindowMode(arg1) {
+  return window['go']['main']['App']['SetWindowMode'](arg1);
+}
+
 export function Show() {
   return window['go']['main']['App']['Show']();
 }

@@ -295,6 +295,30 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Batas yang diketahui:** Workflow belum pernah dieksekusi di runner GitHub (repo belum memiliki remote). Validasi hanya lokal: parse YAML, `gofmt`/`go vet`/`go test`/`go test -race`, `tsc --noEmit`/`npm test`/`npm run build`, dan asumsi (`main.Version`, `npm test` = `vitest run`) diverifikasi terhadap file repo. Job `sign` aktif hanya setelah secrets SignPath diisi dan `vars.SIGNPATH_ENABLED=true`; sampai itu, rilis mempublikasikan exe belum ditandatangani.
 - **Konsekuensi:** Rilis publik pertama tetap memicu SmartScreen sampai akun SignPath lolos kualifikasi. `.gitattributes` mengubah default checkout ke LF; file yang ada sudah LF sehingga tidak ada churn.
 
+## ADR-042 — Window sadar tepi monitor: panel tidak terpotong, drag berhenti di tepi (2026-10-10)
+
+- **Status:** Done; drag live di tepi perlu uji manual user.
+- **Konteks:** Uji manual: pet di bawah layar → klik W → panel chat 400x600 tembus ke bawah monitor. Lalu: pet sendiri bisa digeser melewati tepi layar. Checklist release sebelumnya menyebut "logika clamp dari M0/M5", tetapi kode tidak punya clamp apa pun; `WindowSetSize` Wails selalu membesar dari pojok kiri-atas.
+- **Keputusan:** package `internal/window` (Go, sesuai batas "operasi sistem di backend").
+  - `SetWindowMode("pet"|"panel")` menggantikan `WindowSetSize` di frontend. Backend memegang ukuran (`PetSize`/`PanelSize`, juga dipakai `main.go`), menolak mode lain.
+  - `Placer`: saat pet → panel, posisi digeser seminimal mungkin agar masuk work area monitor (taskbar dikecualikan, `GetMonitorInfo.rcWork`); geseran diingat. Saat panel → pet, geseran dibatalkan sehingga pet kembali ke tempat user menaruhnya, atau ikut offset yang sama bila panel sempat digeser. Mode sama berulang (tray "Buka" saat chat) hanya memastikan di layar, tanpa mereset geseran.
+  - `KeepOnScreen`: subclass window (`SetWindowLongPtrW(GWLP_WNDPROC)`, chain `CallWindowProcW`) menangani `WM_MOVING` dan mengoreksi rect usulan ke work area monitor **terdekat dengan rect usulan** (`MonitorFromRect`), jadi drag berhenti di tepi tetapi pindah antar-monitor tetap bisa. Berlaku untuk drag W dan header chat/settings.
+  - HWND dicari sekali via `EnumWindows` (PID sendiri + class `WortelAIWindow`, diset eksplisit lewat `WindowClassName`). Ukuran fisik = DIP × `GetDpiForWindow` / 96 (rumus sama dengan Wails).
+- **Fallback:** gagal menempatkan → `runtime.WindowSetSize` biasa (perilaku lama); gagal subclass → log warning, drag tetap jalan tanpa batas.
+- **Bukti:** `go test ./internal/window/` 13 tes (Fit: muat/kanan/bawah/kiri-atas/monitor offset negatif/oversize; Placer: pet kembali, ikut panel digeser, mode berulang, clamp saat undo; Constrain; mode tak dikenal). `go vet` Windows + `GOOS=linux`, `gofmt`, `tsc`, vitest 24/24, release build OK. Probe app nyata (data dir terisolasi, tanpa mouse/keyboard user): pet diparkir di `1685,785..1910,1010` (work `0,0..1920,1020`), klik tray kiri → panel `1420,270..1920,1020` = `panelInsideWork=True`; screenshot panel utuh di atas taskbar.
+- **Risiko:** subclass berada di bawah wndproc Wails; aman selama Wails tidak mengganti `GWLP_WNDPROC` sendiri (v2.16.0 tidak). `WM_MOVING` tidak bisa diuji otomatis tanpa menggerakkan mouse user.
+
+## ADR-041 — Pet transparan sungguhan + W bisa digeser (2026-10-10)
+
+- **Status:** Done, drag native perlu uji manual user.
+- **Konteks:** Uji manual: mode pet tampil dengan kotak hitam di sekitar W, dan W hanya bisa diklik (drag hanya dari area kosong).
+- **Akar masalah latar hitam:** `WebviewIsTransparent: true` hanya membuat WebView2 alpha 0, sehingga yang terlihat adalah window host. Dengan `WindowIsTranslucent: false`, window host tetap opaque dan dicat dengan class brush dari `BackgroundColour` RGB(0,0,0) (`win32.SetBackgroundColour` → `CreateSolidBrush`); alpha `BackgroundColour` diabaikan untuk brush itu. Hasilnya hitam. Konfigurasi ini sudah ada sejak M1 (`d1fc247`).
+- **Keputusan transparansi:** `WindowIsTranslucent: true` (Wails menambah `WS_EX_NOREDIRECTIONBITMAP`, jadi brush tidak tampil) + `BackdropType: windows.None` (tanpa Mica/acrylic, desktop tembus apa adanya). Mode chat/settings tidak berubah karena `#chat` punya latar solid `--bg`; sudut membulatnya kini ikut transparan.
+- **Akar masalah W tidak bisa digeser:** `#pet-dot` sengaja `--wails-draggable: none` (ADR-029). Bila diset `drag`, runtime Wails (`deferDragToMouseMove`) memulai drag pada `mousemove` pertama, termasuk getaran 1px, sehingga klik hilang lagi.
+- **Keputusan drag:** hook `usePetDrag` di W: `pointerdown` mencatat posisi layar, `pointermove` dengan tombol utama tertekan dan jarak ≥ 4px memanggil `window.WailsInvoke('drag')` (pesan IPC yang sama yang dikirim runtime; Go → `ReleaseCapture` + `WM_NCLBUTTONDOWN/HTCAPTION`). `setPointerCapture` saat press + `pointercancel` = reset, agar lepas di luar W tidak meninggalkan origin basi. Klik setelah drag ditelan; klik keyboard (`detail 0`) tetap jalan. W tetap `--wails-draggable: none`. Hint pet: `klik W: chat · geser W: pindah`.
+- **Bukti:** `usePetDrag.test.ts` 10 tes (klik, jitter < threshold, drag sekali, klik pasca-drag ditelan, press berikutnya normal, tanpa tombol, tombol kanan, capture, pointercancel, keyboard). `tsc` bersih, vitest 24/24, `gofmt`/`go vet` bersih, release build OK. Probe piksel release build (DPI-aware, data dir terisolasi): 4 sudut window 225x225 identik dengan piksel desktop sebelum launch, tengah = `(27,38,54)` = `--bg`.
+- **Risiko:** `window.WailsInvoke` adalah API internal runtime Wails v2 (bukan bagian `wailsjs/runtime`); aman selama versi dikunci v2.16.0, cek ulang saat upgrade. Pada Windows < 22621 (`SupportsBackdropTypes` false) Wails memakai `SetTranslucentBackground` (blur accent) sehingga latar pet bisa tampak buram, bukan bening. Area transparan tetap menangkap klik (bounds window persegi, sesuai docs 03 §4).
+
 ## ADR-037 — Persistensi percakapan best-effort, bukan blocker stream (2026-10-10)
 
 - **Status:** Done.

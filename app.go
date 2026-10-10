@@ -14,6 +14,7 @@ import (
 	"companion/internal/hotkey"
 	"companion/internal/storage"
 	"companion/internal/tray"
+	"companion/internal/window"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -56,6 +57,11 @@ func (a *App) startup(ctx context.Context) {
 		OnExit:     func() { runtime.Quit(ctx) },
 	}); err != nil {
 		tray.SetError(err)
+	}
+	// Edge guard: user drags stop at the monitor work area. Non-fatal; the
+	// window still drags, only unconstrained.
+	if err := window.KeepOnScreen(); err != nil {
+		runtime.LogWarningf(ctx, "edge guard off: %v", err)
 	}
 	// M5 shortcut global (FR-010). Uses the stored combo when present.
 	// Failure is non-fatal and reported to the user via HotkeyError so
@@ -119,6 +125,23 @@ func (a *App) Show() {
 func (a *App) HideWindow() {
 	a.setHidden(true)
 	runtime.WindowHide(a.ctx)
+}
+
+// SetWindowMode sizes the window for "pet" or "panel" (chat/settings) and
+// keeps it inside its monitor's work area, so a pet parked near an edge
+// opens a panel that is not cut off.
+func (a *App) SetWindowMode(mode string) error {
+	m := window.Mode(mode)
+	size, err := window.SizeOf(m)
+	if err != nil {
+		return err
+	}
+	if err := window.Apply(m); err != nil {
+		// Placement failed (no handle/monitor info): degrade to the old
+		// plain resize so the mode switch itself still works.
+		runtime.WindowSetSize(a.ctx, size.W, size.H)
+	}
+	return nil
 }
 
 func (a *App) setHidden(v bool) {

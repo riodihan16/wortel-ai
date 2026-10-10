@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/App.css"
+        ],
+        "createdAt": "2026-10-10T10:59:24.154Z",
+        "reason": "Claude triage: L678 is .md blockquote left rule (standard markdown quote styling, neutral --border colour, not an accent card); predates session, commit 6ade5b1"
+      }
+    ]
+  }
+}

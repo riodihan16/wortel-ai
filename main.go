@@ -3,6 +3,8 @@ package main
 import (
 	"embed"
 
+	"companion/internal/window"
+
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -24,8 +26,8 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:       "Wortel AI",
-		Width:       180,
-		Height:      180,
+		Width:       window.PetSize.W,
+		Height:      window.PetSize.H,
 		MinWidth:    120,
 		MinHeight:   120,
 		MaxWidth:    460,
@@ -37,9 +39,15 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
 		Windows: &windows.Options{
-			WebviewIsTransparent:              true,
-			WindowIsTranslucent:               false,
+			WebviewIsTransparent: true,
+			// A transparent webview alone shows the window's own black
+			// class brush. Translucent drops the window's redirection
+			// surface, and backdrop None skips Mica/acrylic, so the desktop
+			// shows through around the pet (ADR-041).
+			WindowIsTranslucent:               true,
+			BackdropType:                      windows.None,
 			DisableFramelessWindowDecorations: true,
+			WindowClassName:                   window.ClassName,
 		},
 		OnStartup:  app.startup,
 		OnShutdown: app.shutdown,

@@ -43,6 +43,8 @@ export function SetAutostart(arg1:boolean):Promise<void>;
 
 export function SetShortcut(arg1:app.Shortcut):Promise<void>;
 
+export function SetWindowMode(arg1:string):Promise<void>;
+
 export function Show():Promise<void>;
 
 export function TestProvider(arg1:app.SaveInput):Promise<app.TestResult>;

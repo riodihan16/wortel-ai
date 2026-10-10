@@ -5,20 +5,21 @@ import {
     EventsOff,
     EventsOn,
     Quit,
-    WindowSetSize,
 } from '../wailsjs/runtime/runtime';
-import {AutostartEnabled, GetAppearance, GetShortcut, HideWindow, HotkeyError, SetAppearance, SetAutostart, SetShortcut, Version} from '../wailsjs/go/main/App';
+import {AutostartEnabled, GetAppearance, GetShortcut, HideWindow, HotkeyError, SetAppearance, SetAutostart, SetShortcut, SetWindowMode, Version} from '../wailsjs/go/main/App';
 import {app} from '../wailsjs/go/models';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {ModelPicker} from './components/chat/ModelPicker';
 import {SettingsPanel} from './components/settings/SettingsPanel';
 import {useChat} from './hooks/useChat';
+import {usePetDrag} from './hooks/usePetDrag';
 import {useProviders} from './hooks/useProviders';
 
 type Mode = 'pet' | 'chat' | 'settings';
 
-const PET = {w: 180, h: 180};
-const CHAT = {w: 400, h: 600};
+// Backend owns the sizes and keeps the window inside the monitor work area,
+// so a pet parked near an edge opens a panel that is not cut off.
+const fitWindow = (mode: Mode) => SetWindowMode(mode === 'pet' ? 'pet' : 'panel');
 
 function App() {
     const [mode, setMode] = useState<Mode>('pet');
@@ -34,15 +35,15 @@ function App() {
     // M5: tray menu intents. Show -> chat mode, Settings -> settings mode.
     useEffect(() => {
         EventsOn('app:show', () => {
-            WindowSetSize(CHAT.w, CHAT.h);
+            fitWindow('chat');
             setMode('chat');
         });
         EventsOn('app:settings', () => {
-            WindowSetSize(CHAT.w, CHAT.h);
+            fitWindow('chat');
             setMode('settings');
         });
         EventsOn('app:toggle', () => {
-            WindowSetSize(CHAT.w, CHAT.h);
+            fitWindow('chat');
             setMode('chat');
         });
         return () => {
@@ -58,10 +59,10 @@ function App() {
 
     const toggle = useCallback(() => {
         const next: Mode = mode === 'pet' ? 'chat' : 'pet';
-        const s = next === 'pet' ? PET : CHAT;
-        WindowSetSize(s.w, s.h);
+        fitWindow(next);
         setMode(next);
     }, [mode]);
+    const petDrag = usePetDrag(toggle);
 
     const [autostart, setAutostartOn] = useState<boolean>(false);
     const [autostartErr, setAutostartErr] = useState<string | null>(null);
@@ -151,8 +152,8 @@ function App() {
     if (mode === 'pet') {
         return (
             <div id="pet" style={{'--wails-draggable': 'drag'} as CSSProperties}>
-                <button id="pet-dot" onClick={toggle} title="Buka chat">W</button>
-                <div id="pet-hint">drag area, klik W buka chat</div>
+                <button id="pet-dot" {...petDrag} title="Klik: buka chat. Geser: pindah">W</button>
+                <div id="pet-hint">klik W: chat · geser W: pindah</div>
                 <div id="pet-actions">
                     <button onClick={() => HideWindow()}>Hide</button>
                     <button onClick={Quit}>Quit</button>
