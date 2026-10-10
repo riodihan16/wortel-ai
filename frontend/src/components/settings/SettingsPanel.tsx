@@ -208,7 +208,7 @@ export function SettingsPanel(p: Props) {
                     </div>
                     {armedDel === pr.id && (
                       <div
-                        className="confirm-row"
+                        className="confirm-row confirm-row--wrap"
                         role="group"
                         aria-label="Konfirmasi hapus provider"
                         onKeyDown={(e) => {
@@ -271,18 +271,18 @@ export function SettingsPanel(p: Props) {
           <h2 className="section__title">Umum</h2>
           <label className="check">
             <input type="checkbox" checked={p.autostart} onChange={p.onToggleAutostart} />
-            Jalankan otomatis saat Windows menyala
+            Buka Wortel AI saat Windows menyala
           </label>
           {p.autostartErr && <ErrorBanner text={p.autostartErr} />}
           <div id="settings-hotkey">
             <label className="check">
               <input type="checkbox" checked={p.shortcut.enabled} disabled={p.capturing}
                 onChange={(e) => p.onShortcutChange(new app.Shortcut({ enabled: e.target.checked, combo: p.shortcut.combo }))} />
-              Aktifkan shortcut buka chat
+              Shortcut keyboard untuk buka chat
             </label>
             <div className="settings-shortcut-row">
-              <span className={p.capturing ? "kbd settings-combo--capturing" : "kbd"}>
-                {p.capturing ? "Tekan kombinasi…" : p.shortcut.combo}
+              <span className={p.capturing ? "kbd settings-combo--capturing" : "kbd"} role="status">
+                {p.capturing ? "Tekan kombinasi tombol… (Esc batal)" : p.shortcut.combo}
               </span>
               <button type="button" className="btn btn--sm" onClick={p.onCaptureToggle}>{p.capturing ? "Batal" : "Ubah"}</button>
             </div>

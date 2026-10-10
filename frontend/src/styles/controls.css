@@ -539,6 +539,18 @@
     flex-shrink: 0;
 }
 
+/* Inside a card there is room for two lines: wrap instead of truncating the
+   name the user is about to destroy. */
+.confirm-row--wrap .confirm-row__msg {
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.confirm-row--wrap .confirm-row__title {
+    overflow: visible;
+}
+
 .confirm-row .btn:focus-visible {
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);

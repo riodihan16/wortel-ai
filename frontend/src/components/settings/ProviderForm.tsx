@@ -70,6 +70,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   const firstPresetRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const keyNoteId = useId();
+  const urlNoteId = useId();
 
   // Opening the form lands the user on its first control, never silently
   // below the fold: the preset row for a new provider, Nama when editing.
@@ -179,7 +180,8 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       </div>
       <div className="field">
         <label className="field__label" htmlFor="settings-baseurl">Base URL</label>
-        <input id="settings-baseurl" className="input" value={form.baseURL} onChange={(e) => setForm({ ...form, baseURL: e.target.value })} placeholder="https://api.example.com/v1" inputMode="url" />
+        <input id="settings-baseurl" className="input" value={form.baseURL} onChange={(e) => setForm({ ...form, baseURL: e.target.value })} placeholder="https://api.example.com/v1" inputMode="url" aria-describedby={urlNoteId} />
+        <div className="field__hint" id={urlNoteId}>Endpoint yang kompatibel dengan OpenAI, biasanya berakhiran /v1.</div>
       </div>
       <div className="prov-form__models">
         <div className="field">
@@ -191,7 +193,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
               value={modelDraft}
               onChange={(e) => setModelDraft(e.target.value)}
               onKeyDown={enterAdds}
-              placeholder={preset?.modelHint ?? "ID model persis, mis. gpt-4.1-mini"}
+              placeholder={preset?.modelHint ?? "ID model, mis. gpt-4.1-mini"}
             />
             <input
               className="input"
@@ -231,10 +233,10 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
             ))}
           </div>
         )}
-        <div className="field__hint">Radio memilih model aktif untuk chat.</div>
+        <div className="field__hint">Model yang dipilih dipakai untuk chat. Alias hanya nama tampilan.</div>
       </div>
       <div className="field">
-        <label className="field__label" htmlFor="settings-apikey">API key {editing && "(kosong = pakai tersimpan)"}</label>
+        <label className="field__label" htmlFor="settings-apikey">API key</label>
         <span className="settings-keyrow">
           <input id="settings-apikey" className="input" type={showKey ? "text" : "password"} value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} placeholder={editing ? "•••••• (tersimpan)" : (preset?.keyHint ?? "sk-…")} autoComplete="off" aria-describedby={keyNoteId} />
           <button
@@ -249,9 +251,8 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
           </button>
         </span>
         <div className="field__hint" id={keyNoteId}>
-          {preset?.local
-            ? "Server lokal tidak memeriksa key, isi apa saja. "
-            : ""}
+          {editing && "Kosongkan untuk tetap memakai key yang tersimpan. "}
+          {preset?.local && "Server lokal tidak memeriksa key, isi apa saja. "}
           Disimpan di Windows Credential Manager, tidak pernah ditampilkan lagi.
         </div>
       </div>
@@ -261,7 +262,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       </div>}
       {test && <div id="settings-test" className={test.ok ? "banner banner--ok" : "banner banner--error"} role="status">
         <span className="banner__icon">{test.ok ? <IconCheck size={14} aria-hidden="true" /> : <IconAlert size={14} aria-hidden="true" />}</span>
-        <span>{test.ok ? "OK: " : ""}{test.message}{test.insecure ? " (HTTP tanpa TLS!)" : ""}</span>
+        <span>{test.message}{test.insecure ? " Koneksi tidak terenkripsi (HTTP)." : ""}</span>
       </div>}
       <div className="prov-form__actions">
         <button type="button" className="btn" onClick={() => onTest(toSave(form, editing))} disabled={testing}>

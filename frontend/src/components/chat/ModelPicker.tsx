@@ -47,6 +47,7 @@ export function ModelPicker({ provider, busy, onModelChange }: Props): JSX.Eleme
         disabled={busy}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={`Model ${activeLabel}, provider ${provider.name}`}
         title={`Provider: ${provider.name}`}
       >
         <IconGlobe size={14} />

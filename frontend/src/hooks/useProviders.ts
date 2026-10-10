@@ -109,7 +109,7 @@ export function useProviders() {
       setTest(r);
       return r;
     } catch (e) {
-      const r = { ok: false, message: e instanceof Error ? e.message : "Test gagal." };
+      const r = { ok: false, message: e instanceof Error ? e.message : "Tes koneksi gagal." };
       setTest(r);
       return r;
     } finally {

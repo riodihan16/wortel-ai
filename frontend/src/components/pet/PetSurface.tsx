@@ -38,7 +38,7 @@ export function PetSurface(props: {
   return (
     <div id="pet">
       <span className="pet__hint" aria-hidden="true">
-        Klik untuk buka chat
+        Klik: chat · Geser: pindah
       </span>
       <span className={`pet__status pet__status--${state}`} role="status">
         <span className="pet__mark" aria-hidden="true">
@@ -51,7 +51,7 @@ export function PetSurface(props: {
         className={state === "thinking" ? "pet__btn pet__btn--busy" : "pet__btn"}
         {...drag}
         aria-label="Buka chat"
-        title="Klik: buka chat. Geser: pindah"
+        title="Klik untuk buka chat, geser untuk memindahkan"
       >
         <span className="pet__float">
           <svg
@@ -122,7 +122,7 @@ export function PetSurface(props: {
           className="icon-btn"
           onClick={onHide}
           aria-label="Sembunyikan"
-          title="Sembunyikan"
+          title="Sembunyikan (buka lagi dari ikon Wortel di tray)"
         >
           <IconEyeOff />
         </button>
@@ -131,7 +131,7 @@ export function PetSurface(props: {
           className="icon-btn icon-btn--danger"
           onClick={onQuit}
           aria-label="Keluar"
-          title="Keluar"
+          title="Keluar dari Wortel AI"
         >
           <IconPower />
         </button>

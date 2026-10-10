@@ -4,8 +4,8 @@
 // window drags from the header; all buttons opt out via base.css automatically.
 import type { JSX } from "react";
 import {
-  IconChat,
   IconEyeOff,
+  IconMinimize,
   IconPower,
   IconSliders,
 } from "../ui/Icon";
@@ -69,17 +69,17 @@ export function ChatHeader({
           type="button"
           className="icon-btn"
           onClick={onPet}
-          aria-label="Mode pet"
-          title="Mode pet"
+          aria-label="Kecilkan jadi wortel"
+          title="Kecilkan jadi wortel"
         >
-          <IconChat size={15} />
+          <IconMinimize size={15} />
         </button>
         <button
           type="button"
           className="icon-btn"
           onClick={onHide}
           aria-label="Sembunyikan"
-          title="Sembunyikan"
+          title="Sembunyikan (buka lagi dari ikon Wortel di tray)"
         >
           <IconEyeOff size={15} />
         </button>
@@ -88,7 +88,7 @@ export function ChatHeader({
           className="icon-btn icon-btn--danger"
           onClick={onQuit}
           aria-label="Keluar"
-          title="Keluar"
+          title="Keluar dari Wortel AI"
         >
           <IconPower size={15} />
         </button>

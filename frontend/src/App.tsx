@@ -133,7 +133,7 @@ function App() {
             if (e.shiftKey) mods.push('Shift');
             if (e.metaKey) mods.push('Win');
             if (mods.length === 0) {
-                setShortcutErr('Shortcut butuh minimal satu modifier (Ctrl/Alt/Shift/Win)');
+                setShortcutErr('Pakai minimal satu tombol Ctrl, Alt, Shift, atau Win.');
                 return;
             }
             setCapturing(false);

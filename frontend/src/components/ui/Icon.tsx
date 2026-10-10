@@ -27,12 +27,6 @@ function Svg({ size = 16, children, ...rest }: IconProps) {
   );
 }
 
-export const IconChat = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M20.5 12.2c0 3.9-3.8 7-8.5 7a9.6 9.6 0 0 1-2.6-.35L4.6 20.2l1.2-3.4A6.6 6.6 0 0 1 3.5 12.2c0-3.9 3.8-7 8.5-7s8.5 3.1 8.5 7Z" />
-  </Svg>
-);
-
 export const IconSliders = (p: IconProps) => (
   <Svg {...p}>
     <path d="M5 20v-6M5 10V4M12 20v-9M12 7V4M19 20v-3M19 13V4" />
@@ -148,9 +142,13 @@ export const IconExternal = (p: IconProps) => (
   </Svg>
 );
 
-export const IconSparkle = (p: IconProps) => (
+/* Two arrows pointing inward: shrink the panel back to the pet. */
+export const IconMinimize = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M12 3.5 13.9 9 19.5 11 13.9 13 12 18.5 10.1 13 4.5 11 10.1 9 12 3.5Z" />
+    <path d="M4.5 14H10v5.5" />
+    <path d="M19.5 10H14V4.5" />
+    <path d="M10 14 4 20" />
+    <path d="M14 10l6-6" />
   </Svg>
 );
 
