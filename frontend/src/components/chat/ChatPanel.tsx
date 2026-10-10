@@ -1,8 +1,20 @@
+// ChatPanel owns #chat-main: conv-bar, list, error, composer, footer.
+// Invariants: prop interface frozen; draft clears only on success (submit);
+// error never clears draft. Rename Escape cancels; no window-level Escape.
 import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { JSX, KeyboardEvent, ReactNode } from "react";
 import type { ChatMessage, ChatStatus } from "../../types/chat";
 import type { ConversationItem } from "../../hooks/useChat";
 import { SafeMarkdown } from "./SafeMarkdown";
+import {
+  IconAlert,
+  IconArrowUp,
+  IconPencil,
+  IconPlus,
+  IconSparkle,
+  IconStop,
+  IconTrash,
+} from "../ui/Icon";
 
 interface Props {
   messages: ChatMessage[];
@@ -20,9 +32,9 @@ interface Props {
   onDelete: (id: string) => void;
   draft: string;
   onDraftChange: (v: string) => void;
-  // Header owns the picker (provider state lives in useProviders); the panel
-  // just places it in the footer row beside the status indicator.
   modelPicker: ReactNode;
+  onOpenSettings: () => void;
+  hasProvider: boolean;
 }
 
 function statusLabel(s: ChatStatus): string {
@@ -42,6 +54,13 @@ function statusLabel(s: ChatStatus): string {
   }
 }
 
+function statusDot(s: ChatStatus): string {
+  if (s === "sending" || s === "streaming") return "status-dot status-dot--busy";
+  if (s === "error") return "status-dot status-dot--error";
+  if (s === "complete") return "status-dot status-dot--ok";
+  return "status-dot";
+}
+
 export function ChatPanel({
   messages,
   status,
@@ -59,15 +78,22 @@ export function ChatPanel({
   draft,
   onDraftChange,
   modelPicker,
-}: Props) {
+  onOpenSettings,
+  hasProvider,
+}: Props): JSX.Element {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
+
+  useEffect(() => {
+    composerRef.current?.focus();
+  }, []);
 
   const submit = () => {
     if (!draft.trim() || busy) return;
@@ -88,14 +114,20 @@ export function ChatPanel({
     setRenaming(null);
   };
 
+  const cur = conversations.find((c) => c.id === conversationId);
+  const curTitle = cur?.title || conversationId.slice(0, 8);
+  const label = statusLabel(status);
+
   return (
     <div id="chat-main">
       <div id="conv-bar">
         <select
           id="conv-select"
+          className="select"
           value={conversationId}
           onChange={(e) => onSwitch(e.target.value)}
           title="Pilih percakapan"
+          aria-label="Pilih percakapan"
           disabled={busy}
         >
           {/* A freshly created conversation has an id that is not in the list
@@ -111,82 +143,134 @@ export function ChatPanel({
             </option>
           ))}
         </select>
-        <button onClick={onNew} title="Percakapan baru" disabled={busy}>
-          +
+        <button type="button" className="icon-btn" onClick={onNew} title="Percakapan baru" aria-label="Percakapan baru" disabled={busy}>
+          <IconPlus size={15} />
         </button>
         <button
+          type="button"
+          className="icon-btn"
           onClick={() => {
-            const cur = conversations.find((c) => c.id === conversationId);
             setRenameDraft(cur?.title ?? "");
             setRenaming(conversationId);
           }}
           title="Ubah judul"
+          aria-label="Ubah judul"
           disabled={busy || !conversationId}
         >
-          ✎
+          <IconPencil size={15} />
         </button>
         <button
+          type="button"
+          className="icon-btn icon-btn--danger"
           onClick={() => {
-            if (window.confirm("Hapus percakapan ini?")) onDelete(conversationId);
+            if (window.confirm(`Hapus percakapan "${curTitle}"?`)) onDelete(conversationId);
           }}
           title="Hapus percakapan"
+          aria-label="Hapus percakapan"
           disabled={busy || !conversationId}
         >
-          🗑
+          <IconTrash size={15} />
         </button>
       </div>
       {renaming && (
         <div id="conv-rename">
           <input
+            className="input"
             value={renameDraft}
             onChange={(e) => setRenameDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setRenaming(null);
+              if (e.key === "Enter") commitRename(renaming);
+            }}
             placeholder="Judul baru…"
             maxLength={120}
+            aria-label="Judul baru"
           />
-          <button onClick={() => commitRename(renaming)}>OK</button>
-          <button onClick={() => setRenaming(null)}>Batal</button>
+          <button type="button" className="btn btn--sm" onClick={() => commitRename(renaming)}>
+            OK
+          </button>
+          <button type="button" className="btn btn--sm" onClick={() => setRenaming(null)}>
+            Batal
+          </button>
         </div>
       )}
       <div id="chat-list" ref={listRef}>
-        {messages.length === 0 && (
-          <p id="chat-empty">Halo! Tambahkan provider di Settings, lalu kirim pesan.</p>
+        {messages.length === 0 && !hasProvider && (
+          <div className="chat-empty">
+            <IconSparkle size={18} />
+            <p className="chat-empty__heading">Belum ada provider</p>
+            <p className="chat-empty__hint">
+              Tambahkan base URL, daftar model, dan API key lebih dulu. Chat aktif
+              setelah ada provider yang dipilih.
+            </p>
+            <button type="button" className="btn btn--primary" onClick={onOpenSettings}>
+              Buka Pengaturan
+            </button>
+          </div>
+        )}
+        {messages.length === 0 && hasProvider && (
+          <div className="chat-empty">
+            <IconSparkle size={18} />
+            <p className="chat-empty__heading">Belum ada percakapan</p>
+            <p className="chat-empty__hint">Mulai dengan satu pertanyaan singkat.</p>
+            <p className="chat-empty__example-label">Contoh prompt</p>
+            <p className="chat-empty__example">Ringkas catatan ini jadi 3 poin.</p>
+          </div>
         )}
         {messages.map((m) => (
           <div key={m.id} className={`msg msg-${m.role}`}>
             <div className="msg-body">
               {m.role === "assistant" ? <SafeMarkdown text={m.content} /> : m.content}
             </div>
-            {statusLabel(m.status) && <div className="msg-status">{statusLabel(m.status)}</div>}
+            {statusLabel(m.status) ? (
+              <div className="msg-status">{statusLabel(m.status)}</div>
+            ) : (
+              <div className="msg-status" aria-hidden="true" />
+            )}
           </div>
         ))}
       </div>
       {error && (
-        <div id="chat-error" role="alert">
-          <span>{error}</span>
-          <button onClick={onRetry}>Coba lagi</button>
+        <div id="chat-error" className="banner banner--error" role="alert">
+          <IconAlert size={15} />
+          <span className="banner__text">{error}</span>
+          <button type="button" className="btn btn--sm" onClick={onRetry}>
+            Coba lagi
+          </button>
         </div>
       )}
       <div id="chat-composer">
         <textarea
+          ref={composerRef}
+          className="textarea"
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={keyDown}
           placeholder="Tulis pesan… (Enter kirim, Shift+Enter baris baru)"
           rows={2}
+          aria-label="Tulis pesan"
         />
-        {busy ? (
-          <button onClick={onCancel} id="btn-stop">
-            Stop
-          </button>
-        ) : (
-          <button onClick={submit} id="btn-send" disabled={!draft.trim()}>
-            Kirim
-          </button>
-        )}
+        <button
+          type="button"
+          id="btn-send"
+          className={busy ? "btn btn--icon btn--danger" : "btn btn--icon btn--primary"}
+          onClick={() => {
+            if (busy) onCancel();
+            else submit();
+          }}
+          disabled={!draft.trim() && !busy}
+          aria-label={busy ? "Hentikan" : "Kirim pesan"}
+          title={busy ? "Hentikan" : "Kirim pesan"}
+        >
+          {busy ? <IconStop size={14} /> : <IconArrowUp size={14} />}
+        </button>
       </div>
       <div id="chat-footer">
         <div id="chat-footer-model">{modelPicker}</div>
-        <span id="chat-state">status: {status}</span>
+        <span id="chat-state">
+          <span className={statusDot(status)} aria-hidden="true" />
+          {label && <span className="chat-state__label">{label}</span>}
+        </span>
       </div>
     </div>
   );

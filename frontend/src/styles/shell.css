@@ -1,0 +1,90 @@
+/* Hallmark · component: app shell · genre: modern-minimal · theme: Iris
+ * The #chat panel is the whole 400x600 window: one rounded, opaque surface.
+ * States styled: default · hover · focus-visible · active · disabled · loading.
+ * contrast: pass (46-50)
+ *
+ * Invariant: nothing here may paint an opaque background outside #chat, and
+ * only #chat-header declares the drag region.
+ */
+
+/* The window is exactly the panel, so the panel must fill it and clip its own
+   rounded corners — otherwise a child's background squares off the corner. */
+#chat {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--color-paper);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-3);
+    color: var(--color-ink);
+}
+
+/* Settings mode reuses the #chat shell, so the shared panel rules above apply
+   to both modes. #chat-main / #chat-list sizing lives in chat.css because it
+   belongs to the chat surface. */
+
+/* ---- shared surface header (chat + settings) ---- */
+#chat-header,
+#settings-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+    min-height: 42px;
+    cursor: move;
+    border-bottom: 1px solid var(--color-rule);
+}
+
+#chat-header .brand,
+#settings-header .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    flex: 1;
+}
+
+#chat-header .brand__mark,
+#settings-header .brand__mark {
+    flex-shrink: 0;
+    display: block;
+}
+
+#chat-header .brand__name,
+#settings-header .brand__name {
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    font-weight: 600;
+    font-style: normal;
+    color: var(--color-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+/* A version is metadata, not a claim: mono keeps it from reading as a wordmark. */
+#chat-header .brand__version,
+#settings-header .brand__version {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--color-ink-3);
+    background: var(--color-well);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    padding: 1px 6px;
+    white-space: nowrap;
+}
+
+#chat-header .header-actions,
+#settings-header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}

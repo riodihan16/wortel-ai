@@ -1,5 +1,10 @@
+// ModelPicker owns the active-model switcher in #chat-footer.
+// Renders null when no provider/models. Dropdown opens upward (footer is
+// bottom row). Escape + click-outside close; no global handlers.
 import { useEffect, useRef, useState } from "react";
+import type { JSX } from "react";
 import type { ProviderProfile } from "../../types/provider";
+import { IconCheck, IconChevronDown, IconGlobe } from "../ui/Icon";
 
 interface Props {
   provider: ProviderProfile | null;
@@ -7,11 +12,7 @@ interface Props {
   onModelChange: (id: string, model: string) => void;
 }
 
-// ModelPicker is the chat-header control for switching the active model.
-// Renders nothing when no provider is active or it has a single model.
-// The dropdown is a button + list, not a native <select>, so it fits the
-// header and stays clickable inside the drag region.
-export function ModelPicker({ provider, busy, onModelChange }: Props) {
+export function ModelPicker({ provider, busy, onModelChange }: Props): JSX.Element | null {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +30,7 @@ export function ModelPicker({ provider, busy, onModelChange }: Props) {
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onEsc);
     };
-  }, [open]);
+  }, [open ]);
 
   if (!provider || provider.models.length === 0) return null;
 
@@ -38,33 +39,43 @@ export function ModelPicker({ provider, busy, onModelChange }: Props) {
   const activeLabel = (activeEntry && activeEntry.alias) || active;
 
   return (
-    <div id="model-picker" ref={boxRef}>
+    <div className="model-picker" ref={boxRef}>
       <button
         type="button"
-        id="btn-model"
+        className="btn model-trigger"
         onClick={() => setOpen((v) => !v)}
         disabled={busy}
+        aria-haspopup="menu"
+        aria-expanded={open}
         title={`Provider: ${provider.name}`}
       >
-        {provider.models.length > 1 ? `Model: ${activeLabel} ▾` : `Model: ${activeLabel}`}
+        <IconGlobe size={14} />
+        <span className="model-trigger__label">{activeLabel}</span>
+        <IconChevronDown size={14} />
       </button>
       {open && (
-        <div id="model-menu" role="menu">
-          {provider.models.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              role="menuitemradio"
-              aria-checked={m.id === active}
-              className={`model-option${m.id === active ? " model-option-on" : ""}`}
-              onClick={() => {
-                setOpen(false);
-                if (m.id !== active) onModelChange(provider.id, m.id);
-              }}
-            >
-              {m.alias || m.id}
-            </button>
-          ))}
+        <div className="model-menu" role="menu">
+          {provider.models.map((m) => {
+            const isOn = m.id === active;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={isOn}
+                className={isOn ? "model-option model-option--on" : "model-option"}
+                title={m.id}
+                disabled={busy}
+                onClick={() => {
+                  setOpen(false);
+                  if (!isOn) onModelChange(provider.id, m.id);
+                }}
+              >
+                <span className="model-option__label">{m.alias || m.id}</span>
+                {isOn && <IconCheck size={14} />}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

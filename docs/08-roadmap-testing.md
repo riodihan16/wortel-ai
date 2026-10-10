@@ -248,7 +248,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - **SHA-256:** `8293dcc63700f0b3dc1fbba793abe986350ac90de5cae22c0f2eed2561b2cbfa`
 - **Perintah build:** `wails build -ldflags "-X main.Version=0.1.0"` dari clean checkout (setelah `rm -rf frontend/dist build/bin`).
 - **Verifikasi:** versi `0.1.0` tertanam di binary (mekanisme `-X main.Version` dibuktikan balik lewat probe `go run`); aplikasi start dan tercatat `[WebView2] Environment created successfully`. Migrasi DB user nyata v2→v3 dan v3→v4 terverifikasi (kolom `models`/`active_model`; migrasi v4 mengubah daftar model string menjadi entri `{id,alias}`).
-- **Catatan:** hash diperbarui pada M6 hardening (ADR-027 alias + ADR-035 regression suite frontend) setelah build ulang dari clean checkout.
+- **Catatan:** hash diperbarui pada M6 hardening (ADR-045 alias + ADR-035 regression suite frontend) setelah build ulang dari clean checkout.
 
 ### Known issues (0.1.0)
 

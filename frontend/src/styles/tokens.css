@@ -1,0 +1,133 @@
+/* Hallmark · component: design tokens · genre: modern-minimal · theme: Iris (custom)
+ * contrast: pass — every pair verified in OKLCH->sRGB, WCAG AA (4.5 text / 3.0 UI)
+ * Iris = cool neutral surfaces (hue 280) + one indigo accent. Nothing here is
+ * inline-able: components must reference these names, never raw colours.
+ */
+
+:root {
+    /* ---- surface ramp (dark is the default) ---- */
+    --color-paper: oklch(17% 0.014 280);
+    --color-paper-2: oklch(22.8% 0.016 280);
+    --color-paper-3: oklch(27.8% 0.018 280);
+    --color-well: oklch(13.2% 0.014 280);
+
+    /* ---- ink ramp ----
+       Ratios are the worst case across every surface the token is used on
+       (paper / paper-2 / paper-3 / well), not just paper:
+       ink 12.7 · ink-2 6.1 · ink-3 4.5 — all >= WCAG AA (4.5:1). */
+    --color-ink: oklch(95% 0.006 280);
+    --color-ink-2: oklch(73% 0.012 280);
+    --color-ink-3: oklch(66% 0.012 280);
+
+    /* rule = hairline separator (decorative); rule-strong = control boundary.
+       rule-strong is only ever drawn on paper/paper-2/well, never on paper-3,
+       and clears 3:1 (WCAG 1.4.11) on each of them. */
+    --color-rule: oklch(31% 0.018 280);
+    --color-rule-strong: oklch(56% 0.022 280); /* >=3:1 on all four surfaces */
+
+    --color-accent: oklch(70% 0.15 280);
+    --color-accent-soft: oklch(27.5% 0.055 280);
+    --color-accent-ink: oklch(17% 0.014 280);
+
+    --color-danger: oklch(66% 0.19 22);
+    --color-danger-soft: oklch(26.5% 0.062 22);
+    --color-success: oklch(76% 0.145 155);
+    --color-success-soft: oklch(25% 0.05 155);
+
+    /* brand marks only: the carrot character, never UI chrome */
+    --color-brand: oklch(74% 0.16 55);
+    --color-brand-leaf: oklch(72% 0.13 145);
+
+    --color-scrim: oklch(0% 0 0 / 0.6);
+
+    color-scheme: dark;
+
+    /* ---- geometry ---- */
+    --radius-xs: 6px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+    --radius-pill: 999px;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-7: 32px;
+
+    /* ---- type (every size scales with the accessibility setting) ---- */
+    --font-scale: 1;
+    --text-2xs: calc(10px * var(--font-scale));
+    --text-xs: calc(11px * var(--font-scale));
+    --text-sm: calc(12px * var(--font-scale));
+    --text-base: calc(13px * var(--font-scale));
+    --text-md: calc(14px * var(--font-scale));
+    --text-lg: calc(16px * var(--font-scale));
+    --text-xl: calc(20px * var(--font-scale));
+
+    --leading-tight: 1.25;
+    --leading-snug: 1.4;
+    --leading-normal: 1.6;
+
+    --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+    /* ---- motion ---- */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-fast: 110ms;
+    --dur: 170ms;
+    --dur-slow: 260ms;
+
+    /* ---- elevation (layered, restrained) ---- */
+    --shadow-1: 0 1px 2px oklch(0% 0 0 / 0.28);
+    --shadow-2: 0 4px 12px oklch(0% 0 0 / 0.34);
+    --shadow-3: 0 12px 32px oklch(0% 0 0 / 0.44);
+
+    /* ---- stacking ---- */
+    --z-menu: 40;
+    --z-modal: 50;
+    --z-toast: 60;
+
+    --focus-ring: 2px solid var(--color-accent);
+    --focus-offset: 2px;
+}
+
+:root[data-theme="light"] {
+    --color-paper: oklch(98.2% 0.004 280);
+    --color-paper-2: oklch(95.8% 0.007 280);
+    --color-paper-3: oklch(92.5% 0.01 280);
+    --color-well: oklch(99.5% 0.002 280);
+
+    --color-ink: oklch(20.5% 0.014 280);
+    --color-ink-2: oklch(45.5% 0.016 280);
+    /* 4.5:1 on every surface including the paper-3 hover ramp */
+    --color-ink-3: oklch(51.5% 0.014 280);
+
+    --color-rule: oklch(89.5% 0.008 280);
+    /* >=3:1 on all four surfaces */
+    --color-rule-strong: oklch(61% 0.016 280);
+
+    --color-accent: oklch(51% 0.175 280);
+    --color-accent-soft: oklch(94% 0.03 280);
+    --color-accent-ink: oklch(98.2% 0.004 280);
+
+    --color-danger: oklch(52% 0.19 22);
+    --color-danger-soft: oklch(94.5% 0.03 22);
+    --color-success: oklch(50% 0.12 155);
+    --color-success-soft: oklch(94.5% 0.03 155);
+
+    --color-brand: oklch(66% 0.165 55);
+    --color-brand-leaf: oklch(58% 0.14 145);
+
+    --color-scrim: oklch(20% 0.014 280 / 0.35);
+
+    --shadow-1: 0 1px 2px oklch(20% 0.014 280 / 0.08);
+    --shadow-2: 0 4px 12px oklch(20% 0.014 280 / 0.1);
+    --shadow-3: 0 12px 32px oklch(20% 0.014 280 / 0.14);
+
+    color-scheme: light;
+}

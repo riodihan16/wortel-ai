@@ -12,7 +12,11 @@ Karakter 2D kecil dengan tampilan modern, hangat, dan tidak terlalu ramai. UI di
 
 Elemen:
 - Karakter 2D.
-- Indikator status yang sangat kecil bila diperlukan.
+- Indikator status pip 14 px di sudut kanan bawah karakter, selalu tampak
+  (ADR-044). Bentuk membedakan state, jadi warna bukan satu-satunya pembawa
+  makna (WCAG 1.4.1): cincin kosong = `idle`, cakram terisi berdenyut =
+  `thinking`, cakram + ikon seru = `error`. Teks status tetap tersedia bagi
+  screen reader lewat `.sr-only`.
 - Tooltip atau hint singkat ketika hover, bukan dialog mengganggu.
 - Context menu sederhana: Open chat, Hide, Settings, Exit (menu dapat ditunda sampai tray tersedia).
 
@@ -24,7 +28,8 @@ Interaksi:
 - Shortcut global: toggle chat (P1).
 
 Batas desain:
-- Tidak ada teks permanen yang menutupi desktop.
+- Tidak ada teks permanen yang menutupi desktop. Pip 14 px bukan teks dan
+  tidak pernah menutupi konten pengguna.
 - Tidak memutar suara.
 - Tidak menunjukkan “thinking” terus-menerus saat idle.
 - Status idle tidak memerlukan request jaringan.
@@ -53,7 +58,8 @@ Kelompok:
 - Appearance.
 - Behavior/keyboard shortcut.
 - Data & privacy.
-- About/version.
+- About/version (implementasi: section `Tentang` menampilkan versi build,
+  lisensi MIT, atribusi font Geist/Geist Mono, dan pernyataan lokasi data).
 
 Provider form minimum:
 - Display name.
@@ -72,14 +78,21 @@ Jangan menampilkan API key lama penuh setelah settings dibuka. Tampilkan “cred
 
 | State | Trigger | Visual yang disarankan |
 |---|---|---|
-| `idle` | Tidak ada interaksi/request | Gerakan kecil berkala atau pose statis. |
+| `idle` | Tidak ada interaksi/request | Gerakan kecil berkala atau pose statis; pip cincin kosong. |
 | `hover` | Pointer berada di atas karakter | Reaksi singkat, bukan animasi panjang. |
-| `thinking` | Request diterima dan menunggu token | Pose/indikator ringan; mulai hanya saat request. |
+| `thinking` | Request diterima dan menunggu token | Pose/indikator ringan; mulai hanya saat request; pip cakram aksen berdenyut. |
 | `speaking` | Delta teks masuk | Animasi sangat sederhana atau indikator pulse terbatas. |
-| `error` | Request gagal | Ekspresi/indikator error; jangan hanya mengandalkan warna. |
+| `error` | Request gagal | Ekspresi/indikator error; jangan hanya mengandalkan warna — pip error memakai cakram + ikon seru. |
 | `offline` | Provider belum dikonfigurasi atau tes koneksi gagal | Hint saat dibuka, bukan popup berulang. |
 
 Jangan menjanjikan bahwa state karakter mencerminkan “emosi AI” secara nyata. Ini hanya status UI.
+
+Pemetaan pip di kode: `PetSurface.petStatus()` memetakan `sending`/`streaming` →
+`thinking`, `error` → `error`, selain itu → `idle`. `speaking` belum dibedakan
+dari `thinking` karena delta token dan fase tunggu memakai status chat yang sama.
+Saat `prefers-reduced-motion: reduce`, animasi denyut berhenti di frame akhirnya
+(`animation-iteration-count: 1` di `base.css`), sehingga cakram tetap terlihat
+tanpa gerak.
 
 ## 4. Ukuran dan jendela
 
@@ -129,6 +142,13 @@ Tampilkan sapaan pendek dan satu contoh prompt, tetapi jangan mengirimnya otomat
 
 Tampilkan instruksi untuk menambahkan endpoint/model/API key. Jangan tampilkan chat seolah-olah sudah siap.
 
+Implementasi: `ChatPanel` bercabang pada prop `hasProvider` (dihitung dari
+`provs.activeProvider`). Tanpa provider aktif, empty state menampilkan heading
+“Belum ada provider”, langkah konkret, dan tombol `Buka Pengaturan`; contoh
+prompt tidak ditampilkan karena belum ada yang bisa menjawab. Contoh prompt
+hanya muncul saat provider sudah aktif, sehingga tidak menjanjikan hal yang
+belum bisa dilakukan.
+
 ### Loading
 
 Tampilkan state yang tenang. Hindari spinner besar atau progress persentase palsu untuk request yang durasinya tidak diketahui.
@@ -141,18 +161,56 @@ Sertakan:
 - Langkah berikutnya yang spesifik.
 - Retry manual bila masuk akal.
 
-## 9. Draft design tokens
+## 9. Design tokens final
 
-Bukan keputusan final; sesuaikan setelah tampilan awal dibuat.
+Nilai di bawah adalah implementasi nyata di `frontend/src/styles/tokens.css`
+(ADR-043). Semua warna OKLCH; komponen **wajib** memakai nama token, bukan nilai
+mentah. Skala mengikuti kelipatan 4 px.
 
-- Radius panel: 12–16 px.
-- Radius bubble: 10–14 px.
-- Spacing utama: kelipatan 4/8 px.
-- Font UI: system UI stack untuk mengurangi kebutuhan bundling font.
-- Background dark: charcoal netral; hindari hitam murni pada semua permukaan.
-- Accent: indigo/cyan.
-- Border: tipis dan kontras rendah.
-- Shadow: sederhana, tanpa blur berlapis berlebihan.
+**Radius:** `--radius-xs` 6 · `--radius-sm` 8 · `--radius-md` 12 · `--radius-lg` 16 ·
+`--radius-xl` 22 · `--radius-pill` 999 (panel 16, bubble 12 — sesuai rentang draft).
+
+**Spacing:** `--space-1` 4 · `--space-2` 8 · `--space-3` 12 · `--space-4` 16 ·
+`--space-5` 20 · `--space-6` 24 · `--space-7` 32.
+
+**Tipografi:** dua famili variabel yang dibundel lokal (tanpa CDN, offline-safe):
+`--font-sans` = Geist (100–900), `--font-mono` = Geist Mono. Ukuran memakai
+`calc(<px> * var(--font-scale))` sehingga setelan ukuran teks menskalakan seluruh
+UI termasuk markdown. Draft sebelumnya menyarankan system UI stack untuk
+menghindari bundling font; keputusan berubah demi konsistensi lintas mesin —
+biaya file woff2 variabel (latin + latin-ext) dinilai dapat diterima.
+
+**Permukaan (dark = default, `:root[data-theme="light"]` override):** ramp
+`--color-paper` (permukaan utama) · `--color-paper-2` (kartu/isi) · `--color-paper-3`
+(hover) · `--color-well` (input/kolom dalam). Bukan hitam murni — hue netral dingin
+(280) pada lightness 17%. Tema terang memakai ramp terang dengan hue sama.
+
+**Tinta:** `--color-ink` (utama) · `--color-ink-2` (sekunder) · `--color-ink-3`
+(metadata). Kontras pada `--color-paper` berturut-turut **16.5:1, 8.0:1, 6.2:1**
+(dark) dan 17.0:1, 6.9:1, 5.3:1 (light) — lolos WCAG AA. Rasio **terburuk** ada
+di permukaan `--color-paper-3`, bukan `--color-paper`: 12.7 / 6.1 / 4.5 (dark) dan
+14.4 / 5.8 / 4.5 (light). `--color-ink-3` karena itu hanya boleh dipakai pada
+permukaan tempat token itu masih ≥ 4.5:1.
+
+**Border:** `--color-rule` (garis pemisah halus) · `--color-rule-strong` (batas
+kontrol, terukur 4.1:1 pada `--color-paper` dark dan 3.6:1 light — memenuhi 3:1
+untuk komponen UI, WCAG 1.4.11).
+
+**Accent:** indigo tunggal — `--color-accent`, dengan `--color-accent-soft` (latar
+pill/banner) dan `--color-accent-ink` (teks di atas accent).
+
+**Semantik:** `--color-danger`/`--color-danger-soft`, `--color-success`/`--color-success-soft`.
+**Brand:** `--color-brand` (oranye wortel) + `--color-brand-leaf` — hanya untuk
+karakter, tidak pernah untuk chrome UI.
+
+**Shadow:** tiga tingkat (`--shadow-1/2/3`), blur tunggal per tingkat, tanpa
+tumpukan berlapis.
+
+**Motion:** `--dur-fast` 110 ms · `--dur` 170 ms · `--dur-slow` 260 ms, dengan
+`--ease-out` / `--ease-in-out`; `prefers-reduced-motion` mematikan semuanya.
+
+**Fokus:** satu perlakuan global `--focus-ring` (2 px accent, offset 2 px) pada
+`:focus-visible`.
 
 ## 10. Uji UX sebelum rilis
 

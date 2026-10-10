@@ -1,6 +1,20 @@
+// SettingsPanel owns the provider list, provider add/edit form, appearance,
+// autostart and global-shortcut settings. Behaviour here is frozen: only
+// markup and class names may change, never the logic below (EMPTY shape,
+// toSave, pick/addModel/renameAlias/removeModel/submit, validation messages,
+// reset-on-success, and the !editing reset effect are verbatim).
 import { useEffect, useState } from "react";
 import { app } from "../../../wailsjs/go/models";
 import type { ModelEntry, ProviderProfile, TestResult } from "../../types/provider";
+import {
+  IconAlert,
+  IconCheck,
+  IconChevronDown,
+  IconEyeOff,
+  IconKey,
+  IconX,
+} from "../ui/Icon";
+import { Segmented } from "../ui/Segmented";
 
 type SaveInput = app.SaveInput;
 
@@ -27,6 +41,7 @@ interface Props {
   appearance: app.Appearance;
   appearanceErr: string;
   onAppearanceChange: (next: app.Appearance) => void;
+  version: string;
 }
 
 const EMPTY = { name: "", baseURL: "https://", models: [] as ModelEntry[], activeModel: "", apiKey: "" };
@@ -133,139 +148,225 @@ export function SettingsPanel(p: Props) {
   };
 
   return (
-    <div id="settings">
-      <div id="settings-header">
-        <span>Settings — Provider</span>
-        <button onClick={p.onClose}>Kembali</button>
+    <>
+      <div id="settings-header" className="drag-handle">
+        <span className="brand">
+          <span className="brand__name">Pengaturan</span>
+        </span>
+        <span className="header-actions">
+          <button type="button" className="btn btn--sm settings-back" onClick={p.onClose}>
+            <IconChevronDown size={14} className="settings-back__icon" aria-hidden="true" />
+            Kembali
+          </button>
+        </span>
       </div>
-      {p.listError && <div id="settings-error" role="alert">{p.listError}</div>}
-      <div id="settings-general">
-        <h4>Umum</h4>
-        <label id="settings-autostart" className="checkrow">
-          <input type="checkbox" checked={p.autostart} onChange={p.onToggleAutostart} />
-          Jalankan otomatis saat Windows menyala
-        </label>
-        {p.autostartErr && <div id="settings-general-error" role="alert">{p.autostartErr}</div>}
-        <div id="settings-hotkey">
-          <label id="settings-shortcut-enabled" className="checkrow">
-            <input type="checkbox" checked={p.shortcut.enabled} disabled={p.capturing}
-              onChange={(e) => p.onShortcutChange(new app.Shortcut({ enabled: e.target.checked, combo: p.shortcut.combo }))} />
-            Aktifkan shortcut buka chat
-          </label>
-          <div className="shortcut-row">
-            <span className={`hotkey-combo${p.capturing ? " hotkey-capturing" : ""}`}>
-              {p.capturing ? "Tekan kombinasi…" : p.shortcut.combo}
-            </span>
-            <button onClick={p.onCaptureToggle}>{p.capturing ? "Batal" : "Ubah"}</button>
-          </div>
-        </div>
-        {p.shortcutErr && <div id="settings-hotkey-error" role="alert">{p.shortcutErr}</div>}
-        {p.hotkeyErr && <div id="settings-hotkey-error" role="alert">{p.hotkeyErr}</div>}
-      </div>
-      <div id="settings-appearance">
-        <h4>Tampilan</h4>
-        <div className="appearance-row">
-          <span>Mode warna</span>
-          <div className="seg">
-            <button className={p.appearance.theme === 'dark' ? 'seg-on' : ''} onClick={() => p.onAppearanceChange(new app.Appearance({ theme: 'dark', fontScale: p.appearance.fontScale }))}>Gelap</button>
-            <button className={p.appearance.theme === 'light' ? 'seg-on' : ''} onClick={() => p.onAppearanceChange(new app.Appearance({ theme: 'light', fontScale: p.appearance.fontScale }))}>Terang</button>
-          </div>
-        </div>
-        <div className="appearance-row">
-          <span>Ukuran teks</span>
-          <div className="seg">
-            {([[0.9, 'Kecil'], [1, 'Sedang'], [1.2, 'Besar']] as const).map(([scale, label]) => (
-              <button key={label} className={p.appearance.fontScale === scale ? 'seg-on' : ''} onClick={() => p.onAppearanceChange(new app.Appearance({ theme: p.appearance.theme, fontScale: scale }))}>{label}</button>
-            ))}
-          </div>
-        </div>
-        {p.appearanceErr && <div id="settings-appearance-error" role="alert">{p.appearanceErr}</div>}
-      </div>
-      <div id="settings-list">
-        {p.providers.length === 0 && <p id="settings-empty">Belum ada provider. Tambahkan endpoint di bawah.</p>}
-        {p.providers.map((pr) => (
-          <div key={pr.id} className={`prov${p.activeId === pr.id ? " prov-active" : ""}`}>
-            <div className="prov-name">{pr.name} {p.activeId === pr.id ? "(aktif)" : ""}</div>
-            <div className="prov-meta">{pr.baseURL} · {pr.activeModel || pr.model} · {pr.models.length} model · {pr.hasCredential ? "key tersimpan" : "tanpa key"}</div>
-            <div className="prov-actions">
-              {p.activeId !== pr.id && <button onClick={() => p.onActivate(pr.id)}>Aktifkan</button>}
-              <button onClick={() => pick(pr.id)}>Ubah</button>
-              <button onClick={() => p.onDelete(pr.id)}>Hapus</button>
+      <div id="settings">
+        <section className="section" aria-label="Provider">
+          <h2 className="section__title">Provider</h2>
+          {p.listError && (
+            <div className="banner banner--error" role="alert">
+              <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
+              <span>{p.listError}</span>
             </div>
-          </div>
-        ))}
-      </div>
-      <div id="settings-form">
-        <h4>{editing ? "Ubah provider" : "Provider baru"}</h4>
-        <label>Nama<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Provider pribadi" /></label>
-        <label>Base URL<input value={form.baseURL} onChange={(e) => setForm({ ...form, baseURL: e.target.value })} placeholder="https://api.example.com/v1" inputMode="url" /></label>
-        <label>Model
-          <span className="model-add">
-            <input
-              value={modelDraft}
-              onChange={(e) => setModelDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addModel();
-                }
-              }}
-              placeholder="example-model"
-            />
-            <input
-              value={aliasDraft}
-              onChange={(e) => setAliasDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addModel();
-                }
-              }}
-              placeholder="Alias (opsional)"
-            />
-            <button type="button" onClick={addModel} disabled={!modelDraft.trim()}>Tambah</button>
-          </span>
-        </label>
-        {form.models.length > 0 && (
-          <div className="model-list">
-            {form.models.map((m) => (
-              <div key={m.id} className={`model-item${form.activeModel === m.id ? " model-active" : ""}`}>
-                <label className="model-pick" title="Pakai model ini untuk chat">
-                  <input
-                    type="radio"
-                    name={`active-${editing || "new"}`}
-                    checked={form.activeModel === m.id}
-                    onChange={() => setForm({ ...form, activeModel: m.id })}
-                  />
-                  <span>{m.alias ? `${m.alias} (${m.id})` : m.id}</span>
-                </label>
-                <input
-                  className="model-alias"
-                  value={m.alias}
-                  onChange={(e) => renameAlias(m.id, e.target.value)}
-                  placeholder="Alias"
-                  aria-label={`Alias untuk ${m.id}`}
-                />
-                <button type="button" onClick={() => removeModel(m.id)} title="Hapus model">✕</button>
+          )}
+          <div id="settings-list">
+            {p.providers.length === 0 && <p id="settings-empty">Belum ada provider. Tambahkan endpoint di bawah.</p>}
+            {p.providers.map((pr) => (
+              <div key={pr.id} className={p.activeId === pr.id ? "card card--active" : "card"}>
+                <div className="prov-head">
+                  <span className="prov-name" title={pr.name}>{pr.name}</span>
+                  {p.activeId === pr.id && <span className="prov-badge">Aktif</span>}
+                </div>
+                <div className="prov-meta">{pr.baseURL} · {pr.activeModel || pr.model} · {pr.models.length} model · {pr.hasCredential ? "key tersimpan" : "tanpa key"}</div>
+                <div className="prov-actions">
+                  {p.activeId !== pr.id && <button type="button" className="btn btn--sm" onClick={() => p.onActivate(pr.id)}>Aktifkan</button>}
+                  <button type="button" className="btn btn--sm" onClick={() => pick(pr.id)}>Ubah</button>
+                  <button type="button" className="btn btn--sm btn--danger" onClick={() => p.onDelete(pr.id)}>Hapus</button>
+                </div>
               </div>
             ))}
           </div>
-        )}
-        <div className="field-hint">Radio memilih model aktif untuk chat.</div>
-        <label>API key {editing && "(kosong = pakai tersimpan)"}
-          <span className="keyrow">
-            <input type={showKey ? "text" : "password"} value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} placeholder={editing ? "•••••• (tersimpan)" : "sk-..."} autoComplete="off" />
-            <button type="button" onClick={() => setShowKey(!showKey)}>{showKey ? "Hide" : "Show"}</button>
-          </span>
-        </label>
-        {formError && <div id="settings-form-error" role="alert">{formError}</div>}
-        {p.test && <div id="settings-test" role="status">{p.test.ok ? "OK: " : ""}{p.test.message}{p.test.insecure ? " (HTTP tanpa TLS!)" : ""}</div>}
-        <div id="settings-form-actions">
-          <button onClick={submit}>Simpan</button>
-          <button onClick={() => p.onTest(toSave(form, editing))} disabled={p.testing}>{p.testing ? "Mengetes…" : "Test connection"}</button>
-          {editing && <button onClick={() => { setEditing(""); setForm(EMPTY); }}>Batal</button>}
-        </div>
+          <div id="settings-form">
+            <h3 className="settings-form-title">{editing ? "Ubah provider" : "Provider baru"}</h3>
+            <div className="field">
+              <label className="field__label" htmlFor="settings-name">Nama</label>
+              <input id="settings-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Provider pribadi" />
+            </div>
+            <div className="field">
+              <label className="field__label" htmlFor="settings-baseurl">Base URL</label>
+              <input id="settings-baseurl" className="input" value={form.baseURL} onChange={(e) => setForm({ ...form, baseURL: e.target.value })} placeholder="https://api.example.com/v1" inputMode="url" />
+            </div>
+            <div className="field">
+              <span className="field__label" id="settings-model-label">Model</span>
+              <span className="model-add-row">
+                <input
+                  className="input"
+                  aria-labelledby="settings-model-label"
+                  value={modelDraft}
+                  onChange={(e) => setModelDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addModel();
+                    }
+                  }}
+                  placeholder="example-model"
+                />
+                <input
+                  className="input"
+                  aria-label="Alias model baru"
+                  value={aliasDraft}
+                  onChange={(e) => setAliasDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addModel();
+                    }
+                  }}
+                  placeholder="Alias (opsional)"
+                />
+                <button type="button" className="btn" onClick={addModel} disabled={!modelDraft.trim()}>Tambah</button>
+              </span>
+            </div>
+            {form.models.length > 0 && (
+              <div className="model-list">
+                {form.models.map((m) => (
+                  <div key={m.id} className={form.activeModel === m.id ? "model-item model-item--active" : "model-item"}>
+                    <label className="model-pick" title="Pakai model ini untuk chat">
+                      <input
+                        type="radio"
+                        name={`active-${editing || "new"}`}
+                        checked={form.activeModel === m.id}
+                        onChange={() => setForm({ ...form, activeModel: m.id })}
+                      />
+                      <span className="model-pick__label" title={m.id}>{m.alias ? `${m.alias} (${m.id})` : m.id}</span>
+                    </label>
+                    <input
+                      className="input model-alias"
+                      value={m.alias}
+                      onChange={(e) => renameAlias(m.id, e.target.value)}
+                      placeholder="Alias"
+                      aria-label={`Alias untuk ${m.id}`}
+                    />
+                    <button type="button" className="icon-btn icon-btn--danger" onClick={() => removeModel(m.id)} title="Hapus model" aria-label={`Hapus model ${m.id}`}>
+                      <IconX size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="field__hint field-hint">Radio memilih model aktif untuk chat.</div>
+            <div className="field">
+              <label className="field__label" htmlFor="settings-apikey">API key {editing && "(kosong = pakai tersimpan)"}</label>
+              <span className="settings-keyrow">
+                <input id="settings-apikey" className="input" type={showKey ? "text" : "password"} value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} placeholder={editing ? "•••••• (tersimpan)" : "sk-..."} autoComplete="off" />
+                <button
+                  type="button"
+                  className="btn btn--sm"
+                  onClick={() => setShowKey(!showKey)}
+                  title={showKey ? "Sembunyikan kunci" : "Tampilkan kunci"}
+                  aria-label={showKey ? "Sembunyikan API key" : "Tampilkan API key"}
+                >
+                  {showKey ? <IconEyeOff size={14} aria-hidden="true" /> : <IconKey size={14} aria-hidden="true" />}
+                  {showKey ? "Sembunyikan" : "Tampilkan"}
+                </button>
+              </span>
+            </div>
+            {formError && <div id="settings-form-error" className="banner banner--error" role="alert">
+              <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
+              <span>{formError}</span>
+            </div>}
+            {p.test && <div id="settings-test" className={p.test.ok ? "banner banner--ok" : "banner banner--error"} role="status">
+              <span className="banner__icon">{p.test.ok ? <IconCheck size={14} aria-hidden="true" /> : <IconAlert size={14} aria-hidden="true" />}</span>
+              <span>{p.test.ok ? "OK: " : ""}{p.test.message}{p.test.insecure ? " (HTTP tanpa TLS!)" : ""}</span>
+            </div>}
+            <div id="settings-form-actions">
+              <button type="button" className="btn btn--primary" onClick={submit}>Simpan</button>
+              <button type="button" className="btn" onClick={() => p.onTest(toSave(form, editing))} disabled={p.testing}>
+                {p.testing && <span className="spinner" aria-hidden="true" />}
+                {p.testing ? "Mengetes…" : "Test connection"}
+              </button>
+              {editing && <button type="button" className="btn btn--ghost" onClick={() => { setEditing(""); setForm(EMPTY); }}>Batal</button>}
+            </div>
+          </div>
+        </section>
+        <section className="section" aria-label="Tampilan">
+          <h2 className="section__title">Tampilan</h2>
+          <div className="settings-appearance-row">
+            <span>Mode warna</span>
+            <Segmented
+              value={p.appearance.theme}
+              options={[{ value: "dark", label: "Gelap" }, { value: "light", label: "Terang" }]}
+              onChange={(v) => p.onAppearanceChange(new app.Appearance({ theme: v, fontScale: p.appearance.fontScale }))}
+              label="Mode warna"
+            />
+          </div>
+          <div className="settings-appearance-row">
+            <span>Ukuran teks</span>
+            <Segmented
+              value={p.appearance.fontScale}
+              options={[{ value: 0.9, label: "Kecil" }, { value: 1, label: "Sedang" }, { value: 1.2, label: "Besar" }]}
+              onChange={(v) => p.onAppearanceChange(new app.Appearance({ theme: p.appearance.theme, fontScale: v }))}
+              label="Ukuran teks"
+            />
+          </div>
+          {p.appearanceErr && <div className="banner banner--error" role="alert">
+            <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
+            <span>{p.appearanceErr}</span>
+          </div>}
+        </section>
+        <section className="section" aria-label="Umum">
+          <h2 className="section__title">Umum</h2>
+          <label className="check">
+            <input type="checkbox" checked={p.autostart} onChange={p.onToggleAutostart} />
+            Jalankan otomatis saat Windows menyala
+          </label>
+          {p.autostartErr && <div className="banner banner--error" role="alert">
+            <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
+            <span>{p.autostartErr}</span>
+          </div>}
+          <div id="settings-hotkey">
+            <label className="check">
+              <input type="checkbox" checked={p.shortcut.enabled} disabled={p.capturing}
+                onChange={(e) => p.onShortcutChange(new app.Shortcut({ enabled: e.target.checked, combo: p.shortcut.combo }))} />
+              Aktifkan shortcut buka chat
+            </label>
+            <div className="settings-shortcut-row">
+              <span className={p.capturing ? "kbd settings-combo--capturing" : "kbd"}>
+                {p.capturing ? "Tekan kombinasi…" : p.shortcut.combo}
+              </span>
+              <button type="button" className="btn btn--sm" onClick={p.onCaptureToggle}>{p.capturing ? "Batal" : "Ubah"}</button>
+            </div>
+          </div>
+          {p.shortcutErr && <div className="banner banner--error" role="alert">
+            <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
+            <span>{p.shortcutErr}</span>
+          </div>}
+          {p.hotkeyErr && <div className="banner banner--error" role="alert">
+            <span className="banner__icon"><IconAlert size={14} aria-hidden="true" /></span>
+            <span>{p.hotkeyErr}</span>
+          </div>}
+        </section>
+        <section className="section" aria-label="Tentang">
+          <h2 className="section__title">Tentang</h2>
+          <div className="about-row">
+            <span className="about-row__key">Wortel AI</span>
+            <span className="about-row__val">{p.version || "dev"}</span>
+          </div>
+          <div className="about-row">
+            <span className="about-row__key">Lisensi</span>
+            <span className="about-row__val">MIT © 2026 Ridho Dwi Ramadhan</span>
+          </div>
+          <div className="about-row">
+            <span className="about-row__key">Font</span>
+            <span className="about-row__val">Geist &amp; Geist Mono — SIL Open Font License 1.1</span>
+          </div>
+          <p className="about-note">
+            Data chat dan provider disimpan lokal di perangkat ini. Tidak ada
+            telemetry, analytics, atau cloud sync.
+          </p>
+        </section>
       </div>
-    </div>
+    </>
   );
 }

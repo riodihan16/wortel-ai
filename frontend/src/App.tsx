@@ -1,6 +1,4 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import type {CSSProperties} from 'react';
-import './App.css';
 import {
     EventsOff,
     EventsOn,
@@ -8,8 +6,10 @@ import {
 } from '../wailsjs/runtime/runtime';
 import {AutostartEnabled, GetAppearance, GetShortcut, HideWindow, HotkeyError, SetAppearance, SetAutostart, SetShortcut, SetWindowMode, Version} from '../wailsjs/go/main/App';
 import {app} from '../wailsjs/go/models';
+import {ChatHeader} from './components/chat/ChatHeader';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {ModelPicker} from './components/chat/ModelPicker';
+import {PetSurface} from './components/pet/PetSurface';
 import {SettingsPanel} from './components/settings/SettingsPanel';
 import {useChat} from './hooks/useChat';
 import {usePetDrag} from './hooks/usePetDrag';
@@ -18,7 +18,7 @@ import {useProviders} from './hooks/useProviders';
 type Mode = 'pet' | 'chat' | 'settings';
 
 // Backend owns the sizes and keeps the window inside the monitor work area,
-// so a pet parked near an edge opens a panel that is not cut off.
+// so a pet parked near an edge opens a panel that is not cut off (ADR-042).
 const fitWindow = (mode: Mode) => SetWindowMode(mode === 'pet' ? 'pet' : 'panel');
 
 function App() {
@@ -57,6 +57,22 @@ function App() {
         if (lastUser.current) chat.send(lastUser.current);
     }, [chat]);
 
+    // Both surfaces are the same window, so every mode change must resize it in
+    // the same call that switches the tree — otherwise the pet renders inside a
+    // 400x600 window for a frame.
+    const showChat = useCallback(() => {
+        fitWindow('chat');
+        setMode('chat');
+    }, []);
+
+    const showPet = useCallback(() => {
+        fitWindow('pet');
+        setMode('pet');
+    }, []);
+
+    // Pet click opens chat, pet drag moves the window. The 4 px threshold lives
+    // in usePetDrag (ADR-041): a plain --wails-draggable surface would start the
+    // move on the first mousemove and swallow the click (ADR-029).
     const toggle = useCallback(() => {
         const next: Mode = mode === 'pet' ? 'chat' : 'pet';
         fitWindow(next);
@@ -151,37 +167,33 @@ function App() {
 
     if (mode === 'pet') {
         return (
-            <div id="pet" style={{'--wails-draggable': 'drag'} as CSSProperties}>
-                <button id="pet-dot" {...petDrag} title="Klik: buka chat. Geser: pindah">W</button>
-                <div id="pet-hint">klik W: chat · geser W: pindah</div>
-                <div id="pet-actions">
-                    <button onClick={() => HideWindow()}>Hide</button>
-                    <button onClick={Quit}>Quit</button>
-                </div>
-            </div>
+            <PetSurface
+                status={chat.status}
+                drag={petDrag}
+                onHide={() => HideWindow()}
+                onQuit={Quit}
+            />
         );
     }
 
     if (mode === 'settings') {
         return (
-            <div id="chat" style={{'--wails-draggable': 'drag'} as CSSProperties}>
-                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={() => setMode('chat')} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} hotkeyErr={hotkeyErr} appearance={appearance} appearanceErr={appearanceErr} onAppearanceChange={changeAppearance} shortcut={shortcut} shortcutErr={shortcutErr} onShortcutChange={changeShortcut} capturing={capturing} onCaptureToggle={() => setCapturing((v) => !v)} />
+            <div id="chat">
+                <SettingsPanel providers={provs.providers} activeId={provs.activeId} listError={provs.error} test={provs.test} testing={provs.testing} onSave={provs.save} onDelete={provs.remove} onActivate={provs.activate} onTest={provs.runTest} onClose={showChat} autostart={autostart} autostartErr={autostartErr} onToggleAutostart={toggleAutostart} hotkeyErr={hotkeyErr} appearance={appearance} appearanceErr={appearanceErr} onAppearanceChange={changeAppearance} shortcut={shortcut} shortcutErr={shortcutErr} onShortcutChange={changeShortcut} capturing={capturing} onCaptureToggle={() => setCapturing((v) => !v)} version={version} />
             </div>
         );
     }
 
     return (
         <div id="chat">
-            <div id="chat-header" style={{'--wails-draggable': 'drag'} as CSSProperties}>
-                <span>Wortel AI <small id="app-version">v{version}</small></span>
-                <span className="header-actions">
-                    <button onClick={() => setMode('settings')}>Settings</button>
-                    <button onClick={toggle}>Pet</button>
-                    <button onClick={() => HideWindow()}>Hide</button>
-                    <button onClick={Quit}>Quit</button>
-                </span>
-            </div>
-            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} />
+            <ChatHeader
+                version={version}
+                onSettings={() => setMode('settings')}
+                onPet={showPet}
+                onHide={() => HideWindow()}
+                onQuit={Quit}
+            />
+            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} onOpenSettings={() => setMode('settings')} hasProvider={provs.activeProvider !== null} />
         </div>
     );
 }

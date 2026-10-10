@@ -1,0 +1,320 @@
+/* Hallmark · component: settings · genre: modern-minimal · theme: Iris
+ * states: default · hover · focus-visible · active · disabled · loading · error · success
+ * contrast: pass (46-50)
+ *
+ * Layout invariant: #settings-header is a flex sibling of the #settings scroll
+ * container (shell.css owns its display/padding/min-height/cursor/border).
+ * This file only adds what shell.css does not cover. #settings opts out of
+ * the Wails drag region; the header re-enables it via .drag-handle.
+ */
+
+#settings {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  --wails-draggable: none;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+/* Header extras only: shell.css owns display/padding/min-height/cursor/border.
+   Title group reuses the shared .brand pattern from shell.css. */
+#settings-header .settings-back__icon {
+  transform: rotate(90deg);
+  flex-shrink: 0;
+}
+
+/* Sections: hairline top border between groups, never a heavy divider. */
+#settings .section {
+  border-top: 1px solid var(--color-rule);
+  padding-top: var(--space-3);
+}
+
+#settings .section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* Provider cards compose .card; extras below are layout + type only. */
+.prov-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.prov-name {
+  font-style: normal;
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  color: var(--color-ink);
+  min-width: 0;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prov-badge {
+  flex-shrink: 0;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  font-style: normal;
+  line-height: var(--leading-tight);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-pill);
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.prov-meta {
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  color: var(--color-ink-3);
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.prov-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.prov-actions .btn {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+#settings-empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink-2);
+}
+
+/* Form rows */
+.settings-form-title {
+  margin: 0;
+  font-style: normal;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.model-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.model-add-row .input:first-child {
+  flex: 2 1 120px;
+  min-width: 0;
+}
+
+.model-add-row .input:nth-child(2) {
+  flex: 1 1 96px;
+  min-width: 0;
+}
+
+.model-add-row .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.model-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.model-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper-2);
+  transition: border-color var(--dur) var(--ease-out);
+}
+
+.model-item--active {
+  border-color: var(--color-accent);
+}
+
+.model-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+}
+
+.model-pick input[type="radio"] {
+  appearance: none;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-rule-strong);
+  background: var(--color-well);
+  cursor: pointer;
+  display: inline-grid;
+  place-content: center;
+  transition: border-color var(--dur) var(--ease-out), background var(--dur) var(--ease-out);
+}
+
+.model-pick input[type="radio"]:hover:not(:disabled) {
+  border-color: var(--color-ink-3);
+}
+
+.model-pick input[type="radio"]:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.model-pick input[type="radio"]:checked {
+  border-color: var(--color-accent);
+}
+
+.model-pick input[type="radio"]:checked::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+.model-pick input[type="radio"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.model-pick__label {
+  min-width: 0;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+}
+
+.model-alias {
+  flex: 0 1 110px;
+  min-width: 0;
+}
+
+.field-hint {
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  color: var(--color-ink-3);
+}
+
+.settings-keyrow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.settings-keyrow .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-keyrow .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#settings-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+#settings-form-actions .btn {
+  white-space: nowrap;
+}
+
+.settings-error-text {
+  font-size: var(--text-xs);
+  color: var(--color-danger);
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+#settings .banner {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* Shortcut */
+.settings-shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.settings-shortcut-row .kbd {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.settings-shortcut-row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.settings-combo--capturing {
+  border-color: var(--color-accent);
+  animation: settings-combo-pulse var(--dur-slow) var(--ease-in-out) infinite alternate;
+}
+
+@keyframes settings-combo-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.55; }
+}
+
+/* Appearance rows stack on narrow widths so the segmented control never
+   overflows 320px. */
+.settings-appearance-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-ink-2);
+}
+
+.settings-appearance-row > span:first-child {
+  flex: 0 0 auto;
+}
+
+.settings-appearance-row .seg {
+  flex: 1 1 auto;
+  min-width: 180px;
+}
+
+/* Back button: .btn owns default/hover/active/disabled; only placement here.
+   A non-submitting back navigation has no loading/error/success states. */
+.settings-back {
+  flex-shrink: 0;
+}

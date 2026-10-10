@@ -1,0 +1,186 @@
+/* Hallmark · component: markdown surface · genre: modern-minimal · theme: Iris
+ * states: default · hover · focus-visible · active · disabled · loading · error · success
+ * contrast: pass (46-50)
+ */
+.md {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: var(--text-base);
+    line-height: var(--leading-snug);
+    color: var(--color-ink);
+}
+
+.md > *:first-child {
+    margin-top: 0;
+}
+
+.md > *:last-child {
+    margin-bottom: 0;
+}
+
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--color-ink);
+    margin: 0 0 var(--space-2) 0;
+    overflow-wrap: anywhere;
+}
+
+.md h1 {
+    font-size: var(--text-lg);
+}
+
+.md h2 {
+    font-size: var(--text-md);
+}
+
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+    font-size: var(--text-base);
+}
+
+.md p {
+    margin: 0 0 var(--space-2) 0;
+}
+
+.md ul,
+.md ol {
+    margin: 0 0 var(--space-2) 0;
+    padding-left: var(--space-4);
+}
+
+.md li {
+    margin: 0;
+}
+
+.md li > ul,
+.md li > ol {
+    margin-bottom: 0;
+}
+
+.md blockquote {
+    margin: 0 0 var(--space-2) 0;
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--color-rule);
+    color: var(--color-ink-2);
+    font-style: normal;
+}
+
+.md hr {
+    border: none;
+    border-top: 1px solid var(--color-rule);
+    margin: var(--space-3) 0;
+}
+
+.md-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 0 0 var(--space-2) 0;
+}
+
+.md table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: var(--text-sm);
+}
+
+.md th,
+.md td {
+    border: 1px solid var(--color-rule);
+    padding: var(--space-1) var(--space-2);
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.md th {
+    background: var(--color-paper-3);
+    font-weight: 600;
+}
+
+.md code {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    background: var(--color-paper-3);
+    border-radius: var(--radius-xs);
+    padding: 1px 5px;
+    overflow-wrap: anywhere;
+}
+
+.md pre {
+    background: var(--color-well);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    margin: 0 0 var(--space-2) 0;
+}
+
+.md pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+}
+
+.md a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+}
+
+/* Links: default·hover·focus-visible·active styled; disabled·loading·error·
+   success unreachable (anchors never submit), see note. */
+.md a:hover {
+    filter: brightness(1.12);
+}
+
+.md a:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+.md input[type="checkbox"] {
+    margin-right: var(--space-1);
+    accent-color: var(--color-accent);
+}
+
+/* Code block wrapper + copy button. Button states: default·hover·focus·
+   active·disabled via .btn/.btn--sm/.btn--ghost; loading = transient
+   "Tersalin" tick; error·success surface inline, no separate style. */
+.md-code {
+    position: relative;
+    min-width: 0;
+    margin: 0 0 var(--space-2) 0;
+}
+
+.md-code pre {
+    margin: 0;
+    padding-top: var(--space-5);
+}
+
+.md-code__copy {
+    position: absolute;
+    top: var(--space-1);
+    right: var(--space-1);
+}
+
+.md-code__copy:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+/* Same link treatment inside chat bubbles. */
+.msg-body a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+}

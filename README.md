@@ -46,7 +46,7 @@ Dokumen perencanaan dan teknis ada di `docs/`:
 | Desktop framework | Wails v2.16.0 | Versi dikunci 2026-10-09; jangan pakai v3 beta. Validasi API Windows yang dibutuhkan. |
 | Backend | Go 1.26.4 | Syarat Wails v2: Go 1.21+. Versi terpasang 1.26.4, dikunci untuk M0. |
 | Frontend | React 19.1.0 + TS 5.6.3 + Vite 7.3.7 | Dari template `wails init` react-ts M0, dikunci 2026-10-09. |
-| Styling | CSS biasa dengan design token (variabel tema) | Tailwind dihapus 2026-10-10: hanya preflight-nya terpakai, tidak ada utility class di JSX. Token di `App.css`. |
+| Styling | CSS biasa dengan design token OKLCH (`frontend/src/styles/`) | Tailwind dihapus 2026-10-10: hanya preflight-nya terpakai, tidak ada utility class di JSX. Token di `styles/tokens.css`; permukaan per-area (`shell`/`chat`/`pet`/`settings`/`markdown`). |
 | Chat API | OpenAI-compatible Chat Completions | Tidak semua provider mendukung seluruh parameter dengan cara yang sama. Setiap provider menyimpan daftar model; satu ditandai aktif. |
 | Render markdown | react-markdown + remark-gfm + rehype-sanitize | AI output = input tidak tepercaya. Tanpa raw HTML; sanitize allowlist; link hanya http/https. |
 | Streaming | SSE yang diparse di backend Go | Frontend menerima token/chunk melalui event Wails. |
@@ -95,7 +95,7 @@ wails build -ldflags "-X main.Version=0.1.0"
 
 Hasil: `build/bin/companion.exe`. Aset frontend dibundel ke dalam binary, sehingga **pengguna rilis tidak perlu memasang Go atau Node.js**. Jika WebView2 tidak tersedia, aplikasi menampilkan pesan yang dapat dimengerti.
 
-`-ldflags "-X main.Version=..."` menstamp versi rilis; binding `Version()` menampilkannya di header chat (build tanpa flag menampilkan `dev`). `wails.json` `info.productVersion` mengisi metadata exe Windows.
+`-ldflags "-X main.Version=..."` menstamp versi rilis; binding `Version()` menampilkannya di header chat (build tanpa flag menampilkan `dev`). Metadata exe Windows diisi `build/windows/info.json` dari nilai `wails.json` `info`; tabel string `0409` **wajib** memuat key `FileVersion`, jika tidak `.NET FileVersionInfo` (PowerShell `VersionInfo`, installer, tool signing) mengembalikan Company/Product/Description kosong meski Explorer benar.
 
 Lokasi data pengguna: `%LOCALAPPDATA%\WortelAI\wortel.db` (SQLite). API key **tidak** disimpan di file ini; disimpan di Windows Credential Manager.
 

@@ -1,0 +1,340 @@
+/* Hallmark · component: chat surface · genre: modern-minimal · theme: Iris
+ * states: default · hover · focus-visible · active · disabled · loading · error · success
+ * contrast: pass (46-50)
+ */
+#chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: var(--space-3);
+    gap: var(--space-2);
+}
+
+/* Anchor rows never force horizontal scroll on narrow windows. */
+#chat-main > * {
+    min-width: 0;
+}
+
+/* ---- conversation bar ---- */
+#conv-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+    min-width: 0;
+}
+
+#conv-select {
+    flex: 1;
+    min-width: 0;
+    text-overflow: ellipsis;
+}
+
+/* Non-submitting icon buttons: error/success states n/a. */
+#conv-bar .icon-btn:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+/* ---- rename row ---- */
+#conv-rename {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+    min-width: 0;
+}
+
+#conv-rename .input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* OK/Batal: default·hover·focus-visible·active·disabled styled by .btn;
+   loading·error·success unreachable (instant local commit), see note. */
+#conv-rename .btn:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+/* ---- message list ---- */
+#chat-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-1);
+}
+
+/* ---- empty state ---- */
+.chat-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-2);
+    padding: var(--space-7) var(--space-4);
+    color: var(--color-accent);
+}
+
+.chat-empty__heading {
+    font-style: normal;
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--color-ink);
+}
+
+.chat-empty__hint {
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
+}
+
+.chat-empty__example-label {
+    font-size: var(--text-2xs);
+    color: var(--color-ink-3);
+}
+
+.chat-empty__example {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
+    background: var(--color-well);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+/* ---- bubbles ---- */
+.msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 88%;
+    min-width: 0;
+    line-height: var(--leading-snug);
+}
+
+.msg-user {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.msg-assistant {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.msg-body {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-base);
+}
+
+.msg-user .msg-body {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    white-space: pre-wrap;
+}
+
+.msg-assistant .msg-body {
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+    border: 1px solid var(--color-rule);
+}
+
+/* Fixed-height status row: hide/show never shifts bubble height. */
+.msg-status {
+    min-height: calc(var(--text-2xs) * 1.4);
+    font-size: var(--text-2xs);
+    line-height: var(--leading-snug);
+    color: var(--color-ink-3);
+}
+
+/* ---- error banner ---- */
+#chat-error.banner {
+    flex-shrink: 0;
+    min-width: 0;
+}
+
+#chat-error .banner__text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Retry is a plain button: default·hover·focus·active·disabled via .btn;
+   loading·error·success unreachable (parent re-renders on retry). */
+#chat-error .btn:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+/* ---- composer ---- */
+#chat-composer {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-2);
+    flex-shrink: 0;
+    min-width: 0;
+}
+
+#chat-composer .textarea {
+    flex: 1;
+    min-width: 0;
+    resize: none;
+}
+
+/* Single stable send/stop button: fixed box, only chrome swaps.
+   All 8 states: default·hover·focus·active·disabled via .btn variants;
+   loading = stop affordance while busy; error·success surface via banner/dot. */
+#btn-send {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+#btn-send:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+/* ---- footer: picker left, status right ---- */
+#chat-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+    min-width: 0;
+}
+
+#chat-footer-model {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+}
+
+#chat-state {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+    font-size: var(--text-xs);
+    color: var(--color-ink-3);
+    white-space: nowrap;
+}
+
+.chat-state__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- model picker ---- */
+.model-picker {
+    position: relative;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Trigger: default·hover·focus-visible·active·disabled via .btn;
+   loading = disabled while busy; error·success n/a (no submission). */
+.model-trigger {
+    max-width: 100%;
+}
+
+.model-trigger:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+.model-trigger__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Opens upward from the bottom row; anchored left per ADR-033. */
+.model-menu {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    top: auto;
+    left: 0;
+    right: auto;
+    z-index: var(--z-menu);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-1);
+    min-width: 0;
+    width: max-content;
+    max-width: 100%;
+    max-height: 40vh;
+    overflow-y: auto;
+    background: var(--color-paper-3);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-3);
+}
+
+/* Options: default·hover·focus-visible·active·disabled·success(active tick)
+   styled here; loading·error unreachable (local menu, no fetch). */
+.model-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-width: 0;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    text-align: left;
+}
+
+.model-option:hover:not(:disabled) {
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+}
+
+.model-option:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+.model-option:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.model-option:disabled {
+    opacity: 0.45;
+}
+
+.model-option--on {
+    color: var(--color-ink);
+    font-weight: 600;
+}
+
+.model-option--on svg {
+    margin-left: auto;
+    flex-shrink: 0;
+    color: var(--color-accent);
+}
+
+.model-option__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
