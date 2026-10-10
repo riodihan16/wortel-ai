@@ -12,3 +12,87 @@
 .carrot--error .carrot__leaves {
     transform: rotate(16deg) translateY(2px);
 }
+
+/* ---- motion ----
+   One authored moment: when a reply starts the carrot hops (a squash, then
+   a rise) and the thought bubble pops out of it; the dots pulse in turn
+   while the reply streams. A failure gets a short head shake. Idle is
+   still except for a blink every few seconds, on the pet only. */
+
+#pet .carrot--idle .carrot__eyes {
+    transform-origin: 58px 46px;
+    animation: carrot-blink 6s var(--ease-in-out) infinite;
+}
+
+@keyframes carrot-blink {
+    0%, 95%, 100% { transform: scaleY(1); }
+    97% { transform: scaleY(0.1); }
+}
+
+.pet--thinking .pet__float {
+    animation: carrot-hop 460ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes carrot-hop {
+    0% { transform: none; }
+    22% { transform: translateY(3px) scale(1.05, 0.93); }
+    58% { transform: translateY(-7px) scale(0.97, 1.04); }
+    100% { transform: none; }
+}
+
+.pet--error .pet__float {
+    animation: carrot-shake 420ms var(--ease-out);
+}
+
+@keyframes carrot-shake {
+    0%, 100% { transform: none; }
+    20% { transform: translateX(-4px) rotate(-3deg); }
+    45% { transform: translateX(3px) rotate(2deg); }
+    70% { transform: translateX(-1.5px); }
+}
+
+#pet .pet__bubble,
+#pet .pet__alert {
+    animation: mark-pop 280ms cubic-bezier(0.16, 1, 0.3, 1) 140ms both;
+}
+
+#pet .pet__bubble {
+    transform-origin: 10% 100%;
+}
+
+@keyframes mark-pop {
+    from { opacity: 0; transform: scale(0.4); }
+    to { opacity: 1; transform: none; }
+}
+
+/* Typing dots, shared by the pet bubble and an empty streaming reply. */
+#pet .pet__bubble > i,
+.msg-typing > span {
+    animation: dot-pulse 1.2s var(--ease-in-out) infinite;
+}
+
+#pet .pet__bubble > i:nth-child(2),
+.msg-typing > span:nth-child(2) {
+    animation-delay: 150ms;
+}
+
+#pet .pet__bubble > i:nth-child(3),
+.msg-typing > span:nth-child(3) {
+    animation-delay: 300ms;
+}
+
+@keyframes dot-pulse {
+    0%, 60%, 100% { opacity: 0.3; }
+    30% { opacity: 1; }
+}
+
+/* Reduced motion: no hop, shake, pop or blink (base.css stops them). The dot
+   pulse is opacity only and is the one live signal that a reply is still
+   coming, so it keeps running. */
+@media (prefers-reduced-motion: reduce) {
+    #pet .pet__bubble > i,
+    .msg-typing > span {
+        animation-duration: 1.2s !important;
+        animation-iteration-count: infinite !important;
+    }
+}

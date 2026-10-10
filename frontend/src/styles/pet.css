@@ -59,26 +59,16 @@
     filter: saturate(0.4);
 }
 
-/* Idle float lives on an inner wrapper so the hover scale above composes
-   instead of fighting it — one transform per element. The wrapper is also
-   the positioning box for the thought bubble and alert badge, so both ride
-   the same motion as the carrot. */
+/* Inner wrapper: the positioning box for the thought bubble and alert badge,
+   and the element the mood motion (carrot.css) moves, so the hover scale on
+   the button composes with it — one transform per element. No idle loop:
+   an always-on-top window should cost nothing while nothing happens; the
+   carrot only blinks (carrot.css). */
 #pet .pet__float {
     position: relative;
     display: block;
     width: 100%;
     height: 100%;
-    animation: pet-float 3.6s var(--ease-in-out) infinite;
-}
-
-@keyframes pet-float {
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-4px);
-    }
 }
 
 /* ---- mood marks ----

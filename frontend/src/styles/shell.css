@@ -20,6 +20,16 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-3);
     color: var(--color-ink);
+    /* Arriving from the pet: the panel settles in instead of popping. Runs
+       when the root becomes #chat; settings <-> chat keeps the same node. */
+    animation: panel-in var(--dur-slow) var(--ease-out);
+}
+
+@keyframes panel-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
 }
 
 /* Settings mode reuses the #chat shell, so the shared panel rules above apply
