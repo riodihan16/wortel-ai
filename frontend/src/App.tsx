@@ -180,11 +180,7 @@ function App() {
                     <button onClick={Quit}>Quit</button>
                 </span>
             </div>
-            <div id="chat-subheader" style={{'--wails-draggable': 'drag'} as CSSProperties}>
-                <ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />
-                <span id="chat-state">status: {chat.status}</span>
-            </div>
-            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} />
+            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={send} onCancel={chat.cancel} onRetry={retry} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} />
         </div>
     );
 }

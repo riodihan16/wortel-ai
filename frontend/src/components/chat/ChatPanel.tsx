@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import type { ChatMessage, ChatStatus } from "../../types/chat";
 import type { ConversationItem } from "../../hooks/useChat";
 import { SafeMarkdown } from "./SafeMarkdown";
 
 interface Props {
   messages: ChatMessage[];
+  status: ChatStatus;
   error: string | null;
   busy: boolean;
   conversations: ConversationItem[];
@@ -19,6 +20,9 @@ interface Props {
   onDelete: (id: string) => void;
   draft: string;
   onDraftChange: (v: string) => void;
+  // Header owns the picker (provider state lives in useProviders); the panel
+  // just places it in the footer row beside the status indicator.
+  modelPicker: ReactNode;
 }
 
 function statusLabel(s: ChatStatus): string {
@@ -40,6 +44,7 @@ function statusLabel(s: ChatStatus): string {
 
 export function ChatPanel({
   messages,
+  status,
   error,
   busy,
   conversations,
@@ -53,6 +58,7 @@ export function ChatPanel({
   onDelete,
   draft,
   onDraftChange,
+  modelPicker,
 }: Props) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -177,6 +183,10 @@ export function ChatPanel({
             Kirim
           </button>
         )}
+      </div>
+      <div id="chat-footer">
+        <div id="chat-footer-model">{modelPicker}</div>
+        <span id="chat-state">status: {status}</span>
       </div>
     </div>
   );

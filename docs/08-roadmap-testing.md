@@ -206,7 +206,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 - [x] Semua kontrol header muat di jendela chat 400px. → judul menyusut (`min-width: 0`), `.header-actions` `flex-shrink: 0`, `#btn-model` max 132px; tanpa overflow (ADR-030).
 - [x] Percakapan baru tidak mengunci pemilihan history. → placeholder `<option>` untuk id aktif yang belum tersimpan (ADR-030).
 - [x] Pemilih model di header tampil pada build nyata. → `ActiveProvider()` ganti ke `*config.ProviderProfile` (binding Wails buang return kedua non-error); hook memetakan profile/null apa adanya (ADR-031).
-- [x] Pemilih model dan status ada di baris kedua header, sejajar. → `#chat-subheader` `space-between`; `#model-picker` dan `#chat-state` `--wails-draggable: none`; dropdown `left: 0` agar tidak terpotong di kiri (ADR-032, ADR-033).
+- [x] Pemilih model dan status ada di footer bawah chat, sejajar. → `#chat-footer` setelah composer, `space-between`; dropdown buka ke atas (`bottom: 100%`) dan `left: 0` agar tidak terpotong (ADR-033, ADR-034).
 
 ### Keamanan
 - [x] Tidak ada API key di repository, log, SQLite, dan event frontend. → `provider_profiles` tanpa kolom secret; grep pola `sk-` pada DB nyata = tidak ada; `ChatEvent` tanpa secret; tidak ada `log.Printf` pada request/header; secret di-wipe (`secret[i]=0`).
@@ -234,7 +234,7 @@ Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otoma
 
 - **File:** `build/bin/companion.exe`
 - **Ukuran:** 15,682,048 byte (~15.0 MB)
-- **SHA-256:** `9de5c8e80a0b166ecb2908805b7b4f0c95e860faf8d489503452d14afe54123c`
+- **SHA-256:** `ff466fa92d0c8d98e7610381676a2aff348b11bd51b77b71ec5e9d87a277e0fb`
 - **Perintah build:** `wails build -ldflags "-X main.Version=0.1.0"` dari clean checkout (setelah `rm -rf frontend/dist build/bin`).
 - **Verifikasi:** versi `0.1.0` tertanam di binary; aplikasi start dan tercatat `[WebView2] Environment created successfully`. Migrasi DB user nyata v2→v3 terverifikasi (kolom `models`/`active_model` bertambah, baris lama di-seed dari `model`).
 

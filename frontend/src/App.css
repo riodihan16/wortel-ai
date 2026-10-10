@@ -127,23 +127,17 @@ html, body, #root {
     font-weight: 400;
 }
 
-/* Second header row: model picker on the left, status on the right. Also a
-   drag region, so #btn-model must keep --wails-draggable: none. */
-#chat-subheader {
+/* Footer row under the composer: model picker on the left, status on the
+   right. Sits inside #chat-main, so it is not a drag region. */
+#chat-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 6px;
-    padding: 4px 12px 6px;
-    background: var(--surface);
-    cursor: move;
-    --wails-draggable: drag;
 }
 
-#chat-subheader #chat-state {
+#chat-footer #chat-state {
     flex-shrink: 0;
-    cursor: default;
-    --wails-draggable: none;
 }
 
 button {
@@ -486,10 +480,6 @@ button:disabled {
 /* Model picker in the chat header: button + dropdown list. */
 #model-picker {
     position: relative;
-    /* #chat-subheader is a drag region and custom properties inherit; without
-       this the first click on the picker starts a window drag instead of
-       opening the menu (same gotcha as ADR-029). */
-    --wails-draggable: none;
 }
 
 #btn-model {
@@ -503,10 +493,11 @@ button:disabled {
 
 #model-menu {
     position: absolute;
-    top: calc(100% + 4px);
-    /* Anchor to the picker's left edge: the picker sits at the left of the
-       header, so right:0 pushed a 160px-wide menu past the window's left edge
-       (x = -16) where #chat's overflow:hidden clipped it. */
+    /* The picker lives in the footer, so the menu opens upward; opening
+       downward would fall outside the 400x600 window. left:0 keeps the
+       160px-wide menu inside the left edge (see ADR-033). */
+    bottom: calc(100% + 4px);
+    top: auto;
     left: 0;
     right: auto;
     z-index: 20;

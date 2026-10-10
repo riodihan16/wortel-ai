@@ -64,7 +64,7 @@ Provider form minimum:
 - Test connection.
 - Status aktif.
 
-Baris pertama header menampilkan judul aplikasi dan tombol kontrol (Settings, Pet, Hide, Quit). Baris kedua header menampilkan tombol pemilih model (label `Model: <aktif>`) di kiri dan indikator `status: <state>` di kanan, sehingga model bisa diganti tanpa membuka Settings (ADR-029, ADR-032).
+Header menampilkan judul aplikasi dan tombol kontrol (Settings, Pet, Hide, Quit). Di bawah kotak pesan, satu baris footer menampilkan tombol pemilih model (label `Model: <aktif>`) di kiri dan indikator `status: <state>` di kanan, sehingga model bisa diganti tanpa membuka Settings (ADR-029, ADR-034).
 
 Jangan menampilkan API key lama penuh setelah settings dibuka. Tampilkan “credential tersimpan” dan sediakan aksi replace/remove.
 

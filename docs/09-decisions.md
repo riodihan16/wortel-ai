@@ -138,6 +138,15 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** hapus `tailwindcss` + `@tailwindcss/vite`, ganti dengan reset CSS eksplisit (`box-sizing`, margin/padding nol, font inherit) di `style.css`. Styling tetap pakai token di `App.css`.
 - **Bukti:** CSS bundle 11.31 kB → 7.02 kB (gzip 2.97 → 1.76 kB). `tsc` dan `npm run build` bersih; UI terverifikasi render (pet mode tombol + header chat).
 
+## ADR-034 — Pemilih model + status dipindah ke footer bawah chat (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** ADR-032 menaruh pemilih model di baris kedua header (atas chat). User menghendaki baris itu **di bawah chat**, bukan di atas.
+- **Perubahan:** `#chat-subheader` (di App, atas `ChatPanel`) dihapus. Baris baru `#chat-footer` dirender `ChatPanel` **setelah** `#chat-composer`, dengan `ModelPicker` di kiri dan `#chat-state` di kanan (`justify-content: space-between`). Panel menerima `modelPicker: ReactNode` (provider state tetap di `useProviders`) dan `status` kembali sebagai prop.
+- **Menu:** picker kini di bawah, jadi `#model-menu` diset `bottom: calc(100% + 4px); top: auto` supaya terbuka ke atas. Membukanya ke bawah akan keluar jendela 400x600. Anchor `left: 0` dipertahankan (ADR-033).
+- **Drag:** `#chat-footer` berada di dalam `#chat-main`, bukan region drag, jadi `--wails-draggable: none` pada `#model-picker` dihapus.
+- **Bukti:** probe browser nyata — footer di bawah composer (`belowComposer: true`, `footerBottom 592` dalam `chatBottom 600`); picker kiri (`pickerLeft 12`) + status kanan (`statusRight 388`) sebaris; menu `opensUp: true`, tanpa clipping kiri/kanan/atas/bawah, 3 opsi. `tsc`, `go test ./...`, clean release build, app start bersih.
+
 ## ADR-033 — Dropdown model terpotong di sisi kiri (2026-10-10)
 
 - **Status:** Done.
