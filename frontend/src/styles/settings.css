@@ -213,15 +213,14 @@
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
-  padding: var(--space-2);
-  border: 1px solid var(--color-rule);
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--color-paper-2);
-  transition: border-color var(--dur) var(--ease-out);
 }
 
+/* The checked radio marks the active model; the row only lifts a step. */
 .model-item--active {
-  border-color: var(--color-accent);
+  background: var(--color-paper-3);
 }
 
 .model-pick {
