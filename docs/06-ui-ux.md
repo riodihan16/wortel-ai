@@ -12,8 +12,8 @@ Karakter 2D kecil dengan tampilan modern, hangat, dan tidak terlalu ramai. UI di
 
 Elemen:
 - Karakter 2D.
-- Indikator status pip 14 px di sudut kanan bawah karakter, selalu tampak
-  (ADR-044). Bentuk membedakan state, jadi warna bukan satu-satunya pembawa
+- Indikator status pip 14 px tepat di samping sisi kanan badan wortel (~6 px),
+  ikut animasi melayang karakter, selalu tampak (ADR-044). Bentuk membedakan state, jadi warna bukan satu-satunya pembawa
   makna (WCAG 1.4.1): cincin kosong = `idle`, cakram terisi berdenyut =
   `thinking`, cakram + ikon seru = `error`. Teks status tetap tersedia bagi
   screen reader lewat `.sr-only`.

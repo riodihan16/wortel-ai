@@ -98,15 +98,19 @@
    Bottom-right pip, always visible: the only persistent signal in pet mode
    (docs 06 §3 forbids permanent text). Shape carries the state, so colour is
    never the sole carrier (WCAG 1.4.1) — hollow ring = idle, filled pulsing
-   disc = thinking, disc + triangle = error. Sits below the carrot's lower-right
-   corner and clear of the centred action rail, so it never collides with the
-   hover reveal. `pointer-events: none` keeps it out of the drag hit test, and
-   `--wails-draggable` is re-declared for the same reason as the rail. */
+   disc = thinking, disc + triangle = error. Sits just off the carrot's right
+   flank so it reads as the carrot's own state, above the centred action rail
+   so it never collides with the hover reveal. Offsets are from the window
+   centre, where the carrot is centred, and it rides the same idle float so the
+   gap to the flank stays constant. `pointer-events: none` keeps it out of the
+   drag hit test, and `--wails-draggable` is re-declared for the same reason
+   as the rail. */
 #pet .pet__status {
     --wails-draggable: none;
     position: absolute;
-    right: var(--space-3);
-    bottom: var(--space-2);
+    left: calc(50% + 17px);
+    top: calc(50% + 2px);
+    animation: pet-float 3.6s var(--ease-in-out) infinite;
     display: grid;
     place-items: center;
     width: 14px;
