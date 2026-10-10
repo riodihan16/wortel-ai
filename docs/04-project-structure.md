@@ -11,6 +11,17 @@ wortel-ai/
 ├── wails.json
 ├── README.md
 ├── AGENTS.md
+├── LICENSE
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+├── SECURITY.md
+├── .gitattributes
+├── .editorconfig
+├── .gitignore
+├── .github/
+│   └── workflows/
+│       ├── ci.yml
+│       └── release.yml
 ├── docs/
 │   ├── 01-product-brief.md
 │   ├── 02-mvp-requirements.md
@@ -219,3 +230,14 @@ Lottie bukan keharusan. Tambahkan hanya bila ada manfaat visual dan hasil penguk
 - File build besar yang dihasilkan otomatis, kecuali ada kebutuhan distribusi yang jelas.
 
 Tambahkan `.gitignore` sesuai Go, Node/Vite, Wails, SQLite, editor, dan file runtime lokal.
+
+## 9. Aksesibilitas rilis: file OSS dan CI
+
+- `LICENSE` (MIT) — syarat publikasi open source dan kualifikasi SignPath Foundation.
+- `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` — alur kontribusi dan pelaporan kerentanan.
+- `.gitattributes` — normalisasi EOL: repo menyimpan LF, kecuali `*.ps1`/`*.bat` tetap CRLF.
+- `.editorconfig` — indentasi dan EOL per jenis file.
+- `.github/workflows/ci.yml` — gate wajib: `gofmt`, `go vet`, `go test`, `go test -race` (runner Windows), typecheck + `npm test` + build frontend, lalu `wails build`.
+- `.github/workflows/release.yml` — dipicu tag `v*`: build, penandatanganan SignPath opsional (environment `release` + `vars.SIGNPATH_ENABLED`), lalu GitHub release draft + `SHA256SUMS.txt`.
+
+CI adalah sumber kebenaran gate; perintah di dokumen ini harus tetap cocok dengan workflow. Lihat ADR-040 untuk alasan pilihan.
