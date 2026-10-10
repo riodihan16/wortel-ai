@@ -105,7 +105,9 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
       {open && (
         // tabIndex -1: a press on the menu's padding or scrollbar focuses the
         // menu itself instead of <body>, so the blur rule above keeps it open.
-        <div className="menu conv-menu" role="menu" ref={menuRef} tabIndex={-1} onKeyDown={(e) => moveMenuFocus(e, menuRef.current)}>
+        // The search box and empty note sit outside role="menu", which may
+        // only own menu items; arrows from the box are forwarded to the list.
+        <div className="menu conv-menu">
           {searchable && (
             <input
               ref={searchRef}
@@ -116,9 +118,9 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                // Home/End move the caret here, not the menu focus.
-                if (e.key === "Home" || e.key === "End") e.stopPropagation();
-                if (e.key === "Enter" && shown.length > 0) {
+                if (e.key === "ArrowDown" || e.key === "ArrowUp") moveMenuFocus(e, menuRef.current);
+                // Enter opens the first match only once the user has typed.
+                if (e.key === "Enter" && needle && shown.length > 0) {
                   e.preventDefault();
                   pick(shown[0]);
                 }
@@ -126,23 +128,25 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
             />
           )}
           {shown.length === 0 && <p className="conv-empty">Tidak ada percakapan yang cocok.</p>}
-          {shown.map((c) => {
-            const isOn = c.id === conversationId;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={isOn}
-                className={isOn ? "menu-option menu-option--on" : "menu-option"}
-                title={itemLabel(c)}
-                onClick={() => pick(c)}
-              >
-                <span className="menu-option__label">{itemLabel(c)}</span>
-                {isOn && <IconCheck size={14} />}
-              </button>
-            );
-          })}
+          <div className="conv-menu__list" role="menu" ref={menuRef} tabIndex={-1} onKeyDown={(e) => moveMenuFocus(e, menuRef.current)}>
+            {shown.map((c) => {
+              const isOn = c.id === conversationId;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={isOn}
+                  className={isOn ? "menu-option menu-option--on" : "menu-option"}
+                  title={itemLabel(c)}
+                  onClick={() => pick(c)}
+                >
+                  <span className="menu-option__label">{itemLabel(c)}</span>
+                  {isOn && <IconCheck size={14} />}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

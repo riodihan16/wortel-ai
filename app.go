@@ -123,6 +123,7 @@ func (a *App) ToggleChat() {
 		// Always show and take the foreground: the shortcut's promise is
 		// "press, then type", and a visible pet behind another app would
 		// otherwise open chat without keyboard focus (ADR-051).
+		runtime.WindowUnminimise(a.ctx) // a minimised window ignores the foreground call
 		runtime.WindowShow(a.ctx)
 		if err := window.Activate(); err != nil {
 			runtime.LogWarningf(a.ctx, "activate: %v", err)

@@ -498,3 +498,14 @@
     font-size: var(--text-sm);
     color: var(--color-ink-3);
 }
+
+.conv-menu__list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.conv-menu__list:focus {
+    outline: none;
+}

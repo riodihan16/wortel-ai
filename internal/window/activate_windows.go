@@ -15,8 +15,8 @@ func Activate() error {
 	if err != nil {
 		return err
 	}
-	if r, _, _ := pSetForegroundWindow.Call(uintptr(h)); r == 0 {
-		return fmt.Errorf("SetForegroundWindow refused")
+	if r, _, err := pSetForegroundWindow.Call(uintptr(h)); r == 0 {
+		return fmt.Errorf("SetForegroundWindow: %w", err)
 	}
 	return nil
 }

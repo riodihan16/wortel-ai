@@ -21,6 +21,10 @@ function moodFor(status: ChatStatus): CarrotMood {
   return "idle";
 }
 
+// "Klik atau Ctrl+Shift+W: chat" (155px at 11px) is the longest hint that
+// fits the 172px hint box; longer combos fall back and stay in the title.
+const HINT_COMBO_MAX = 14;
+
 const STATUS_TEXT: Record<CarrotMood, string> = {
   idle: "Siap",
   thinking: "Sedang menulis balasan",
@@ -63,8 +67,7 @@ export function PetSurface(props: {
     window.addEventListener("blur", close);
     return () => window.removeEventListener("blur", close);
   }, [confirmQuit]);
-  // "Klik atau Ctrl+Shift+W: chat" is the longest hint that fits 180px.
-  const teachShortcut = shortcut !== undefined && shortcut.length <= 14;
+  const teachShortcut = shortcut !== undefined && shortcut.length <= HINT_COMBO_MAX;
 
   return (
     <div id="pet" className={`pet--${mood}`}>
@@ -79,7 +82,7 @@ export function PetSurface(props: {
         className="pet__btn"
         {...drag}
         aria-label="Buka chat"
-        title="Klik untuk buka chat, geser untuk memindahkan"
+        title={shortcut ? `Klik atau ${shortcut} untuk buka chat, geser untuk memindahkan` : "Klik untuk buka chat, geser untuk memindahkan"}
       >
         <span className="pet__float">
           <Carrot size={116} mood={mood} />
@@ -110,6 +113,11 @@ export function PetSurface(props: {
           }}
           onBlur={(e) => {
             if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setConfirmQuit(false);
+          }}
+          // A press on the label or a gap must not move focus off the rail
+          // (that would read as "focus left" and close the question).
+          onMouseDown={(e) => {
+            if (!(e.target as HTMLElement).closest("button")) e.preventDefault();
           }}
         >
           <span className="pet__confirm-msg">Keluar?</span>

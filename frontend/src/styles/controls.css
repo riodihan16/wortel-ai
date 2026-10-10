@@ -439,7 +439,7 @@
    is carried by fill, the radio/check, and the Aktif badge instead, so a
    keyboard user never mistakes "selected" for "focused" (ADR-051). */
 .card--active {
-    border-color: var(--color-rule-strong);
+    border-color: var(--color-ink-3);
     background: var(--color-paper-3);
 }
 
@@ -499,7 +499,7 @@
 }
 
 .chip[aria-pressed="true"] {
-    border-color: transparent;
+    border-color: var(--color-ink-3);
     background: var(--color-accent-soft);
     color: var(--color-ink);
     font-weight: 600;

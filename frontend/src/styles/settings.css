@@ -221,6 +221,7 @@
 /* The checked radio marks the active model; the row only lifts a step. */
 .model-item--active {
   background: var(--color-paper-3);
+  box-shadow: inset 0 0 0 1px var(--color-ink-3);
 }
 
 .model-pick {
