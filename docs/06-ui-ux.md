@@ -32,6 +32,8 @@ Interaksi:
 - Shortcut global (P1, ADR-050): jendela tersembunyi atau pet → buka chat; panel
   terbuka → kembali ke pet. Shortcut tidak pernah menyembunyikan companion.
   Hint hover pet menampilkan kombinasinya ("Klik atau Ctrl+Shift+W: chat").
+  Shortcut juga mengambil foreground dan menaruh caret di composer: tekan, lalu
+  ketik (ADR-051).
 
 Batas desain:
 - Tidak ada teks permanen yang menutupi desktop. Pip 14 px bukan teks dan
@@ -154,8 +156,8 @@ Mendukung multi-monitor dan DPI scaling perlu dites. Jangan mengasumsikan koordi
 - Gunakan renderer yang tidak mengeksekusi HTML mentah.
 - Sanitasi atau nonaktifkan raw HTML.
 - Link eksternal dibuka melalui browser default setelah validasi skema (`https`/`http`); jangan mengaktifkan protokol arbitrer seperti `file:`.
-- Code block memiliki tombol Copy; setiap balasan selesai punya `Salin` (sumber
-  markdown). Bila clipboard ditolak, tombol menulis "Gagal menyalin".
+- Code block memiliki tombol Copy; setiap balasan selesai punya
+  `Salin balasan` (teks biasa via `markdownToText`, ADR-051). Bila clipboard ditolak, tombol menulis "Gagal menyalin".
 - Teks panjang tidak boleh memperlebar panel; gunakan wrapping atau horizontal scroll di code block.
 - Token streaming harus tetap terbaca meskipun Markdown sementara belum lengkap (misalnya fenced code belum ditutup).
 
