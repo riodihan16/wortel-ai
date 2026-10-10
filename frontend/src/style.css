@@ -1,12 +1,31 @@
-@import "tailwindcss";
+/* Base reset. Tailwind was removed: only its preflight was used, no utility
+   classes appear anywhere. App styling lives in App.css with CSS tokens. */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
 
 html, body, #root {
     margin: 0;
+    padding: 0;
+    height: 100%;
     background: transparent;
     color: white;
     font-family: system-ui, -apple-system, "Segoe UI", "Roboto",
     "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+}
+
+input, textarea {
+    font: inherit;
 }
 
 #app {

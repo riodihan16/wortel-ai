@@ -131,6 +131,13 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keamanan:** combo rusak/ tak bisa di-parse jatuh kembali ke default (`ParseOrDefault`), jadi startup tidak pernah tanpa shortcut diam-diam.
 - **Bukti:** `combo_test.go` (round-trip, case-insensitive, tolak invalid/modifierless), `shortcut_test.go` (default, round-trip, tolak unparsable tanpa merusak state, fallback combo korup), `rebind_windows_test.go` (swap combo nyata: register → stop → register combo lain; Stop sebelum start aman). Render UI: state capture tampil dengan border accent.
 
+## ADR-027 — Hapus Tailwind CSS yang tidak terpakai (2026-10-10)
+
+- **Status:** Done.
+- **Konteks:** README keputusan awal menyebut Tailwind, tetapi audit menemukan nol utility class Tailwind di seluruh JSX; hanya `@import "tailwindcss"` di `style.css` yang dipakai sebagai reset. Plugin Vite + dua dependency aktif = beban build tanpa manfaat.
+- **Keputusan:** hapus `tailwindcss` + `@tailwindcss/vite`, ganti dengan reset CSS eksplisit (`box-sizing`, margin/padding nol, font inherit) di `style.css`. Styling tetap pakai token di `App.css`.
+- **Bukti:** CSS bundle 11.31 kB → 7.02 kB (gzip 2.97 → 1.76 kB). `tsc` dan `npm run build` bersih; UI terverifikasi render (pet mode tombol + header chat).
+
 ## ADR-024 — M6 baseline performa + budget RAM (2026-10-10)
 
 - **Status:** Done (terukur pada build release).

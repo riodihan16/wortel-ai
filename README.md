@@ -40,7 +40,7 @@ Prinsip utamanya:
 | Desktop framework | Wails v2.16.0 | Versi dikunci 2026-10-09; jangan pakai v3 beta. Validasi API Windows yang dibutuhkan. |
 | Backend | Go 1.26.4 | Syarat Wails v2: Go 1.21+. Versi terpasang 1.26.4, dikunci untuk M0. |
 | Frontend | React 19.1.0 + TS 5.6.3 + Vite 7.3.7 | Dari template `wails init` react-ts M0, dikunci 2026-10-09. |
-| Styling | Tailwind CSS | UI konsisten dan cepat dibuat. |
+| Styling | CSS biasa dengan design token (variabel tema) | Tailwind dihapus 2026-10-10: hanya preflight-nya terpakai, tidak ada utility class di JSX. Token di `App.css`. |
 | Chat API | OpenAI-compatible Chat Completions | Tidak semua provider mendukung seluruh parameter dengan cara yang sama. |
 | Streaming | SSE yang diparse di backend Go | Frontend menerima token/chunk melalui event Wails. |
 | Penyimpanan | SQLite | Percakapan dan preferensi nonrahasia. |
@@ -81,12 +81,26 @@ cd frontend && npm run build   # typecheck + bundle frontend
 Build release (menghasilkan satu executable):
 
 ```bash
-wails build
+wails build -ldflags "-X main.Version=0.1.0"
 ```
 
 Hasil: `build/bin/companion.exe`. Aset frontend dibundel ke dalam binary, sehingga **pengguna rilis tidak perlu memasang Go atau Node.js**. Jika WebView2 tidak tersedia, aplikasi menampilkan pesan yang dapat dimengerti.
 
+`-ldflags "-X main.Version=..."` menstamp versi rilis; binding `Version()` menampilkannya di header chat (build tanpa flag menampilkan `dev`). `wails.json` `info.productVersion` mengisi metadata exe Windows.
+
 Lokasi data pengguna: `%LOCALAPPDATA%\WortelAI\wortel.db` (SQLite). API key **tidak** disimpan di file ini; disimpan di Windows Credential Manager.
+
+### Distribusi dan uninstall
+
+Aplikasi MVP dirilis sebagai **executable portable** — tidak ada installer, tidak ada entri registry, tidak ada service. Salin `build/bin/companion.exe` ke folder mana pun lalu jalankan.
+
+Cara uninstall:
+1. Tutup aplikasi (menu tray → Keluar, atau tombol Quit).
+2. Hapus file `companion.exe`.
+3. Hapus data pengguna: hapus folder `%LOCALAPPDATA%\WortelAI\` (berisi `wortel.db` dan file WAL-nya).
+4. Hapus credential API key: buka **Credential Manager** (Panel Kontrol → Kredensial Windows), cari entri dengan target berawalan `WortelAI`, hapus satu per satu. API key disimpan di sini, bukan di folder data.
+
+Tidak ada langkah lain yang diperlukan; tidak ada komponen yang tertinggal di sistem.
 
 ### Platform yang didukung
 

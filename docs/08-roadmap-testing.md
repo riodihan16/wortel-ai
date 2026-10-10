@@ -186,34 +186,54 @@ Target awal yang disarankan (bersifat **target eksperimen**, bukan jaminan):
 
 ## 5. Release checklist
 
+Status diisi 2026-10-10 untuk rilis 0.1.0 (build release di mesin referensi Windows 11 26200, 12 core).
+Tanda: `[x]` terverifikasi (bukti disebut), `[~]` terverifikasi sebagian / otomatis saja, `[ ]` belum.
+
 ### Fungsional
-- [ ] Build release berhasil dari clean checkout.
-- [ ] Companion bisa tampil, drag, hide/show.
-- [ ] Panel chat bisa dibuka dan ditutup.
-- [ ] Pesan terkirim ke provider yang dipilih.
-- [ ] Streaming berfungsi dan dapat dibatalkan.
-- [ ] Error provider tidak membuat aplikasi crash.
-- [ ] Percakapan bertahan setelah restart.
-- [ ] Pengaturan provider dapat diubah dan dites.
+- [x] Build release berhasil dari clean checkout. → `wails build -ldflags "-X main.Version=0.1.0"` → `build/bin/companion.exe`, app start (WebView2 Environment created).
+- [~] Companion bisa tampil, drag, hide/show. → tampil + hide/show via tombol & tray API terverifikasi; **drag fisik** perlu uji manual mouse (spike M0 mencatat drag mulus).
+- [x] Panel chat bisa dibuka dan ditutup. → mode pet/chat/settings; draft bertahan lewat switch (probe browser live).
+- [~] Pesan terkirim ke provider yang dipilih. → mock provider E2E lulus; endpoint OpenAI-compatible nyata = smoke manual dengan credential lokal (docs 08 §3).
+- [x] Streaming berfungsi dan dapat dibatalkan. → `TestStreamDeltasFromServer`, `TestSendAndCancel`, `TestCancelAllStopsStreams`; UI Stop↔Kirim toggle terverifikasi.
+- [x] Error provider tidak membuat aplikasi crash. → error mapping 400/401/403/404/408/429/5xx + timeout + diskonek tengah + malformed JSON (`provider_test.go`, `sse_test.go`); DB failure = error bukan panic (`db_test.go`).
+- [x] Percakapan bertahan setelah restart. → `TestChatHistoryRoundTrip`, `TestMigrationV1toV2`, `TestSwitchActiveKeepsHistory`; DB nyata di `%LOCALAPPDATA%\WortelAI\wortel.db`.
+- [x] Pengaturan provider dapat diubah dan dites. → `TestProviderCRUD`, `TestTestConnectionMapping`, `TestValidate*`.
 
 ### Keamanan
-- [ ] Tidak ada API key di repository, log, SQLite, dan event frontend.
-- [ ] Markdown raw HTML dimatikan/disanitasi.
-- [ ] Link eksternal menggunakan allowlist scheme.
-- [ ] Redirect cross-host tidak membawa Authorization.
-- [ ] Tidak ada command execution atau screenshot capture.
-- [ ] HTTP endpoint non-TLS mendapat warning yang sesuai.
+- [x] Tidak ada API key di repository, log, SQLite, dan event frontend. → `provider_profiles` tanpa kolom secret; grep pola `sk-` pada DB nyata = tidak ada; `ChatEvent` tanpa secret; tidak ada `log.Printf` pada request/header; secret di-wipe (`secret[i]=0`).
+- [x] Markdown raw HTML dimatikan/disanitasi. → render live: `<img onerror>`, `<script>` → teks escaped, 0 elemen img/script.
+- [x] Link eksternal menggunakan allowlist scheme. → live: `javascript:`/`data:` tidak jadi link, hanya `http/https/#`.
+- [x] Redirect cross-host tidak membawa Authorization. → `TestSafeClientDropsAuthOnCrossHost` + `TestSafeClientKeepsAuthOnSameHost` (ADR-026).
+- [x] Tidak ada command execution atau screenshot capture. → tidak ada kode shell/screenshot/clipboard di repo.
+- [x] HTTP endpoint non-TLS mendapat warning yang sesuai. → `config.Validate` set `InsecureTransport` untuk `http://` non-loopback (`TestValidateHTTPFlagsInsecure`).
 
 ### Performa dan stability
-- [ ] Idle CPU/RAM diukur pada release build.
-- [ ] Tidak ada goroutine/request yang tertinggal setelah cancel/exit.
-- [ ] UI tetap merespons saat streaming.
-- [ ] Window tidak hilang di luar area layar setelah monitor berubah.
-- [ ] Database failure memberikan pesan yang jelas.
+- [x] Idle CPU/RAM diukur pada release build. → `scripts/perf.ps1`: idle CPU 0.00%, app ~33 MB, WebView2 ~308 MB, total ~341 MB (ADR-024).
+- [x] Tidak ada goroutine/request yang tertinggal setelah cancel/exit. → `sync.WaitGroup` + `CancelAll` menunggu; `TestCancelAllWaitsForGoroutines` (state `active`/`requests` kosong).
+- [x] UI tetap merespons saat streaming. → event-driven (`chat:event`); render live busy: Stop tampil, kontrol lain disabled, delta render.
+- [~] Window tidak hilang di luar area layar setelah monitor berubah. → logika clamp ada dari M0/M5; **display-change fisik** perlu uji manual.
+- [x] Database failure memberikan pesan yang jelas. → `TestOpenRejectsEmptyPath`, `TestOpenFailsWhenDirUncreatable`, `TestUseAfterCloseDoesNotPanic`; `errNoDB` = "storage belum tersedia, restart aplikasi".
 
 ### Distribusi
-- [ ] Versi aplikasi ditampilkan.
-- [ ] Cara install/run dan uninstall didokumentasikan.
-- [ ] Lokasi data lokal dijelaskan.
-- [ ] WebView2 requirement dijelaskan.
-- [ ] Signing/SmartScreen behavior dipertimbangkan sebelum distribusi publik.
+- [x] Versi aplikasi ditampilkan. → `App.Version()` di header chat; `0.1.0` terverifikasi tertanam di binary (ADR-025).
+- [x] Cara install/run dan uninstall didokumentasikan. → README "Distribusi dan uninstall".
+- [x] Lokasi data lokal dijelaskan. → `%LOCALAPPDATA%\WortelAI\wortel.db` (+ `-wal`/`-shm`); README + docs 07.
+- [x] WebView2 requirement dijelaskan. → README "Menjalankan dan membangun".
+- [x] Signing/SmartScreen behavior dipertimbangkan sebelum distribusi publik. → **Belum ditandatangani.** Executable tanpa Authenticode memicu peringatan SmartScreen "Windows protected your PC". Untuk distribusi publik perlu sertifikat code signing; untuk MVP portable pribadi, pengguna menekan "More info → Run anyway". Dicatat sebagai known issue.
+
+### Artifact rilis 0.1.0
+
+- **File:** `build/bin/companion.exe`
+- **Ukuran:** 15,505,408 byte (~14.8 MB)
+- **SHA-256:** `25254c1edc21ace3c86d264edb4c011182399ac704edcf2db6053fbb8916023d`
+- **Perintah build:** `wails build -ldflags "-X main.Version=0.1.0"` dari clean checkout (setelah `rm -rf frontend/dist build/bin`).
+- **Verifikasi:** versi `0.1.0` tertanam di binary; aplikasi start dan tercatat `[WebView2] Environment created successfully`.
+
+### Known issues (0.1.0)
+
+- **Bug redirect diperbaiki sebelum rilis:** sebelumnya redirect cross-host membawa `Authorization`; kini dihapus (ADR-026).
+- Executable belum ditandatangani → peringatan SmartScreen (lihat Distribusi).
+- Beberapa item perlu uji manual pada build nyata dengan mouse/monitor fisik: drag karakter, hide/show tray, hotkey global (input hardware), perilaku display-change, dan respons provider OpenAI-compatible sungguhan. Tidak bisa diverifikasi otomatis; diuji manual oleh user.
+- Race detector tidak dapat dijalankan di mesin build (tanpa gcc/CGO). Kebersihan konkurensi dibuktikan lewat tes logika + mutex eksplisit.
+
+
