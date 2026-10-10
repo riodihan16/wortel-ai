@@ -13,3 +13,6 @@ func Running() bool { return false }
 
 // LastError always empty off Windows.
 func LastError() string { return "" }
+
+// SetError no-op off Windows.
+func SetError(err error) {}

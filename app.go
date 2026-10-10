@@ -39,12 +39,15 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}
 	// M5 tray. Failure is non-fatal: app keeps running without tray.
-	_ = tray.Start(tray.Callbacks{
+	// Error stored and exposed via TrayError so Probe shows the cause.
+	if err := tray.Start(tray.Callbacks{
 		OnShow:     func() { runtime.WindowShow(ctx); runtime.EventsEmit(ctx, "app:show") },
 		OnSettings: func() { runtime.WindowShow(ctx); runtime.EventsEmit(ctx, "app:settings") },
 		OnHide:     func() { runtime.WindowHide(ctx) },
 		OnExit:     func() { runtime.Quit(ctx) },
-	})
+	}); err != nil {
+		tray.SetError(err)
+	}
 }
 
 // shutdown cancels active streams and removes the tray icon.

@@ -146,6 +146,13 @@ func LastError() string {
 	return lastErr
 }
 
+// SetError records an external tray failure (e.g. Start return).
+func SetError(err error) {
+	mu.Lock()
+	defer mu.Unlock()
+	setErr(err)
+}
+
 // Start creates the tray icon + menu on a dedicated thread.
 // Safe to call once; second call is a no-op returning nil.
 func Start(c Callbacks) error {
