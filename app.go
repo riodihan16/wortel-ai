@@ -66,6 +66,12 @@ func (a *App) HideWindow() {
 	runtime.WindowHide(a.ctx)
 }
 
+// TrayStatus reports whether the tray icon loop owns an icon.
+// Probe answers hide-vs-close: true = app alive in tray.
+func (a *App) TrayStatus() bool {
+	return tray.Running()
+}
+
 // History returns recent messages oldest-first. Empty when none.
 func (a *App) History(conversationID string, n int) []app.ChatMessage {
 	if a.svc == nil {

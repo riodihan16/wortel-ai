@@ -3,11 +3,16 @@
 package tray
 
 import (
+	"fmt"
 	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
+
+func errNIDSize(n uintptr) error {
+	return fmt.Errorf("tray: NOTIFYICONDATA size %d, want 952", n)
+}
 
 var (
 	user32   = windows.NewLazySystemDLL("user32.dll")
@@ -75,6 +80,9 @@ type wndClassEx struct {
 	iconSm     windows.Handle
 }
 
+// NID size must match Win32 NOTIFYICONDATAW on 64-bit (952 bytes).
+// Union uTimeout/uVersion is ONE uint32, not two.
+
 type notifyIconData struct {
 	size            uint32
 	wnd             windows.Handle
@@ -86,8 +94,7 @@ type notifyIconData struct {
 	state           uint32
 	stateMask       uint32
 	info            [256]uint16
-	timeout         uint32
-	version         uint32
+	verOrTimeout    uint32 // union uTimeout/uVersion: SATU field, bukan dua
 	infoTitle       [64]uint16
 	infoFlags       uint32
 	guid            windows.GUID
@@ -142,6 +149,8 @@ func Start(c Callbacks) error {
 }
 
 // Stop removes the icon and ends the message loop. No-op when not running.
+// Never blocks the caller: posts WM_CLOSE and detaches.
+// Called from Wails OnShutdown; blocking there hangs quit.
 func Stop() {
 	mu.Lock()
 	h := hwnd
@@ -151,7 +160,14 @@ func Stop() {
 		return
 	}
 	_, _, _ = pPostMessage.Call(uintptr(h), uintptr(wmClose), 0, 0)
-	<-done
+}
+
+// Running reports whether the tray loop owns an icon right now.
+// Exposed to the frontend probe so hide-vs-close is provable.
+func Running() bool {
+	mu.Lock()
+	defer mu.Unlock()
+	return running && hwnd != 0
 }
 
 func runLoop() {
@@ -188,6 +204,9 @@ func runLoop() {
 }
 
 func initTray() error {
+	if n := unsafe.Sizeof(notifyIconData{}); n != 952 {
+		return errNIDSize(n)
+	}
 	h, _, _ := pGetModuleHandle.Call(0)
 	hInst = windows.Handle(h)
 
@@ -238,9 +257,12 @@ func initTray() error {
 	addSep()
 	addItem(menuExit, "Keluar")
 
-	tip := mustUTF16("Wortel AI")
+	tipBuf, err := windows.UTF16FromString("Wortel AI")
+	if err != nil {
+		return err
+	}
 	var tipArr [128]uint16
-	copy(tipArr[:], unsafe.Slice(tip, 128))
+	copy(tipArr[:], tipBuf)
 
 	nid = notifyIconData{
 		wnd:             hwnd,

@@ -11,7 +11,7 @@ import {
     WindowSetAlwaysOnTop,
     WindowSetSize,
 } from '../wailsjs/runtime/runtime';
-import {HideWindow} from '../wailsjs/go/main/App';
+import {HideWindow, TrayStatus} from '../wailsjs/go/main/App';
 import {ChatPanel} from './components/chat/ChatPanel';
 import {SettingsPanel} from './components/settings/SettingsPanel';
 import {useChat} from './hooks/useChat';
@@ -65,7 +65,8 @@ function App() {
     const probe = useCallback(async () => {
         const size = await WindowGetSize();
         const pos = await WindowGetPosition();
-        setInfo(`${size.w}x${size.h} @ ${pos.x},${pos.y}`);
+        const tray = await TrayStatus().catch(() => false);
+        setInfo(`${size.w}x${size.h} @ ${pos.x},${pos.y} tray:${tray ? 'on' : 'off'}`);
     }, []);
 
     const flipTop = useCallback(() => {
