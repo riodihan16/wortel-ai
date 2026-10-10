@@ -489,7 +489,8 @@
     color var(--dur-fast) var(--ease-out);
 }
 
-/* Hover only sharpens the outline, so it never looks like the pressed chip. */
+/* Hover sharpens the outline only; the pressed chip keeps its own fill and
+   weight, so the two stay apart. */
 .chip:hover:not(:disabled):not([aria-pressed="true"]) {
     border-color: var(--color-ink-3);
     color: var(--color-ink);
