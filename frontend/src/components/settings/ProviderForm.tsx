@@ -64,7 +64,6 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   const editing = profile?.id ?? "";
   const [form, setForm] = useState<FormState>(() => (profile ? fromProfile(profile) : EMPTY));
   const [modelDraft, setModelDraft] = useState("");
-  const [aliasDraft, setAliasDraft] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
   const [preset, setPreset] = useState<ProviderPreset | null>(null);
@@ -112,11 +111,10 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
     setFormError(null);
     setForm({
       ...form,
-      models: [...form.models, { id, alias: aliasDraft.trim() }],
+      models: [...form.models, { id, alias: "" }],
       activeModel: form.activeModel || id,
     });
     setModelDraft("");
-    setAliasDraft("");
     onDirty?.();
   };
 
@@ -148,12 +146,11 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
     if (!id || form.models.some((m) => m.id === id)) return form;
     const next = {
       ...form,
-      models: [...form.models, { id, alias: aliasDraft.trim() }],
+      models: [...form.models, { id, alias: "" }],
       activeModel: form.activeModel || id,
     };
     setForm(next);
     setModelDraft("");
-    setAliasDraft("");
     return next;
   };
 
@@ -197,8 +194,15 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
   const describedBy = (field: Field, extra?: string) =>
     [extra, invalid === field ? errorId : undefined].filter(Boolean).join(" ") || undefined;
 
+  // A test without a model cannot say anything useful; say why instead.
   const runTest = () => {
+    setFormError(null);
+    setInvalid(null);
     const next = commitDraft();
+    if (next.models.length === 0) {
+      fail("model", "Tulis ID model dulu untuk dites.");
+      return;
+    }
     onTest(toSave(next, editing));
   };
 
@@ -292,14 +296,6 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
               onKeyDown={enterAdds}
               placeholder={preset?.modelHint ?? "ID model, mis. gpt-4.1-mini"}
             />
-            <input
-              className="input"
-              aria-label="Alias model baru"
-              value={aliasDraft}
-              onChange={(e) => setAliasDraft(e.target.value)}
-              onKeyDown={enterAdds}
-              placeholder="Alias (opsional)"
-            />
             <button type="button" className="btn" onClick={addModel} disabled={!modelDraft.trim()}>Tambah</button>
           </span>
           {fieldError("model")}
@@ -331,7 +327,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
             ))}
           </div>
         )}
-        <div className="field__hint">Model yang dipilih dipakai untuk chat. Alias hanya nama tampilan.</div>
+        <div className="field__hint">Model yang dipilih dipakai untuk chat. Alias (opsional) diisi di barisnya, hanya nama tampilan.</div>
       </div>
       <div className="field">
         <label className="field__label" htmlFor="settings-apikey">API key</label>

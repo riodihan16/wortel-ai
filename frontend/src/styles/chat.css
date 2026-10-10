@@ -499,11 +499,23 @@
     color: var(--color-ink-3);
 }
 
+/* The list scrolls, not the menu box: the search box stays put and the
+   menu surface itself is the focusable press target. */
+.conv-menu {
+    overflow: hidden;
+}
+
+.conv-menu:focus {
+    outline: none;
+}
+
 .conv-menu__list {
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .conv-menu__list:focus {

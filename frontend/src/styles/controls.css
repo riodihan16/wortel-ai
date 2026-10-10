@@ -500,7 +500,7 @@
 
 .chip[aria-pressed="true"] {
     border-color: var(--color-ink-3);
-    background: var(--color-accent-soft);
+    background: var(--color-paper-3);
     color: var(--color-ink);
     font-weight: 600;
 }

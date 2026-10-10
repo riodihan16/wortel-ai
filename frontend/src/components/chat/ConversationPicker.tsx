@@ -107,7 +107,9 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
         // menu itself instead of <body>, so the blur rule above keeps it open.
         // The search box and empty note sit outside role="menu", which may
         // only own menu items; arrows from the box are forwarded to the list.
-        <div className="menu conv-menu">
+        // tabIndex -1: a press on the padding or the empty note focuses this
+        // surface (inside the picker), so the blur rule keeps the menu open.
+        <div className="menu conv-menu" tabIndex={-1}>
           {searchable && (
             <input
               ref={searchRef}
@@ -128,7 +130,22 @@ export function ConversationPicker({ conversations, conversationId, disabled, on
             />
           )}
           {shown.length === 0 && <p className="conv-empty">Tidak ada percakapan yang cocok.</p>}
-          <div className="conv-menu__list" role="menu" ref={menuRef} tabIndex={-1} onKeyDown={(e) => moveMenuFocus(e, menuRef.current)}>
+          <div
+            className="conv-menu__list"
+            role="menu"
+            ref={menuRef}
+            tabIndex={-1}
+            onKeyDown={(e) => {
+              // Up from the first item goes back to the search box.
+              const first = menuRef.current?.querySelector('[role="menuitemradio"]');
+              if (e.key === "ArrowUp" && searchRef.current && document.activeElement === first) {
+                e.preventDefault();
+                searchRef.current.focus();
+                return;
+              }
+              moveMenuFocus(e, menuRef.current);
+            }}
+          >
             {shown.map((c) => {
               const isOn = c.id === conversationId;
               return (
