@@ -26,6 +26,7 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 | ADR-050 | Perbaikan critique ulang: form provider, shortcut, konfirmasi Keluar, wortel di chat | Done 2026-10-10 | Critique ulang 27/40; tiga P1 (jebakan ID model, hasil tes basi, shortcut menyembunyikan pet) dan dua P2 diperbaiki. |
 | ADR-051 | Critique delta 32/40: fokus shortcut, salin teks biasa, error per field, pencarian percakapan | Done 2026-10-11 | Satu P2 (shortcut membuka chat tanpa fokus keyboard, dinaikkan ke P1 oleh user) dan tiga P3 diperbaiki, plus celah heuristik yang tersisa. |
 | ADR-052 | Critique delta 36/40: shortcut untuk chat tak fokus, picker, alias, Tes | Done 2026-10-11 | Dua P2 (regresi picker, shortcut menciutkan chat yang tak fokus) dan dua P3 + celah H5 diperbaiki. |
+| ADR-053 | Critique delta 39/40: shortcut tidak lagi membuang form Settings | Done 2026-10-11 | `toggleFront` menjaga tampilan panel yang tersembunyi/tak fokus; tiga P3 kecil. |
 
 ## ADR-001 — Wails v2
 
@@ -474,6 +475,13 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 - **Keputusan:** `toggleFor(hidden, mode, focused)` dengan `window.IsForeground()` (`GetForegroundWindow`): panel di belakang app lain maju dengan caret di composer, hanya panel yang sedang dipakai yang menciut ke pet (unit test 6 kasus). Menu percakapan: daftar yang men-scroll, permukaan menu `tabIndex=-1` sehingga tekanan di padding tetap di dalam picker; ArrowUp dari item pertama kembali ke kotak cari. `Tes koneksi` tanpa model menampilkan alasan di bawah field Model. Alias hanya di baris modelnya (baris tambah = ID + Tambah). Chip preset yang dipilih memakai fill netral seperti pilihan lain.
 - **Bukti:** vitest 76/76; `go vet`, `go test . ./internal/window`, `GOOS=linux go vet ./internal/window` bersih.
 - **Risiko:** `GetForegroundWindow` membandingkan HWND utama; bila Wails membuat jendela anak yang memegang fokus, perbandingan bisa keliru dan shortcut memilih "maju" alih-alih "menciut" (aman, bukan kehilangan data).
+
+## ADR-053 — Shortcut menjaga tampilan panel (2026-10-11)
+
+- **Status:** Done, perlu smoke manual Windows.
+- **Konteks:** critique delta setelah ADR-052 = 39/40. Celah H5: shortcut pada Settings yang tersembunyi/tak fokus mengirim `app:toggle` → chat, sehingga form provider yang belum disimpan hilang. Tiga P3: chip hover mirip chip terpilih; hint alias pada run pertama menyebut baris yang belum ada; menekan catatan "Tidak ada…" memindah fokus dari kotak cari.
+- **Keputusan:** `toggleFront` untuk panel yang tersembunyi atau tak fokus: tampil + foreground + `app:front` tanpa ganti tampilan; frontend memberi caret ke composer hanya bila mode chat. Panel yang sedang dipakai tetap menciut ke pet; pet/jendela tersembunyi di mode pet tetap membuka chat. Hover chip hanya mempertegas outline; hint alias muncul setelah ada baris model; tekanan pada permukaan menu/catatan kosong tidak mengambil fokus dari kotak cari.
+- **Bukti:** `TestToggleFor` (6 kasus) hijau; vitest 79/79.
 
 ## ADR-018 — M5 tray Win32 murni + exit bersih (2026-10-10)
 
