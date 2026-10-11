@@ -131,6 +131,45 @@ func TestSendRejectsUnknownAttachmentIDWithoutLocking(t *testing.T) {
 	waitDone(t, svc, sink, 1)
 }
 
+// The composer clears its pending list as soon as it calls SendMessage, so
+// ids a synchronous rejection leaves in staging would be invisible yet
+// still count toward the per-message cap.
+func TestSendRejectionDropsStagedIDs(t *testing.T) {
+	release := make(chan struct{})
+	svc, sink := serviceWith(t, func(_ http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+		case <-release:
+		}
+	})
+	t.Cleanup(func() { close(release) }) // before srv.Close (cleanups run LIFO)
+	if _, err := svc.SendMessage(context.Background(), "c1", "lama", nil); err != nil {
+		t.Fatal(err)
+	}
+	m, err := svc.StageData("foto.png", "image/png", pngB64())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SendMessage(context.Background(), "c1", "x", []string{m.ID}); err == nil || err.Error() != "generation already active" {
+		t.Fatalf("got %v", err)
+	}
+	if svc.staging.Len() != 0 {
+		t.Fatalf("busy rejection left %d staged", svc.staging.Len())
+	}
+	m2, err := svc.StageData("foto.png", "image/png", pngB64())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SendMessage(context.Background(), "c2", "x", []string{m2.ID, m2.ID}); !errors.Is(err, attach.ErrDuplicate) {
+		t.Fatalf("got %v", err)
+	}
+	if svc.staging.Len() != 0 {
+		t.Fatalf("select rejection left %d staged", svc.staging.Len())
+	}
+	svc.CancelGeneration("c1")
+	waitDone(t, svc, sink, 1)
+}
+
 func TestSendAttachmentsRequireStorage(t *testing.T) {
 	svc := NewService(&ai.MockProvider{}, func(string, ai.ChatEvent) {})
 	if _, err := svc.SendMessage(context.Background(), "c1", "x", []string{"a"}); !errors.Is(err, errNoAttachmentStorage) {

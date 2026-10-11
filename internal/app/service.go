@@ -102,10 +102,17 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 	if len(attachmentIDs) > 0 && s.db() == nil {
 		return "", errNoAttachmentStorage
 	}
+	// The composer clears its pending list as soon as it sends, so from here
+	// every synchronous rejection drops the staged ids too: left behind they
+	// would be invisible yet still count toward the per-message cap.
+	reject := func(err error) (string, error) {
+		s.staging.Remove(attachmentIDs...)
+		return "", err
+	}
 	s.mu.Lock()
 	if _, ok := s.active[conversationID]; ok {
 		s.mu.Unlock()
-		return "", errors.New("generation already active")
+		return reject(errors.New("generation already active"))
 	}
 	// Attachments are resolved before the goroutine so a bad id is a
 	// synchronous rejection, never a half-sent turn. The items hold the bytes
@@ -115,7 +122,7 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 		var err error
 		if items, err = s.staging.Select(attachmentIDs); err != nil {
 			s.mu.Unlock()
-			return "", err
+			return reject(err)
 		}
 		s.staging.Remove(attachmentIDs...)
 	}
@@ -134,6 +141,7 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 	s.wg.Add(1)
 	go func() {
 		defer func() {
+			cancel()
 			s.mu.Lock()
 			delete(s.active, conversationID)
 			delete(s.requests, requestID)
