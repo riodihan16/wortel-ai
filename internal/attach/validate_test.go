@@ -114,4 +114,15 @@ func TestCleanName(t *testing.T) {
 	if got := []rune(CleanName(long)); len(got) != MaxNameRunes {
 		t.Fatalf("long name: %d runes", len(got))
 	}
+	got := CleanName(strings.Repeat("a", 130) + ".txt")
+	if len([]rune(got)) != MaxNameRunes || !strings.HasSuffix(got, ".txt") {
+		t.Fatalf("long .txt name: %d runes, %q", len([]rune(got)), got)
+	}
+}
+
+func TestClassifyKeepsExtensionOnLongName(t *testing.T) {
+	m, err := Classify(strings.Repeat("a", 130)+".txt", []byte("halo\n"))
+	if err != nil || m.Kind != KindText || m.Mime != "text/plain" || len([]rune(m.Name)) != MaxNameRunes {
+		t.Fatalf("%+v %v", m, err)
+	}
 }

@@ -108,8 +108,24 @@ func CleanName(name string) string {
 	if name == "" || name == "." || name == "/" {
 		return "berkas"
 	}
-	if r := []rune(name); len(r) > MaxNameRunes {
-		name = string(r[:MaxNameRunes])
+	return truncateKeepExt(name)
+}
+
+// maxExtRunes bounds what counts as an extension when truncating; anything
+// longer is treated as part of the stem.
+const maxExtRunes = 16
+
+// truncateKeepExt caps name at MaxNameRunes, cutting the stem so the
+// extension (which Classify relies on for text files) survives.
+func truncateKeepExt(name string) string {
+	r := []rune(name)
+	if len(r) <= MaxNameRunes {
+		return name
 	}
-	return name
+	ext := []rune(path.Ext(name))
+	if len(ext) > maxExtRunes || len(ext) >= MaxNameRunes {
+		ext = nil
+	}
+	stem := r[:len(r)-len(ext)]
+	return string(stem[:MaxNameRunes-len(ext)]) + string(ext)
 }
