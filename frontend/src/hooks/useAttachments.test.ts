@@ -66,6 +66,17 @@ describe("useAttachments", () => {
     expect(result.current.pending[0].id).toBe("p1");
   });
 
+  it("refuses a pasted file over 15 MB without reading it", async () => {
+    const small = new File([new Uint8Array([1])], "kecil.png", { type: "image/png" });
+    const big = new File([new Uint8Array([1])], "besar.png", { type: "image/png" });
+    Object.defineProperty(big, "size", { value: 15 * 1024 * 1024 + 1 });
+    const { result } = renderHook(() => useAttachments());
+    await act(() => result.current.stageFiles([small, big]));
+    expect(backend.data).not.toHaveBeenCalled();
+    expect(result.current.error).toBe("besar.png: melebihi 15 MB");
+    expect(result.current.pending).toEqual([]);
+  });
+
   it("unstages already-staged files when a later paste fails", async () => {
     backend.data.mockResolvedValueOnce(meta("p1")).mockRejectedValueOnce("rusak");
     const f = (n: string) => new File([new Uint8Array([1])], n, { type: "image/png" });

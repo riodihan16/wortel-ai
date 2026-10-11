@@ -8,6 +8,10 @@ import {
 import type { AttachmentMeta } from "../types/chat";
 
 export const MAX_ATTACHMENTS = 4;
+// Largest single file the backend accepts (attach.MaxFileBytes); a bigger
+// paste is refused before it is read and base64-encoded.
+const MAX_FILE_MB = 15;
+const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 
 export interface AttachmentsApi {
   pending: AttachmentMeta[];
@@ -83,8 +87,13 @@ export function useAttachments(): AttachmentsApi {
   );
 
   const stageFiles = useCallback(
-    (files: File[]) =>
-      stage(
+    async (files: File[]) => {
+      const big = files.find((f) => f.size > MAX_FILE_BYTES);
+      if (big) {
+        setError(`${big.name}: melebihi ${MAX_FILE_MB} MB`);
+        return;
+      }
+      await stage(
         files.length,
         async () => {
           const out: AttachmentMeta[] = [];
@@ -100,7 +109,8 @@ export function useAttachments(): AttachmentsApi {
           return out;
         },
         "Gambar gagal ditempel."
-      ),
+      );
+    },
     [stage]
   );
 

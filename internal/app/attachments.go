@@ -97,17 +97,21 @@ func checkSizes(files []string, budget int64) error {
 
 // StageData stages bytes the WebView already holds (a pasted image). b64 is
 // standard base64 without a data: prefix. A missing name or extension is
-// derived from mime so the stored name still says what it is.
+// derived from mime so the stored name still says what it is. An oversized
+// payload is refused from its length alone, before it is decoded.
 func (s *Service) StageData(name, mime, b64 string) (attach.Meta, error) {
 	if s.db() == nil {
 		return attach.Meta{}, errNoAttachmentStorage
 	}
+	if strings.TrimSpace(name) == "" || path.Ext(attach.CleanName(name)) == "" {
+		name = "tempel" + extByMime[strings.ToLower(mime)]
+	}
+	if base64.StdEncoding.DecodedLen(len(b64)) > attach.MaxFileBytes {
+		return attach.Meta{}, fmt.Errorf("%s: melebihi %d MB", attach.CleanName(name), attach.MaxFileBytes>>20)
+	}
 	data, err := base64.StdEncoding.DecodeString(b64)
 	if err != nil {
 		return attach.Meta{}, errors.New("data lampiran tidak valid")
-	}
-	if strings.TrimSpace(name) == "" || path.Ext(attach.CleanName(name)) == "" {
-		name = "tempel" + extByMime[strings.ToLower(mime)]
 	}
 	m, err := attach.Classify(name, data)
 	if err != nil {

@@ -220,6 +220,18 @@ func TestStageDataNamesPastedImageByMime(t *testing.T) {
 	}
 }
 
+func TestStageDataRejectsOversizedBeforeDecoding(t *testing.T) {
+	svc, _ := serviceWith(t, func(w http.ResponseWriter, _ *http.Request) { sseOK(w) })
+	// DecodedLen only needs the length: this decodes to 16 MiB - 1 of zeros.
+	b64 := strings.Repeat("A", (16<<20)/3*4)
+	if _, err := svc.StageData("", "image/png", b64); err == nil || err.Error() != "tempel.png: melebihi 15 MB" {
+		t.Fatalf("got %v", err)
+	}
+	if svc.staging.Len() != 0 {
+		t.Fatal("oversized paste staged")
+	}
+}
+
 func TestUnstageAndLookup(t *testing.T) {
 	svc, sink := serviceWith(t, func(w http.ResponseWriter, _ *http.Request) { sseOK(w) })
 	m, _ := svc.StageData("a.png", "image/png", pngB64())
