@@ -94,13 +94,25 @@ describe("ChatPanel attachments", () => {
     expect((screen.getByRole("button", { name: "Kirim pesan" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("stages pasted images instead of inserting them", () => {
+  it("stages a pasted screenshot (image, no text)", () => {
     const { attach } = renderPanel();
     const file = new File([new Uint8Array([1])], "shot.png", { type: "image/png" });
-    fireEvent.paste(screen.getByRole("textbox", { name: "Tulis pesan" }), {
+    const notPrevented = fireEvent.paste(screen.getByRole("textbox", { name: "Tulis pesan" }), {
       clipboardData: { files: [file], getData: () => "" },
     });
     expect(attach.stageFiles).toHaveBeenCalledWith([file]);
+    expect(notPrevented).toBe(false);
+  });
+
+  it("keeps a paste that carries text next to an image as text", () => {
+    // Excel and OneNote put a bitmap of the selection beside the text.
+    const { attach } = renderPanel();
+    const file = new File([new Uint8Array([1])], "image.png", { type: "image/png" });
+    const notPrevented = fireEvent.paste(screen.getByRole("textbox", { name: "Tulis pesan" }), {
+      clipboardData: { files: [file], getData: (t: string) => (t === "text/plain" ? "a\tb" : "") },
+    });
+    expect(attach.stageFiles).not.toHaveBeenCalled();
+    expect(notPrevented).toBe(true);
   });
 
   it("leaves a plain text paste alone", () => {

@@ -132,9 +132,13 @@ export function ChatPanel({
   };
   const onDrop = () => setDragDepth(0);
 
-  // Pasted images go to staging; pasted text keeps the browser default.
+  // Only a pure image paste (a screenshot) goes to staging. Excel and
+  // OneNote put a bitmap beside copied text; that paste stays text, so any
+  // text on the clipboard keeps the browser default.
   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
-    const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+    const data = e.clipboardData;
+    if (!data || data.getData("text/plain").trim() !== "") return;
+    const files = Array.from(data.files ?? []).filter((f) => f.type.startsWith("image/"));
     if (files.length === 0) return;
     e.preventDefault();
     void attach.stageFiles(files);
