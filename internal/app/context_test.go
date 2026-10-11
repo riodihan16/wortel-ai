@@ -86,3 +86,29 @@ func TestBuildContextPlaceholderWithEmptyText(t *testing.T) {
 		t.Fatalf("%+v", msgs[0])
 	}
 }
+
+func TestBuildContextLoadsBytesOnlyInsideWindow(t *testing.T) {
+	var rows []storage.ContextRow
+	for i := 1; i <= 5; i++ {
+		u := fmt.Sprintf("u%d", i)
+		rows = append(rows,
+			storage.ContextRow{ID: u, Role: "user", Content: "turn " + u, Attachments: []storage.AttachmentRow{imgRow("a" + u)}},
+			storage.ContextRow{ID: "m" + u, Role: "assistant", Content: "ok"},
+		)
+	}
+	var loaded []string
+	load := func(id string) (string, []byte, error) {
+		loaded = append(loaded, id)
+		return "image/png", []byte{1}, nil
+	}
+	buildContext(rows, AttachmentTurns, load)
+	want := []string{"au3", "au4", "au5"}
+	if len(loaded) != len(want) {
+		t.Fatalf("loaded %v, want %v", loaded, want)
+	}
+	for i := range want {
+		if loaded[i] != want[i] {
+			t.Fatalf("loaded %v, want %v", loaded, want)
+		}
+	}
+}
