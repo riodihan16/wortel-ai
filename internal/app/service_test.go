@@ -46,12 +46,12 @@ func TestSendAndCancel(t *testing.T) {
 	svc := NewService(&ai.MockProvider{Delay: 20 * time.Millisecond}, sink.emit)
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
-	reqID, err := svc.SendMessage(ctx, "c1", "halo")
+	reqID, err := svc.SendMessage(ctx, "c1", "halo", nil)
 	if err != nil || reqID == "" {
 		t.Fatalf("send err: %v id: %q", err, reqID)
 	}
 	// duplicate while active must fail
-	if _, err := svc.SendMessage(ctx, "c1", "lagi"); err == nil {
+	if _, err := svc.SendMessage(ctx, "c1", "lagi", nil); err == nil {
 		t.Fatal("expected duplicate rejection")
 	}
 	svc.CancelGeneration("c1")
@@ -67,7 +67,7 @@ func TestSendAndCancel(t *testing.T) {
 
 func TestEmptyRejected(t *testing.T) {
 	svc := NewService(&ai.MockProvider{}, func(string, ai.ChatEvent) {})
-	if _, err := svc.SendMessage(context.Background(), "c1", "   "); err == nil {
+	if _, err := svc.SendMessage(context.Background(), "c1", "   ", nil); err == nil {
 		t.Fatal("expected empty rejection")
 	}
 }
@@ -78,7 +78,7 @@ func TestCancelAllStopsStreams(t *testing.T) {
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
 	for _, c := range []string{"c1", "c2"} {
-		if _, err := svc.SendMessage(ctx, c, "halo"); err != nil {
+		if _, err := svc.SendMessage(ctx, c, "halo", nil); err != nil {
 			t.Fatalf("send %s: %v", c, err)
 		}
 	}
@@ -107,7 +107,7 @@ func TestCancelAllWaitsForGoroutines(t *testing.T) {
 		mu.Unlock()
 	})
 	for _, c := range []string{"c1", "c2", "c3"} {
-		if _, err := svc.SendMessage(context.Background(), c, "halo"); err != nil {
+		if _, err := svc.SendMessage(context.Background(), c, "halo", nil); err != nil {
 			t.Fatalf("send %s: %v", c, err)
 		}
 	}

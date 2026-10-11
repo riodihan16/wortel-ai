@@ -299,7 +299,7 @@ func (a *App) DeleteConversation(conversationID string) error {
 
 // SendMessage starts a streaming generation. Returns requestId.
 func (a *App) SendMessage(conversationID string, text string) (string, error) {
-	return a.svc.SendMessage(a.ctx, conversationID, text)
+	return a.svc.SendMessage(a.ctx, conversationID, text, nil)
 }
 
 // RetryMessage regenerates the newest turn after a failure without storing

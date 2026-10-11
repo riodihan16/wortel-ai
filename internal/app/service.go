@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"companion/internal/ai"
+	"companion/internal/attach"
 	"companion/internal/storage"
 
 	"github.com/google/uuid"
@@ -22,6 +23,7 @@ type Service struct {
 	provs    *Providers                    // nil = fallback only
 	emit     func(event string, payload ai.ChatEvent)
 	wg       sync.WaitGroup // tracks running generation goroutines
+	staging  *attach.Staging
 }
 
 func NewService(provider ai.Provider, emit func(string, ai.ChatEvent)) *Service {
@@ -30,6 +32,7 @@ func NewService(provider ai.Provider, emit func(string, ai.ChatEvent)) *Service 
 		requests: map[string]string{},
 		provider: provider,
 		emit:     emit,
+		staging:  attach.NewStaging(),
 	}
 }
 
@@ -71,30 +74,50 @@ func NewRuntimeService(ctx context.Context, provider ai.Provider) *Service {
 	})
 }
 
-// SendMessage starts streaming. Empty input rejected. One active per conversation.
-func (s *Service) SendMessage(ctx context.Context, conversationID, text string) (string, error) {
-	return s.generate(ctx, conversationID, text, false)
+// SendMessage starts streaming. Text may be empty when attachments are
+// given; both empty is rejected. One active generation per conversation.
+func (s *Service) SendMessage(ctx context.Context, conversationID, text string, attachmentIDs []string) (string, error) {
+	return s.generate(ctx, conversationID, text, false, attachmentIDs)
 }
 
 // RetryMessage regenerates the newest turn after a failure. Unlike
 // SendMessage it does not store the user's text again when that turn is
-// already in history; the failed reply is replaced (storage.PrepareRetry).
+// already in history; the failed reply is replaced (storage.PrepareRetry)
+// and the turn's stored attachments are sent again from the database.
 func (s *Service) RetryMessage(ctx context.Context, conversationID, text string) (string, error) {
-	return s.generate(ctx, conversationID, text, true)
+	return s.generate(ctx, conversationID, text, true, nil)
 }
 
-func (s *Service) generate(ctx context.Context, conversationID, text string, retry bool) (string, error) {
+func (s *Service) generate(ctx context.Context, conversationID, text string, retry bool, attachmentIDs []string) (string, error) {
 	text = strings.TrimSpace(text)
-	if text == "" {
+	// A retry may carry empty text (an attachment-only turn): with a DB,
+	// PrepareRetry decides from the stored turn; without one there is
+	// nothing to reuse, so reject as a plain send would.
+	if text == "" && len(attachmentIDs) == 0 && (!retry || s.db() == nil) {
 		return "", errors.New("empty message")
 	}
 	if conversationID == "" {
 		return "", errors.New("empty conversation")
 	}
+	if len(attachmentIDs) > 0 && s.db() == nil {
+		return "", errNoAttachmentStorage
+	}
 	s.mu.Lock()
 	if _, ok := s.active[conversationID]; ok {
 		s.mu.Unlock()
 		return "", errors.New("generation already active")
+	}
+	// Attachments are resolved before the goroutine so a bad id is a
+	// synchronous rejection, never a half-sent turn. The items hold the bytes
+	// from here on; staging is cleared now so the composer can start fresh.
+	var items []attach.Item
+	if len(attachmentIDs) > 0 {
+		var err error
+		if items, err = s.staging.Select(attachmentIDs); err != nil {
+			s.mu.Unlock()
+			return "", err
+		}
+		s.staging.Remove(attachmentIDs...)
 	}
 	genCtx, cancel := context.WithCancel(ctx)
 	s.active[conversationID] = cancel
@@ -117,6 +140,9 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 			s.mu.Unlock()
 			s.wg.Done()
 		}()
+		fail := func(pub *ai.PublicError) {
+			s.emit("chat:event", ai.ChatEvent{Type: "failed", RequestID: requestID, ConversationID: conversationID, MessageID: messageID, Error: pub})
+		}
 		db := s.db()
 		// Reconcile a retry before anything can fail, so history and the UI
 		// (which drops the failed bubble once the retry is accepted) agree.
@@ -127,26 +153,38 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 			ok, err := db.PrepareRetry(conversationID, text)
 			reused = ok || err != nil
 		}
+		if !reused && text == "" && len(items) == 0 {
+			fail(&ai.PublicError{Code: "empty", Message: "Tidak ada yang bisa diulang."})
+			return
+		}
 		live, model, resolveErr := s.resolve(genCtx)
 		if resolveErr != nil {
-			s.emit("chat:event", ai.ChatEvent{Type: "failed", RequestID: requestID, ConversationID: conversationID, MessageID: messageID, Error: &ai.PublicError{Code: "no_provider", Message: resolveErr.Error()}})
+			fail(&ai.PublicError{Code: "no_provider", Message: resolveErr.Error()})
 			return
 		}
 		userMsgID := uuid.NewString()
+		current := ai.Message{Role: "user", Content: text, Parts: partsFromItems(items)}
 		if db != nil {
 			// Persistence is best-effort by design: a DB failure must not abort
 			// an in-flight stream. The error surfaces later when the history
 			// list is empty after restart; see ADR-037.
-			_ = db.EnsureConversation(conversationID, storage.TitleFor(text))
-			if !reused {
-				_ = db.AppendMessage(storage.MessageRow{ID: userMsgID, ConversationID: conversationID, Role: "user", Content: text, Status: "complete", Model: model})
+			_ = db.EnsureConversation(conversationID, titleFor(text, items))
+			assistant := storage.MessageRow{ID: messageID, ConversationID: conversationID, Role: "assistant", Content: "", Status: "streaming", Model: model}
+			if reused {
+				_ = db.AppendMessage(assistant)
+			} else {
+				user := storage.MessageRow{ID: userMsgID, ConversationID: conversationID, Role: "user", Content: text, Status: "complete", Model: model}
+				_ = db.AppendUserTurn(user, attachmentRows(userMsgID, items), assistant)
 			}
-			_ = db.AppendMessage(storage.MessageRow{ID: messageID, ConversationID: conversationID, Role: "assistant", Content: "", Status: "streaming", Model: model})
 		}
-		msgs := []ai.Message{{Role: "user", Content: text}}
+		msgs := []ai.Message{current}
 		if db != nil {
 			if rows, err := db.RecentContext(conversationID, 20); err == nil && len(rows) > 0 {
 				msgs = buildContext(rows, AttachmentTurns, db.AttachmentData)
+				// A failed insert must not drop the question itself.
+				if !reused && !hasRow(rows, userMsgID) {
+					msgs = append(msgs, current)
+				}
 			}
 		}
 		var sb strings.Builder
@@ -173,10 +211,10 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 			}
 			var pub *ai.PublicError
 			if errors.As(err, &pub) {
-				s.emit("chat:event", ai.ChatEvent{Type: "failed", RequestID: requestID, ConversationID: conversationID, MessageID: messageID, Error: pub})
+				fail(pub)
 				return
 			}
-			s.emit("chat:event", ai.ChatEvent{Type: "failed", RequestID: requestID, ConversationID: conversationID, MessageID: messageID, Error: &ai.PublicError{Code: "network", Message: "Koneksi gagal. Coba lagi.", Retryable: true}})
+			fail(&ai.PublicError{Code: "network", Message: "Koneksi gagal. Coba lagi.", Retryable: true})
 		}
 	}()
 	return requestID, nil
@@ -209,4 +247,6 @@ func (s *Service) CancelAll() {
 		cancel()
 	}
 	s.wg.Wait()
+	// Shutdown: pending attachments are not persisted.
+	s.staging.Clear()
 }

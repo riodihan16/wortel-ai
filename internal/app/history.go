@@ -1,6 +1,11 @@
 package app
 
-import "errors"
+import (
+	"errors"
+
+	"companion/internal/attach"
+	"companion/internal/storage"
+)
 
 var (
 	errNoDB             = errors.New("storage belum tersedia, restart aplikasi")
@@ -10,10 +15,11 @@ var (
 
 // ChatMessage is the frontend-safe history item.
 type ChatMessage struct {
-	ID      string `json:"id"`
-	Role    string `json:"role"`
-	Content string `json:"content"`
-	Status  string `json:"status"`
+	ID          string        `json:"id"`
+	Role        string        `json:"role"`
+	Content     string        `json:"content"`
+	Status      string        `json:"status"`
+	Attachments []attach.Meta `json:"attachments"`
 }
 
 // History returns recent messages oldest-first for a conversation.
@@ -30,6 +36,14 @@ func (s *Service) History(conversationID string, n int) []ChatMessage {
 	if err != nil {
 		return []ChatMessage{}
 	}
+	ids := make([]string, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+	atts, err := db.AttachmentsFor(ids)
+	if err != nil {
+		atts = map[string][]storage.AttachmentRow{}
+	}
 	out := make([]ChatMessage, 0, len(rows))
 	for _, r := range rows {
 		if r.Role != "user" && r.Role != "assistant" {
@@ -37,6 +51,7 @@ func (s *Service) History(conversationID string, n int) []ChatMessage {
 		}
 		out = append(out, ChatMessage{
 			ID: r.ID, Role: r.Role, Content: r.Content, Status: r.Status,
+			Attachments: metasOf(atts[r.ID]),
 		})
 	}
 	return out
