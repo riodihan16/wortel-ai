@@ -12,10 +12,33 @@ import (
 	"time"
 )
 
-// Message is one chat message sent to a provider.
+// Message is one chat message sent to a provider. Parts, when present, make
+// the message multimodal: Content becomes the first text part. Without Parts
+// the message marshals as the plain {"role","content":"…"} shape every
+// OpenAI-compatible provider understands.
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role    string
+	Content string
+	Parts   []Part
+}
+
+// MarshalJSON picks the string or array content shape (see Message).
+func (m Message) MarshalJSON() ([]byte, error) {
+	if len(m.Parts) == 0 {
+		return json.Marshal(struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		}{m.Role, m.Content})
+	}
+	parts := make([]Part, 0, len(m.Parts)+1)
+	if m.Content != "" {
+		parts = append(parts, TextPart(m.Content))
+	}
+	parts = append(parts, m.Parts...)
+	return json.Marshal(struct {
+		Role    string `json:"role"`
+		Content []Part `json:"content"`
+	}{m.Role, parts})
 }
 
 // ChatRequest is the internal request contract.
