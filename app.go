@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"sync"
 
 	"companion/internal/ai"
 	"companion/internal/app"
+	"companion/internal/attach"
 	"companion/internal/autostart"
 	"companion/internal/config"
 	"companion/internal/credentials"
@@ -297,9 +299,71 @@ func (a *App) DeleteConversation(conversationID string) error {
 	return a.svc.DeleteConversation(conversationID)
 }
 
-// SendMessage starts a streaming generation. Returns requestId.
-func (a *App) SendMessage(conversationID string, text string) (string, error) {
-	return a.svc.SendMessage(a.ctx, conversationID, text, nil)
+// SendMessage starts a streaming generation. attachmentIDs name staged
+// attachments to send with the text; text may be empty when there are any.
+func (a *App) SendMessage(conversationID string, text string, attachmentIDs []string) (string, error) {
+	if a.svc == nil {
+		return "", errStorageUnavailable()
+	}
+	return a.svc.SendMessage(a.ctx, conversationID, text, attachmentIDs)
+}
+
+// PickAttachments opens the native multi-file dialog and stages the chosen
+// files. Cancel returns an empty list, not an error.
+func (a *App) PickAttachments() ([]attach.Meta, error) {
+	if a.svc == nil {
+		return nil, errStorageUnavailable()
+	}
+	paths, err := runtime.OpenMultipleFilesDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Lampirkan berkas",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Gambar, PDF, teks (*.png;*.jpg;*.jpeg;*.webp;*.pdf;*.txt;*.md;*.csv;*.json)", Pattern: "*.png;*.jpg;*.jpeg;*.webp;*.pdf;*.txt;*.md;*.csv;*.json"},
+			{DisplayName: "Semua berkas (*.*)", Pattern: "*.*"},
+		},
+	})
+	if err != nil {
+		return nil, errors.New("dialog berkas gagal dibuka")
+	}
+	if len(paths) == 0 {
+		return []attach.Meta{}, nil
+	}
+	return a.svc.StagePaths(paths)
+}
+
+// StageAttachmentPaths stages files dropped onto the chat panel.
+func (a *App) StageAttachmentPaths(paths []string) ([]attach.Meta, error) {
+	if a.svc == nil {
+		return nil, errStorageUnavailable()
+	}
+	return a.svc.StagePaths(paths)
+}
+
+// StageAttachmentData stages an image pasted from the clipboard (base64,
+// no data: prefix). The name may be empty; the mime then picks the extension.
+func (a *App) StageAttachmentData(name string, mime string, data string) (attach.Meta, error) {
+	if a.svc == nil {
+		return attach.Meta{}, errStorageUnavailable()
+	}
+	return a.svc.StageData(name, mime, data)
+}
+
+// UnstageAttachment drops a pending attachment. Unknown ids are ignored.
+func (a *App) UnstageAttachment(id string) {
+	if a.svc != nil {
+		a.svc.Unstage(id)
+	}
+}
+
+// assetHandler serves /attachments/{id} to the WebView. main.go needs it
+// before startup creates the service, so it looks the service up per call.
+func (a *App) assetHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if a.svc == nil {
+			http.NotFound(w, r)
+			return
+		}
+		a.svc.AttachmentHandler().ServeHTTP(w, r)
+	})
 }
 
 // RetryMessage regenerates the newest turn after a failure without storing

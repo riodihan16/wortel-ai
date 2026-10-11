@@ -35,8 +35,13 @@ func main() {
 		Frameless:   true,
 		AlwaysOnTop: true,
 		AssetServer: &assetserver.Options{
-			Assets: assets,
+			Assets:  assets,
+			Handler: app.assetHandler(),
 		},
+		// Files dropped on an element carrying `--wails-drop-target: drop`
+		// reach runtime.OnFileDrop as absolute paths; elsewhere they are
+		// ignored (main.tsx also cancels the WebView's own file navigation).
+		DragAndDrop:      &options.DragAndDrop{EnableFileDrop: true},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
 		Windows: &windows.Options{
 			WebviewIsTransparent: true,

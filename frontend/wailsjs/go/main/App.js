@@ -50,6 +50,10 @@ export function ListProviders() {
   return window['go']['main']['App']['ListProviders']();
 }
 
+export function PickAttachments() {
+  return window['go']['main']['App']['PickAttachments']();
+}
+
 export function RenameConversation(arg1, arg2) {
   return window['go']['main']['App']['RenameConversation'](arg1, arg2);
 }
@@ -62,8 +66,8 @@ export function SaveProvider(arg1) {
   return window['go']['main']['App']['SaveProvider'](arg1);
 }
 
-export function SendMessage(arg1, arg2) {
-  return window['go']['main']['App']['SendMessage'](arg1, arg2);
+export function SendMessage(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SendMessage'](arg1, arg2, arg3);
 }
 
 export function SetActiveModel(arg1, arg2) {
@@ -94,6 +98,14 @@ export function Show() {
   return window['go']['main']['App']['Show']();
 }
 
+export function StageAttachmentData(arg1, arg2, arg3) {
+  return window['go']['main']['App']['StageAttachmentData'](arg1, arg2, arg3);
+}
+
+export function StageAttachmentPaths(arg1) {
+  return window['go']['main']['App']['StageAttachmentPaths'](arg1);
+}
+
 export function TestProvider(arg1) {
   return window['go']['main']['App']['TestProvider'](arg1);
 }
@@ -108,6 +120,10 @@ export function TrayError() {
 
 export function TrayStatus() {
   return window['go']['main']['App']['TrayStatus']();
+}
+
+export function UnstageAttachment(arg1) {
+  return window['go']['main']['App']['UnstageAttachment'](arg1);
 }
 
 export function Version() {

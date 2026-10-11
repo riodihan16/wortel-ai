@@ -19,6 +19,7 @@ export namespace app {
 	    role: string;
 	    content: string;
 	    status: string;
+	    attachments: attach.Meta[];
 	
 	    static createFrom(source: any = {}) {
 	        return new ChatMessage(source);
@@ -30,7 +31,26 @@ export namespace app {
 	        this.role = source["role"];
 	        this.content = source["content"];
 	        this.status = source["status"];
+	        this.attachments = this.convertValues(source["attachments"], attach.Meta);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class Conversation {
 	    id: string;
@@ -124,6 +144,31 @@ export namespace app {
 	        this.statusCode = source["statusCode"];
 	        this.retryAfterSec = source["retryAfterSec"];
 	        this.insecure = source["insecure"];
+	    }
+	}
+
+}
+
+export namespace attach {
+	
+	export class Meta {
+	    id: string;
+	    name: string;
+	    mime: string;
+	    size: number;
+	    kind: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Meta(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.mime = source["mime"];
+	        this.size = source["size"];
+	        this.kind = source["kind"];
 	    }
 	}
 
