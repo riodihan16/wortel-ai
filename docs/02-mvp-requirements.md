@@ -153,7 +153,7 @@ Pengguna dapat melampirkan gambar (png/jpeg/webp), PDF, dan berkas teks (txt/md/
 - Maksimal 4 lampiran per pesan; gambar ≤ 8 MB, PDF ≤ 15 MB, teks ≤ 256 KB, total ≤ 20 MB; tipe ditentukan dari isi berkas, bukan ekstensi.
 - Pesan boleh tanpa teks bila ada lampiran; tanpa keduanya tidak dikirim.
 - Lampiran tersimpan di riwayat lokal dan tampil kembali saat percakapan dibuka; hapus percakapan menghapus lampirannya.
-- Hanya 3 pesan user terakhir yang mengirim lampiran penuh ke model; yang lebih lama diganti placeholder teks.
+- Hanya 3 pesan user terakhir yang mengirim lampiran penuh ke model, dengan total ≤ 20 MB per request; yang lebih lama diganti placeholder teks.
 - Provider yang menolak gambar/berkas menghasilkan pesan "Model ini tidak menerima gambar/berkas", bukan error generik.
 - Berkas hanya dibaca dari aksi eksplisit pengguna; path penuh dan isi berkas tidak masuk log.
 

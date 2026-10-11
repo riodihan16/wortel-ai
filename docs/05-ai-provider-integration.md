@@ -155,7 +155,7 @@ Jika provider hanya mendukung Chat Completions, test boleh mengirim prompt sanga
 | 429 | Tampilkan rate limit/quota; hormati `Retry-After` bila ada. |
 | 5xx | Gangguan provider; izinkan retry manual. |
 | 413 | Lampiran terlalu besar untuk provider; minta pengguna mengurangi ukuran/jumlah. |
-| 400 yang menyebut image/file/vision/modal/document | Model tidak menerima gambar/berkas; sarankan model lain atau kirim teks saja. |
+| 400 yang menyebut image/file/vision/modal/modality/input_image/document | Model tidak menerima gambar/berkas; sarankan model lain atau kirim teks saja. |
 | TLS/DNS/network | Periksa koneksi, URL, sertifikat, proxy, atau firewall. |
 | SSE malformed | Tandai protocol error, simpan teks parsial, jangan crash. |
 | Cancel | Tampilkan status dibatalkan, bukan error generik. |
