@@ -148,6 +148,24 @@ func TestError400NamingImagesIsUnsupportedInput(t *testing.T) {
 	}
 }
 
+func TestError400NamingModalityIsUnsupportedInput(t *testing.T) {
+	for _, body := range []string{
+		`{"error":{"message":"unsupported modality: image"}}`,
+		`{"error":{"message":"Unsupported modality for this model"}}`,
+		`{"error":{"message":"model only supports text modalities"}}`,
+		`{"error":{"message":"content type input_image is not allowed"}}`,
+		`{"error":{"message":"image_input is disabled for this deployment"}}`,
+	} {
+		srv := sseServer(t, 400, body, nil)
+		var pub *PublicError
+		err := streamErr(t, &OpenAICompatible{BaseURL: srv.URL})
+		srv.Close()
+		if !errors.As(err, &pub) || pub.Code != "unsupported_input" {
+			t.Fatalf("%s: got %v", body, err)
+		}
+	}
+}
+
 func TestError400WithoutModalityWordsStaysBadRequest(t *testing.T) {
 	srv := sseServer(t, 400, `{"error":{"message":"temperature must be <= 2; check your profile"}}`, nil)
 	defer srv.Close()

@@ -46,8 +46,9 @@ func MapHTTPErrorWithHeaders(status int, h http.Header) *PublicError {
 // attachmentWords marks a 400 that is about the input modality rather than
 // a generic parameter problem, so the UI can say "this model does not take
 // images" instead of "request rejected". Word-bounded: "profile" must not
-// match "file".
-var attachmentWords = regexp.MustCompile(`(?i)\b(image|images|image_url|file|files|vision|modal|multimodal|document|documents)\b`)
+// match "file". The underscore forms are listed whole because `_` is a word
+// character, so `\bimage\b` does not match inside "input_image".
+var attachmentWords = regexp.MustCompile(`(?i)\b(image|images|image_url|input_image|image_input|file|files|vision|modal|modality|modalities|multimodal|document|documents)\b`)
 
 // MapHTTPErrorWithBody is MapHTTPErrorWithHeaders plus the two attachment
 // cases: 413 (body too large) and a 400 whose message names images/files.
