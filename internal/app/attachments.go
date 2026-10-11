@@ -19,28 +19,34 @@ var extByMime = map[string]string{"image/png": ".png", "image/jpeg": ".jpg", "im
 
 // StagePaths reads user-chosen files (dialog or drop) into staging. The
 // batch is all-or-nothing: one bad file rejects the call and stages nothing,
-// and the error names the file, never its directory.
+// and the error names the file, never its directory. Count and total size
+// are checked against what staging still has room for before any file is
+// read, so a large selection is refused without loading it into memory.
+// Empty paths (non-file items in a mixed drag) are skipped.
 func (s *Service) StagePaths(paths []string) ([]attach.Meta, error) {
 	if s.db() == nil {
 		return nil, errNoAttachmentStorage
+	}
+	files := make([]string, 0, len(paths))
+	for _, p := range paths {
+		if p != "" {
+			files = append(files, p)
+		}
+	}
+	items, budget := s.staging.Remaining()
+	if len(files) > items {
+		return nil, attach.ErrTooMany
+	}
+	if err := checkSizes(files, budget); err != nil {
+		return nil, err
 	}
 	type pending struct {
 		meta attach.Meta
 		data []byte
 	}
-	batch := make([]pending, 0, len(paths))
-	for _, p := range paths {
+	batch := make([]pending, 0, len(files))
+	for _, p := range files {
 		name := attach.CleanName(p)
-		info, err := os.Stat(p)
-		if err != nil {
-			return nil, fmt.Errorf("%s: tidak bisa dibaca", name)
-		}
-		if info.IsDir() {
-			return nil, fmt.Errorf("%s: folder tidak bisa dilampirkan", name)
-		}
-		if info.Size() > attach.MaxFileBytes {
-			return nil, fmt.Errorf("%s: melebihi %d MB", name, attach.MaxFileBytes>>20)
-		}
 		data, err := os.ReadFile(p)
 		if err != nil {
 			return nil, fmt.Errorf("%s: tidak bisa dibaca", name)
@@ -63,6 +69,30 @@ func (s *Service) StagePaths(paths []string) ([]attach.Meta, error) {
 		out = append(out, m)
 	}
 	return out, nil
+}
+
+// checkSizes stats every path without reading it: each must be a regular
+// file within MaxFileBytes, and together they must fit in budget.
+func checkSizes(files []string, budget int64) error {
+	var total int64
+	for _, p := range files {
+		name := attach.CleanName(p)
+		info, err := os.Stat(p)
+		if err != nil {
+			return fmt.Errorf("%s: tidak bisa dibaca", name)
+		}
+		if info.IsDir() {
+			return fmt.Errorf("%s: folder tidak bisa dilampirkan", name)
+		}
+		if info.Size() > attach.MaxFileBytes {
+			return fmt.Errorf("%s: melebihi %d MB", name, attach.MaxFileBytes>>20)
+		}
+		total += info.Size()
+	}
+	if total > budget {
+		return attach.ErrTooBig
+	}
+	return nil
 }
 
 // StageData stages bytes the WebView already holds (a pasted image). b64 is

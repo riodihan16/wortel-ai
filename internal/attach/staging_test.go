@@ -89,6 +89,22 @@ func TestStagingRemoveIdempotentAndFreesBudget(t *testing.T) {
 	}
 }
 
+func TestStagingRemainingTracksCountAndBytes(t *testing.T) {
+	s := stagingWithIDs("a", "b")
+	if items, bytes := s.Remaining(); items != MaxPerMessage || bytes != MaxMessageBytes {
+		t.Fatalf("empty: %d %d", items, bytes)
+	}
+	_, _ = s.Add(Meta{Name: "a.png"}, make([]byte, 3<<20))
+	_, _ = s.Add(Meta{Name: "b.png"}, make([]byte, 1<<20))
+	if items, bytes := s.Remaining(); items != MaxPerMessage-2 || bytes != MaxMessageBytes-4<<20 {
+		t.Fatalf("after two: %d %d", items, bytes)
+	}
+	s.Remove("a")
+	if items, bytes := s.Remaining(); items != MaxPerMessage-1 || bytes != MaxMessageBytes-1<<20 {
+		t.Fatalf("after remove: %d %d", items, bytes)
+	}
+}
+
 func TestStagingClear(t *testing.T) {
 	s := stagingWithIDs("a")
 	_, _ = s.Add(Meta{Name: "a.png"}, []byte{1})

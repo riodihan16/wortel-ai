@@ -287,6 +287,61 @@ func TestStagePathsRollsBackOnCapError(t *testing.T) {
 	}
 }
 
+func TestStagePathsRejectsTooManyBeforeReading(t *testing.T) {
+	svc, _ := serviceWith(t, func(w http.ResponseWriter, _ *http.Request) { sseOK(w) })
+	for i := 0; i < 3; i++ {
+		if _, err := svc.StageData("s.png", "image/png", pngB64()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Neither file exists: only a check made before any Stat or read can
+	// answer ErrTooMany here.
+	dir := t.TempDir()
+	paths := []string{filepath.Join(dir, "a.png"), filepath.Join(dir, "b.png")}
+	if _, err := svc.StagePaths(paths); !errors.Is(err, attach.ErrTooMany) {
+		t.Fatalf("got %v", err)
+	}
+	if svc.staging.Len() != 3 {
+		t.Fatalf("staging len %d, want 3", svc.staging.Len())
+	}
+}
+
+func TestStagePathsRejectsOverBudgetBeforeReading(t *testing.T) {
+	svc, _ := serviceWith(t, func(w http.ResponseWriter, _ *http.Request) { sseOK(w) })
+	dir := t.TempDir()
+	var paths []string
+	// Two 11 MiB files: each passes MaxFileBytes, together they exceed the
+	// 20 MiB message budget. Sparse via Truncate, so nothing is written.
+	for _, n := range []string{"a.pdf", "b.pdf"} {
+		p := filepath.Join(dir, n)
+		f, err := os.Create(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := f.Truncate(11 << 20); err != nil {
+			t.Fatal(err)
+		}
+		_ = f.Close()
+		paths = append(paths, p)
+	}
+	if _, err := svc.StagePaths(paths); !errors.Is(err, attach.ErrTooBig) {
+		t.Fatalf("got %v", err)
+	}
+	if svc.staging.Len() != 0 {
+		t.Fatalf("staging len %d, want 0", svc.staging.Len())
+	}
+}
+
+func TestStagePathsSkipsEmptyPaths(t *testing.T) {
+	svc, _ := serviceWith(t, func(w http.ResponseWriter, _ *http.Request) { sseOK(w) })
+	png := filepath.Join(t.TempDir(), "foto.png")
+	_ = os.WriteFile(png, pngBytes, 0o644)
+	metas, err := svc.StagePaths([]string{"", png})
+	if err != nil || len(metas) != 1 || metas[0].Name != "foto.png" {
+		t.Fatalf("%+v %v", metas, err)
+	}
+}
+
 func TestRetryEmptyTextResendsAttachmentOnlyTurn(t *testing.T) {
 	var mu sync.Mutex
 	var bodies []string

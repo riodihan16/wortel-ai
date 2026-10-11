@@ -103,6 +103,14 @@ func (s *Staging) Clear() {
 	s.total = 0
 }
 
+// Remaining reports how many more items and bytes fit in the message, so a
+// caller can refuse a batch before reading it into memory.
+func (s *Staging) Remaining() (items int, bytes int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return MaxPerMessage - len(s.items), MaxMessageBytes - s.total
+}
+
 // Len reports how many items are staged.
 func (s *Staging) Len() int {
 	s.mu.Lock()
