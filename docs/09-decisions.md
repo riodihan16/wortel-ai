@@ -27,7 +27,7 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 | ADR-051 | Critique delta 32/40: fokus shortcut, salin teks biasa, error per field, pencarian percakapan | Done 2026-10-11 | Satu P2 (shortcut membuka chat tanpa fokus keyboard, dinaikkan ke P1 oleh user) dan tiga P3 diperbaiki, plus celah heuristik yang tersisa. |
 | ADR-052 | Critique delta 36/40: shortcut untuk chat tak fokus, picker, alias, Tes | Done 2026-10-11 | Dua P2 (regresi picker, shortcut menciutkan chat yang tak fokus) dan dua P3 + celah H5 diperbaiki. |
 | ADR-053 | Critique delta 39/40: shortcut tidak lagi membuang form Settings | Done 2026-10-11 | `toggleFront` menjaga tampilan panel yang tersembunyi/tak fokus; tiga P3 kecil. |
-| ADR-054 | Lampiran gambar/PDF/teks: staging Go, BLOB SQLite, 3 turn, tanpa gating | Accepted 2026-10-11 (smoke pending) | `content` array standar OpenAI; bytes di-stage di Go lalu disimpan BLOB bersama pesan; thumbnail via route `/attachments/{id}`; 413/400 modality dipetakan ke pesan khusus. |
+| ADR-054 | Lampiran gambar/PDF/teks: staging Go, BLOB SQLite, 3 turn, tanpa gating | Done 2026-10-11 | `content` array standar OpenAI; bytes di-stage di Go lalu disimpan BLOB bersama pesan; thumbnail via route `/attachments/{id}`; 413/400 modality dipetakan ke pesan khusus. |
 
 ## ADR-001 — Wails v2
 
@@ -506,7 +506,7 @@ Dokumen ini mencatat keputusan arsitektur agar perubahan tidak terjadi secara di
 
 ## ADR-054 — Lampiran gambar dan berkas (2026-10-11)
 
-- **Status:** Accepted, smoke manual Windows belum dijalankan (build/bin/companion.exe sudah dibangun).
+- **Status:** Done, smoke manual Windows lulus 2026-10-11 (dialog, paste, drop, model vision Kenari; konfirmasi user).
 - **Konteks:** Provider yang dipakai (Kenari) meneruskan model multimodal; pengguna ingin bertanya tentang screenshot dan dokumen tanpa pindah ke browser. Spec: `docs/superpowers/specs/2026-10-11-attachments-design.md`.
 - **Pilihan:** (A) staging bytes di Go + BLOB SQLite + route asset-server; (B) staging base64 di state React; (C) seperti A tetapi berkas di disk.
 - **Keputusan:** (A). Dialog Wails hanya memberi path, jadi Go harus membaca; satu tabel `attachments` dengan cascade membuat kirim + simpan atomik tanpa sweep file; `<img src="/attachments/{id}">` menghindari base64 lewat IPC. Format request memakai `content` array standar OpenAI (`image_url` data URL, `file` untuk PDF, teks disisipkan sebagai part `text`) sehingga tidak ada parameter khusus provider. Hanya 3 turn user terakhir membawa lampiran (`AttachmentTurns`); lebih lama jadi placeholder teks karena gambar ditagih ulang tiap request. Tanpa gating kemampuan model: 400 yang menyebut image/file/vision/modal/modality/input_image/document → `unsupported_input`, 413 → `payload_too_large`. Batas: 4 lampiran, gambar 8 MB, PDF 15 MB, teks 256 KB, total 20 MB; tipe dari magic bytes. Staging adalah isi pesan yang sedang disusun, batas ditegakkan saat menambah.
