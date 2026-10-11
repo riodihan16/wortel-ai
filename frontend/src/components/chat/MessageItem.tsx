@@ -12,6 +12,7 @@ import { IconAlert, IconCheck, IconCopy } from "../ui/Icon";
 import { useCopy } from "../../hooks/useCopy";
 import { markdownToText } from "../../lib/markdownToText";
 import { SafeMarkdown } from "./SafeMarkdown";
+import { AttachmentList } from "./AttachmentList";
 
 interface Props {
   message: ChatMessage;
@@ -25,7 +26,9 @@ export function MessageItem({ message: m, isLast, busy, onRetry }: Props): JSX.E
   const failed = m.role === "assistant" && m.status === "error";
   const cancelled = m.role === "assistant" && m.status === "cancelled";
   const waiting = m.role === "assistant" && m.status === "streaming" && !m.content;
-  const showBody = !(failed && !m.content);
+  const atts = m.role === "user" ? m.attachments ?? [] : [];
+  // No bubble for a turn that was only attachments; the list stands alone.
+  const showBody = !(failed && !m.content) && !(m.role === "user" && !m.content);
   const mood: CarrotMood = failed ? "error" : m.status === "streaming" ? "thinking" : "idle";
   // Copying the answer is the most likely next step after a reply (brief
   // §core loop 6). Plain text, not markdown source: "**Kamis**" must not land
@@ -38,6 +41,7 @@ export function MessageItem({ message: m, isLast, busy, onRetry }: Props): JSX.E
     <div className={`msg msg-${m.role}`}>
       {m.role === "assistant" && <Carrot size={24} mood={mood} className="msg-avatar" />}
       <div className="msg-main">
+        {atts.length > 0 && <AttachmentList items={atts} />}
         {showBody && (
           <div className="msg-body">
             {waiting ? (
