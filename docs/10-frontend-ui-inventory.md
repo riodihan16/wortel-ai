@@ -54,6 +54,10 @@ karakter (docs 06 §2, ditunda), state `thinking`/`speaking` visual pada karakte
 | Composer | `#chat-composer` + `textarea` | ✔ | Autosize belum ada (fixed `rows={2}`). |
 | Tombol kirim/stop | `#btn-send`, `#btn-stop` | ✔ | Toggle by `busy`. |
 | Footer model + status | `#chat-footer`, `#chat-footer-model`, `#chat-state` | ✔ | `#chat-footer-model` **tanpa style** (0 rule). |
+| Baris lampiran | `#chat-pending`, `.pending-item` | ✔ | Thumbnail 56 px / chip nama+ukuran, tombol × per item (ADR-054). |
+| Tombol lampir | `#btn-attach` | ✔ | Kiri textarea; nonaktif saat busy/tanpa provider. |
+| Drop overlay | `#chat-drop` | ✔ | Hanya saat drag berkas di atas panel chat. |
+| Lampiran di transkrip | `.att-list`, `.att-thumb`, `.att-chip` | ✔ | Klik thumbnail = perbesar inline, tanpa lightbox. |
 | Tombol Stop saat generation berjalan di latar | — | ✘ | docs 06 §2 minta cara membatalkan eksplisit saat panel ditutup. |
 
 ### S3 — Settings

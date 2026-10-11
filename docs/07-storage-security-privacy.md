@@ -53,6 +53,16 @@ Kolom kandidat:
 
 Tambahkan indeks pada `messages(conversation_id, created_at)` atau kombinasi yang sesuai query nyata. Aktifkan foreign keys dan gunakan transaksi.
 
+### `attachments`
+
+- `id` TEXT PRIMARY KEY (UUID).
+- `message_id` TEXT NOT NULL FK → `messages(id)` ON DELETE CASCADE.
+- `kind` TEXT (`image` | `pdf` | `text`), `mime` TEXT, `name` TEXT (basename saja, tanpa path), `size` INTEGER.
+- `data` BLOB NOT NULL — isi berkas pengguna. Bukan secret, tetapi data pribadi: tidak pernah di-log.
+- `position` INTEGER (urutan dalam pesan), `created_at`.
+
+Indeks `attachments(message_id, position)`. Pembacaan metadata tidak memilih kolom `data`. Hapus percakapan membebaskan halaman untuk dipakai ulang; ukuran file DB tidak mengecil otomatis.
+
 ### `provider_profiles`
 
 Kolom kandidat:

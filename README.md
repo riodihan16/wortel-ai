@@ -13,6 +13,7 @@
 - Chat streaming ke endpoint OpenAI-compatible, dengan tombol berhenti yang benar-benar membatalkan request.
 - Beberapa provider dan beberapa model per provider; ganti model aktif dari header chat.
 - Riwayat percakapan lokal (SQLite) + multi-percakapan (buat, ganti nama, hapus).
+- Lampiran gambar (png/jpeg/webp), PDF, dan berkas teks ke pesan: tombol klip, Ctrl+V, atau drag-drop. Maks 4 berkas / 20 MB per pesan; hanya 3 pesan terakhir yang mengirim ulang lampiran ke model.
 - Markdown aman untuk respons AI (tanpa raw HTML; link hanya http/https).
 - API key disimpan di Windows Credential Manager, tidak pernah ke database/log/frontend.
 - Hotkey global, system tray, dan perilaku idle ringan (tanpa polling, tanpa model lokal).

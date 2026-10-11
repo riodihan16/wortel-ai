@@ -74,6 +74,8 @@ Contoh payload konsep:
 }
 ```
 
+Pesan user dengan lampiran memakai `content` array (bentuk standar OpenAI): part `text` untuk teks pengguna, `image_url` dengan data URL base64 untuk gambar, `file` (`filename` + `file_data` data URL) untuk PDF, dan berkas teks disisipkan sebagai part `text` berpagar. Hanya 3 pesan user terakhir membawa part; yang lebih lama memakai `[gambar: nama]` / `[berkas: nama]` sehingga gambar tidak ditagih ulang tanpa batas (Kenari menagih gambar di history pada tiap request). Tanpa lampiran, `content` tetap string.
+
 Header dasar:
 
 ```http
@@ -152,6 +154,8 @@ Jika provider hanya mendukung Chat Completions, test boleh mengirim prompt sanga
 | 408 / timeout | Tampilkan timeout dan tombol coba lagi. |
 | 429 | Tampilkan rate limit/quota; hormati `Retry-After` bila ada. |
 | 5xx | Gangguan provider; izinkan retry manual. |
+| 413 | Lampiran terlalu besar untuk provider; minta pengguna mengurangi ukuran/jumlah. |
+| 400 yang menyebut image/file/vision/modal/document | Model tidak menerima gambar/berkas; sarankan model lain atau kirim teks saja. |
 | TLS/DNS/network | Periksa koneksi, URL, sertifikat, proxy, atau firewall. |
 | SSE malformed | Tandai protocol error, simpan teks parsial, jangan crash. |
 | Cancel | Tampilkan status dibatalkan, bukan error generik. |
@@ -166,14 +170,13 @@ Dukung:
 - Pilihan model sebagai string yang dimasukkan pengguna.
 - Satu request chat aktif per conversation.
 - Pembatalan request.
+- Multimodal/image input dan upload file (gambar, PDF, teks; ADR-054).
 
 Tidak wajib pada MVP:
 - Tool/function calling.
-- Multimodal/image input.
 - JSON schema/structured outputs.
 - Audio/realtime.
 - Provider-specific reasoning controls.
-- Upload file.
 
 ## 10. Pengujian provider
 
