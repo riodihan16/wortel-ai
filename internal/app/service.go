@@ -146,12 +146,7 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 		msgs := []ai.Message{{Role: "user", Content: text}}
 		if db != nil {
 			if rows, err := db.RecentContext(conversationID, 20); err == nil && len(rows) > 0 {
-				// hist already includes the just-saved user msg. Attachment
-				// parts arrive with the context builder in a later task.
-				msgs = msgs[:0]
-				for _, r := range rows {
-					msgs = append(msgs, ai.Message{Role: r.Role, Content: r.Content})
-				}
+				msgs = buildContext(rows, AttachmentTurns, db.AttachmentData)
 			}
 		}
 		var sb strings.Builder
