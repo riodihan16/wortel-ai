@@ -9,7 +9,7 @@ import {
   RetryMessage,
   SendMessage,
 } from "../../wailsjs/go/main/App";
-import type { ChatEvent, ChatMessage, ChatStatus } from "../types/chat";
+import type { AttachmentMeta, ChatEvent, ChatMessage, ChatStatus } from "../types/chat";
 
 export interface ConversationItem {
   id: string;
@@ -64,7 +64,7 @@ export function useChat() {
     sendingRef.current = false;
     try {
       const rows = (await History(id, 100)) as
-        | { id: string; role: string; content: string; status: string }[]
+        | { id: string; role: string; content: string; status: string; attachments?: AttachmentMeta[] }[]
         | null;
       setMessages(
         (rows ?? [])
@@ -73,6 +73,7 @@ export function useChat() {
             id: r.id,
             role: r.role as "user" | "assistant",
             content: r.content,
+            attachments: r.attachments ?? [],
             status: (r.status === "cancelled"
               ? "cancelled"
               : r.status === "failed" || r.status === "error"
@@ -193,24 +194,28 @@ export function useChat() {
     []
   );
 
-  const send = useCallback(async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || sendingRef.current || activeRequest.current) return;
-    let conv = convRef.current;
-    if (!conv) {
-      conv = freshId();
-      convRef.current = conv;
-      setConversationId(conv);
-    }
-    sendingRef.current = true;
-    setError(null);
-    setStatus("sending");
-    setMessages((prev) => [
-      ...prev,
-      { id: `user-${Date.now()}`, role: "user", content: trimmed, status: "complete" },
-    ]);
-    await begin(conv, trimmed, SendMessage);
-  }, [begin]);
+  const send = useCallback(
+    async (text: string, attachments: AttachmentMeta[] = []) => {
+      const trimmed = text.trim();
+      if ((!trimmed && attachments.length === 0) || sendingRef.current || activeRequest.current) return;
+      let conv = convRef.current;
+      if (!conv) {
+        conv = freshId();
+        convRef.current = conv;
+        setConversationId(conv);
+      }
+      sendingRef.current = true;
+      setError(null);
+      setStatus("sending");
+      setMessages((prev) => [
+        ...prev,
+        { id: `user-${Date.now()}`, role: "user", content: trimmed, status: "complete", attachments },
+      ]);
+      const ids = attachments.map((a) => a.id);
+      await begin(conv, trimmed, (c, t) => SendMessage(c, t, ids));
+    },
+    [begin]
+  );
 
   // retry re-runs the newest user turn in place: the failed reply bubble is
   // dropped and the backend reuses the stored user row, so neither the UI

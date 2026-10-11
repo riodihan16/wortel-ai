@@ -273,3 +273,36 @@ describe("useChat request lifecycle races", () => {
     expect(result.current.messages.at(-1)).toMatchObject({ id: "m1", status: "cancelled", content: "seten" });
   });
 });
+
+describe("useChat attachments", () => {
+  const att = { id: "a1", name: "foto.png", mime: "image/png", size: 10, kind: "image" as const };
+
+  it("passes attachment ids to SendMessage and shows them on the user bubble", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+    await act(() => result.current.send("lihat", [att]));
+    expect(backend.send).toHaveBeenCalledWith(conv, "lihat", ["a1"]);
+    expect(result.current.messages.at(-1)).toMatchObject({ role: "user", content: "lihat", attachments: [att] });
+  });
+
+  it("accepts a message with attachments and no text", async () => {
+    const { result } = await mountChat();
+    const conv = result.current.conversationId;
+    await act(() => result.current.send("   ", [att]));
+    expect(backend.send).toHaveBeenCalledWith(conv, "", ["a1"]);
+  });
+
+  it("still rejects a message with neither text nor attachments", async () => {
+    const { result } = await mountChat();
+    await act(() => result.current.send("   ", []));
+    expect(backend.send).not.toHaveBeenCalled();
+  });
+
+  it("loads attachment metadata from history", async () => {
+    backend.list.mockResolvedValue([{ id: "c9", title: "t" }]);
+    backend.history.mockResolvedValue([{ id: "u1", role: "user", content: "x", status: "complete", attachments: [att] }]);
+    const { result } = renderHook(() => useChat());
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+    expect(result.current.messages[0].attachments).toEqual([att]);
+  });
+});

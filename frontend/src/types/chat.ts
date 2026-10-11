@@ -18,6 +18,17 @@ export interface ChatEvent {
 
 export type ChatStatus = "idle" | "sending" | "streaming" | "complete" | "cancelled" | "error";
 
+export type AttachmentKind = "image" | "pdf" | "text";
+
+/** Frontend-safe attachment description. Bytes stay in the Go backend. */
+export interface AttachmentMeta {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  kind: AttachmentKind;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -25,4 +36,5 @@ export interface ChatMessage {
   status: ChatStatus;
   /** Why this reply failed, from the backend's failed event. */
   errorText?: string;
+  attachments?: AttachmentMeta[];
 }
