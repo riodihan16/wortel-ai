@@ -172,6 +172,73 @@ func TestGenerateImageURLCrossHostDropsAuth(t *testing.T) {
 
 func b64Of(s string) string { return base64.StdEncoding.EncodeToString([]byte(s)) }
 
+func imageErr(t *testing.T, status int, body string, headers map[string]string) *PublicError {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for k, v := range headers {
+			w.Header().Set(k, v)
+		}
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
+	}))
+	defer srv.Close()
+	var pub *PublicError
+	_, _, err := (&OpenAICompatible{BaseURL: srv.URL}).GenerateImage(context.Background(), ImageRequest{Model: "img", Prompt: "x"})
+	if !errors.As(err, &pub) {
+		t.Fatalf("status %d: not a PublicError: %v", status, err)
+	}
+	return pub
+}
+
+func TestImageError402InsufficientBalance(t *testing.T) {
+	pub := imageErr(t, http.StatusPaymentRequired, `{"error":{"code":"insufficient_balance"}}`, nil)
+	if pub.Code != "insufficient_balance" || pub.Retryable {
+		t.Fatalf("got %#v", pub)
+	}
+}
+
+func TestImageError400ModelNotFound(t *testing.T) {
+	pub := imageErr(t, http.StatusBadRequest, `{"error":{"code":"model_not_found","message":"unknown model"}}`, nil)
+	if pub.Code != "model_not_found" || pub.Retryable {
+		t.Fatalf("got %#v", pub)
+	}
+}
+
+func TestImageError400GenericStaysBadRequest(t *testing.T) {
+	pub := imageErr(t, http.StatusBadRequest, `{"error":{"message":"size must be one of ..."}}`, nil)
+	if pub.Code != "bad_request" {
+		t.Fatalf("got %#v", pub)
+	}
+}
+
+func TestImageError429RateLimited(t *testing.T) {
+	pub := imageErr(t, http.StatusTooManyRequests, `{"error":"slow"}`, map[string]string{"Retry-After": "9"})
+	if pub.Code != "rate_limited" || !pub.Retryable || pub.RetryAfterSec != 9 {
+		t.Fatalf("got %#v", pub)
+	}
+}
+
+func TestImageError413(t *testing.T) {
+	pub := imageErr(t, http.StatusRequestEntityTooLarge, `{"error":"too large"}`, nil)
+	if pub.Code != "payload_too_large" {
+		t.Fatalf("got %#v", pub)
+	}
+}
+
+func TestImageError503(t *testing.T) {
+	pub := imageErr(t, http.StatusServiceUnavailable, `{"error":"down"}`, nil)
+	if pub.Code != "provider_server" || !pub.Retryable {
+		t.Fatalf("got %#v", pub)
+	}
+}
+
+func TestImageErrorBodyNeverLeaksKey(t *testing.T) {
+	pub := imageErr(t, http.StatusBadRequest, `{"error":{"message":"bad key kn-secret-12345 model x"}}`, nil)
+	if strings.Contains(pub.Message, "kn-secret") || strings.Contains(pub.Code, "kn-secret") {
+		t.Fatalf("secret leaked: %#v", pub)
+	}
+}
+
 // keep net/http and time imports used in later tasks without churn.
 var _ = time.Second
 var _ = strings.TrimSpace

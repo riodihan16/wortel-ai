@@ -63,10 +63,25 @@ func MapHTTPErrorWithBody(status int, h http.Header, body []byte) *PublicError {
 	return MapHTTPErrorWithHeaders(status, h)
 }
 
+// modelWords marks a 400 that names the model, so image generation can say
+// "pick another image model" instead of a generic bad_request.
+var modelWords = regexp.MustCompile(`(?i)\b(model|model_not_found)\b`)
+
 // MapImageHTTPError maps an image-endpoint failure to a safe PublicError.
-// body is at most a few KB and is never logged or forwarded. Task 3 grows the
-// image-specific cases; for now it defers to the shared mapper.
+// body is at most a few KB and is never logged or forwarded. It mirrors the
+// chat mapper but adds the image-specific 402 and model cases (Kenari docs
+// §10.5, §12.4, §16). Never auto-retried by the caller: a cost reservation
+// may already have been taken (docs §12.5).
 func MapImageHTTPError(status int, h http.Header, body []byte) *PublicError {
+	mk := func(code, msg string, retry bool) *PublicError {
+		return &PublicError{Code: code, Message: msg, Retryable: retry, StatusCode: status, RetryAfterSec: retryAfter(h)}
+	}
+	switch {
+	case status == http.StatusPaymentRequired:
+		return mk("insufficient_balance", "Saldo PAYG tidak cukup untuk membuat gambar. Isi saldo atau pilih model gambar lain.", false)
+	case status == http.StatusBadRequest && modelWords.Match(body):
+		return mk("model_not_found", "Model gambar tidak dikenali. Pilih model gambar lain di Pengaturan.", false)
+	}
 	return MapHTTPErrorWithBody(status, h, body)
 }
 
