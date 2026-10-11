@@ -37,4 +37,6 @@ export interface ChatMessage {
   /** Why this reply failed, from the backend's failed event. */
   errorText?: string;
   attachments?: AttachmentMeta[];
+  /** Set on an assistant row carrying a generated image; bytes via /attachments/{id}. */
+  imageMime?: string;
 }

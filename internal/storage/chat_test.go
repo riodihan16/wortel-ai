@@ -118,6 +118,8 @@ func TestMigrationV2toV3(t *testing.T) {
 		DROP TABLE provider_profiles;
 		ALTER TABLE pp_v2 RENAME TO provider_profiles;
         DROP TABLE attachments;
+        ALTER TABLE messages DROP COLUMN image_mime;
+        ALTER TABLE messages DROP COLUMN image_data;
         DELETE FROM schema_version WHERE version >= 3;
 	`); err != nil {
 		t.Fatalf("downgrade: %v", err)
@@ -201,6 +203,12 @@ func TestMigrationV3toV4(t *testing.T) {
 	// Downgrade the schema to v3 so reopen runs v4 (and v5, on a fresh table).
 	if _, err := db.inner.Exec(`DROP TABLE attachments`); err != nil {
 		t.Fatalf("drop attachments: %v", err)
+	}
+	if _, err := db.inner.Exec(`ALTER TABLE messages DROP COLUMN image_mime`); err != nil {
+		t.Fatalf("drop image_mime: %v", err)
+	}
+	if _, err := db.inner.Exec(`ALTER TABLE messages DROP COLUMN image_data`); err != nil {
+		t.Fatalf("drop image_data: %v", err)
 	}
 	if _, err := db.inner.Exec(`DELETE FROM schema_version WHERE version >= 4`); err != nil {
 		t.Fatalf("downgrade: %v", err)

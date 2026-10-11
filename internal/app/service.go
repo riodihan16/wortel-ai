@@ -16,24 +16,35 @@ import (
 
 // Service orchestrates one generation per conversation with SQLite history (M4).
 type Service struct {
-	mu       sync.Mutex
-	active   map[string]context.CancelFunc // conversationID -> cancel
-	requests map[string]string             // requestID -> conversationID
-	provider ai.Provider                   // fallback (mock in dev)
-	provs    *Providers                    // nil = fallback only
-	emit     func(event string, payload ai.ChatEvent)
-	wg       sync.WaitGroup // tracks running generation goroutines
-	staging  *attach.Staging
+	mu          sync.Mutex
+	active      map[string]context.CancelFunc // conversationID -> chat cancel
+	imageActive map[string]context.CancelFunc // conversationID -> image cancel (separate)
+	requests    map[string]string             // requestID -> conversationID
+	provider    ai.Provider                   // fallback (mock in dev)
+	provs       *Providers                    // nil = fallback only
+	emit        func(event string, payload ai.ChatEvent)
+	emitRaw     func(event string, payload any)
+	wg          sync.WaitGroup // tracks running generation goroutines
+	staging     *attach.Staging
 }
 
 func NewService(provider ai.Provider, emit func(string, ai.ChatEvent)) *Service {
 	return &Service{
-		active:   map[string]context.CancelFunc{},
-		requests: map[string]string{},
-		provider: provider,
-		emit:     emit,
-		staging:  attach.NewStaging(),
+		active:      map[string]context.CancelFunc{},
+		imageActive: map[string]context.CancelFunc{},
+		requests:    map[string]string{},
+		provider:    provider,
+		emit:        emit,
+		staging:     attach.NewStaging(),
 	}
+}
+
+// SetImageEmitter wires the generic emitter used for image:event. Kept
+// separate from the chat emitter so the two event shapes stay independent.
+func (s *Service) SetImageEmitter(emit func(event string, payload any)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.emitRaw = emit
 }
 
 // SetProviders wires the M3 provider manager. Live provider used when resolvable.
@@ -69,9 +80,13 @@ func (s *Service) resolve(ctx context.Context) (ai.Provider, string, error) {
 }
 
 func NewRuntimeService(ctx context.Context, provider ai.Provider) *Service {
-	return NewService(provider, func(ev string, p ai.ChatEvent) {
+	svc := NewService(provider, func(ev string, p ai.ChatEvent) {
 		runtime.EventsEmit(ctx, ev, p)
 	})
+	svc.SetImageEmitter(func(ev string, p any) {
+		runtime.EventsEmit(ctx, ev, p)
+	})
+	return svc
 }
 
 // SendMessage starts streaming. Text may be empty when attachments are
@@ -251,8 +266,11 @@ func (s *Service) CancelGeneration(conversationID string) {
 // after exit (FR-011) and no DB write races process teardown.
 func (s *Service) CancelAll() {
 	s.mu.Lock()
-	cancels := make([]context.CancelFunc, 0, len(s.active))
+	cancels := make([]context.CancelFunc, 0, len(s.active)+len(s.imageActive))
 	for _, cancel := range s.active {
+		cancels = append(cancels, cancel)
+	}
+	for _, cancel := range s.imageActive {
 		cancels = append(cancels, cancel)
 	}
 	s.mu.Unlock()

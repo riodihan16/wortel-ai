@@ -11,7 +11,7 @@ import (
 )
 
 // Current schema version. Bump when adding migrations.
-const currentVersion = 5
+const currentVersion = 6
 
 // DB wraps the SQLite handle.
 type DB struct {
@@ -185,5 +185,13 @@ var migrations = map[int][]string{
 			created_at TEXT NOT NULL
 		)`,
 		`CREATE INDEX idx_attachments_msg ON attachments(message_id, position)`,
+	},
+	// v6: generated images live on the assistant message that produced them.
+	// Two nullable columns keep v5 rows valid (empty mime = no image). The
+	// bytes are the same kind of non-secret content as attachments; served to
+	// the WebView through the existing /attachments/{id} route.
+	6: {
+		`ALTER TABLE messages ADD COLUMN image_mime TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE messages ADD COLUMN image_data BLOB`,
 	},
 }

@@ -1,11 +1,22 @@
 package storage
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"strings"
 	"time"
 )
+
+// newID returns a random UUIDv4 string for a locally created row.
+func newID() string {
+	var b [16]byte
+	_, _ = rand.Read(b[:])
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
 
 // ConversationRow maps the conversations table.
 type ConversationRow struct {
@@ -23,6 +34,7 @@ type MessageRow struct {
 	Status         string
 	ProviderID     string
 	Model          string
+	ImageMime      string
 	CreatedAt      time.Time
 }
 
@@ -67,6 +79,53 @@ func (d *DB) UpdateMessage(id, content, status string) error {
 	_, err := d.inner.Exec(`UPDATE messages SET content=?, status=?,
 		updated_at=? WHERE id=?`,
 		content, status, time.Now().UTC().Format(time.RFC3339), id)
+	return err
+}
+
+// AppendImageMessage inserts an assistant row for a generated image: content
+// stays empty (the image lives in the columns), status complete. Returns the
+// new message id.
+func (d *DB) AppendImageMessage(conversationID, model string) (string, error) {
+	id := newID()
+	now := time.Now().UTC()
+	if err := insertMessage(d.inner, MessageRow{
+		ID: id, ConversationID: conversationID, Role: "assistant",
+		Content: "", Status: "complete", Model: model, CreatedAt: now,
+	}); err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+// SetMessageImage stores the generated image bytes + mime on a message.
+func (d *DB) SetMessageImage(id, mime string, data []byte) error {
+	_, err := d.inner.Exec(`UPDATE messages SET image_mime=?, image_data=?,
+		updated_at=? WHERE id=?`,
+		mime, data, time.Now().UTC().Format(time.RFC3339), id)
+	return err
+}
+
+// MessageImage returns a message's generated image mime + bytes. An empty
+// mime or nil data means the message has no image. sql.ErrNoRows when the id
+// is unknown.
+func (d *DB) MessageImage(id string) (string, []byte, error) {
+	var mime string
+	var data []byte
+	err := d.inner.QueryRow(`SELECT image_mime, image_data FROM messages WHERE id=?`, id).Scan(&mime, &data)
+	if err != nil {
+		return "", nil, err
+	}
+	if mime == "" {
+		return "", nil, nil
+	}
+	return mime, data, nil
+}
+
+// MarkImageFailed sets a generated-image assistant row to failed so it is not
+// rendered as a complete image and a retry can replace it.
+func (d *DB) MarkImageFailed(id string) error {
+	_, err := d.inner.Exec(`UPDATE messages SET status='failed', updated_at=? WHERE id=?`,
+		time.Now().UTC().Format(time.RFC3339), id)
 	return err
 }
 
@@ -190,7 +249,7 @@ func (d *DB) RecentRows(conversationID string, n int) ([]MessageRow, error) {
 		n = 100
 	}
 	rows, err := d.inner.Query(`SELECT id, conversation_id, role, content, status,
-		COALESCE(provider_id,''), COALESCE(model,''), created_at
+		COALESCE(provider_id,''), COALESCE(model,''), COALESCE(image_mime,''), created_at
 		FROM messages WHERE conversation_id=?
 		ORDER BY created_at DESC LIMIT ?`, conversationID, n)
 	if err != nil {
@@ -202,7 +261,7 @@ func (d *DB) RecentRows(conversationID string, n int) ([]MessageRow, error) {
 		var m MessageRow
 		var created string
 		if err := rows.Scan(&m.ID, &m.ConversationID, &m.Role, &m.Content,
-			&m.Status, &m.ProviderID, &m.Model, &created); err != nil {
+			&m.Status, &m.ProviderID, &m.Model, &m.ImageMime, &created); err != nil {
 			return nil, err
 		}
 		rev = append(rev, m)

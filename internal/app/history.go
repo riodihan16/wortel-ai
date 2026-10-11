@@ -20,6 +20,9 @@ type ChatMessage struct {
 	Content     string        `json:"content"`
 	Status      string        `json:"status"`
 	Attachments []attach.Meta `json:"attachments"`
+	// ImageMime is set on an assistant row that carries a generated image;
+	// the bytes are served via /attachments/{id}.
+	ImageMime string `json:"imageMime,omitempty"`
 }
 
 // History returns recent messages oldest-first for a conversation.
@@ -52,6 +55,7 @@ func (s *Service) History(conversationID string, n int) []ChatMessage {
 		out = append(out, ChatMessage{
 			ID: r.ID, Role: r.Role, Content: r.Content, Status: r.Status,
 			Attachments: metasOf(atts[r.ID]),
+			ImageMime:   r.ImageMime,
 		})
 	}
 	return out
@@ -105,8 +109,9 @@ func (s *Service) DeleteConversation(conversationID string) error {
 	}
 	s.mu.Lock()
 	_, active := s.active[conversationID]
+	_, imgActive := s.imageActive[conversationID]
 	s.mu.Unlock()
-	if active {
+	if active || imgActive {
 		return errConversationBusy
 	}
 	return db.DeleteConversation(conversationID)

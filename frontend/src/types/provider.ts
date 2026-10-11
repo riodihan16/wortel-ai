@@ -13,6 +13,8 @@ export interface ProviderProfile {
   models: ModelEntry[];
   /** Model used for chat on this provider. */
   activeModel: string;
+  /** Model used for image generation on this provider. Empty = none. */
+  imageModel?: string;
   credentialRef: string;
   hasCredential: boolean;
   enabled: boolean;

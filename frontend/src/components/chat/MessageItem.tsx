@@ -27,8 +27,11 @@ export function MessageItem({ message: m, isLast, busy, onRetry }: Props): JSX.E
   const cancelled = m.role === "assistant" && m.status === "cancelled";
   const waiting = m.role === "assistant" && m.status === "streaming" && !m.content;
   const atts = m.role === "user" ? m.attachments ?? [] : [];
+  // A generated image lives on the assistant row; bytes come from the local
+  // asset route, never a provider URL.
+  const image = m.role === "assistant" && m.imageMime ? m.imageMime : null;
   // No bubble for a turn that was only attachments; the list stands alone.
-  const showBody = !(failed && !m.content) && !(m.role === "user" && !m.content);
+  const showBody = !(failed && !m.content) && !(m.role === "user" && !m.content) && !image;
   const mood: CarrotMood = failed ? "error" : m.status === "streaming" ? "thinking" : "idle";
   // Copying the answer is the most likely next step after a reply (brief
   // §core loop 6). Plain text, not markdown source: "**Kamis**" must not land
@@ -42,6 +45,22 @@ export function MessageItem({ message: m, isLast, busy, onRetry }: Props): JSX.E
       {m.role === "assistant" && <Carrot size={24} mood={mood} className="msg-avatar" />}
       <div className="msg-main">
         {atts.length > 0 && <AttachmentList items={atts} />}
+        {image && (
+          <a
+            className="msg-image"
+            href={`/attachments/${m.id}`}
+            target="_blank"
+            rel="noreferrer"
+            title="Buka gambar"
+          >
+            <img
+              className="msg-image__img"
+              src={`/attachments/${m.id}`}
+              alt="Gambar hasil pembuatan"
+              loading="lazy"
+            />
+          </a>
+        )}
         {showBody && (
           <div className="msg-body">
             {waiting ? (

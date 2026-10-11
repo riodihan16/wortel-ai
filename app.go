@@ -377,6 +377,22 @@ func (a *App) CancelGeneration(conversationID string) {
 	a.svc.CancelGeneration(conversationID)
 }
 
+// GenerateImage starts an image generation for the conversation. model is the
+// configured image model id. Returns the requestID.
+func (a *App) GenerateImage(conversationID string, prompt string, model string) (string, error) {
+	if a.svc == nil {
+		return "", errStorageUnavailable()
+	}
+	return a.svc.GenerateImage(a.ctx, conversationID, prompt, model)
+}
+
+// CancelImageGeneration stops the active image generation for a conversation.
+func (a *App) CancelImageGeneration(conversationID string) {
+	if a.svc != nil {
+		a.svc.CancelImage(conversationID)
+	}
+}
+
 // ListProviders returns frontend-safe profiles. Never includes secrets.
 func (a *App) ListProviders() ([]config.ProviderProfile, error) {
 	if a.provs == nil {

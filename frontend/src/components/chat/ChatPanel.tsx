@@ -10,10 +10,12 @@ import type { ClipboardEvent, DragEvent, JSX, KeyboardEvent, ReactNode } from "r
 import { OnFileDrop, OnFileDropOff } from "../../../wailsjs/runtime/runtime";
 import type { AttachmentMeta, ChatMessage, ChatStatus } from "../../types/chat";
 import type { AttachmentsApi } from "../../hooks/useAttachments";
+import type { ImageGenApi } from "../../hooks/useImageGen";
 import { formatSize } from "../../lib/formatSize";
 import type { ConversationItem } from "../../hooks/useChat";
 import { ConversationPicker } from "./ConversationPicker";
 import { MessageItem } from "./MessageItem";
+import { ImagePromptBar } from "./ImagePromptBar";
 import { Carrot } from "../ui/Carrot";
 import {
   IconAlert,
@@ -57,6 +59,10 @@ interface Props {
   shortcutHint?: string;
   /** Pending attachments; owned by App so they survive pet mode. */
   attach: AttachmentsApi;
+  /** Image-generation state, independent of chat. */
+  imageGen: ImageGenApi;
+  /** Configured image model id (empty for none). */
+  imageModel: string | null;
 }
 
 // Footer status speaks only while work is in flight; outcomes (failed,
@@ -90,6 +96,8 @@ export function ChatPanel({
   focusSignal = 0,
   shortcutHint,
   attach,
+  imageGen,
+  imageModel,
 }: Props): JSX.Element {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -450,6 +458,16 @@ export function ChatPanel({
           ))}
         </div>
       )}
+      <ImagePromptBar
+        pending={imageGen.pending}
+        error={imageGen.error}
+        imageModel={imageModel}
+        chatBusy={busy}
+        onGenerate={(p) => void imageGen.generate(conversationId, p, imageModel ?? "")}
+        onCancel={imageGen.cancel}
+        onDismissError={imageGen.clearError}
+        onOpenSettings={onOpenSettings}
+      />
       <div id="chat-composer">
         <button
           type="button"

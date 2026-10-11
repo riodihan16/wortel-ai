@@ -10,11 +10,15 @@ export function AutostartEnabled():Promise<boolean>;
 
 export function CancelGeneration(arg1:string):Promise<void>;
 
+export function CancelImageGeneration(arg1:string):Promise<void>;
+
 export function DeleteConversation(arg1:string):Promise<void>;
 
 export function DeleteProvider(arg1:string):Promise<void>;
 
 export function GetAppearance():Promise<app.Appearance>;
+
+export function GenerateImage(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function GetShortcut():Promise<app.Shortcut>;
 

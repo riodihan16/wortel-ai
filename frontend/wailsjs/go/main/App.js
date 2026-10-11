@@ -14,6 +14,10 @@ export function CancelGeneration(arg1) {
   return window['go']['main']['App']['CancelGeneration'](arg1);
 }
 
+export function CancelImageGeneration(arg1) {
+  return window['go']['main']['App']['CancelImageGeneration'](arg1);
+}
+
 export function DeleteConversation(arg1) {
   return window['go']['main']['App']['DeleteConversation'](arg1);
 }
@@ -24,6 +28,10 @@ export function DeleteProvider(arg1) {
 
 export function GetAppearance() {
   return window['go']['main']['App']['GetAppearance']();
+}
+
+export function GenerateImage(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GenerateImage'](arg1, arg2, arg3);
 }
 
 export function GetShortcut() {

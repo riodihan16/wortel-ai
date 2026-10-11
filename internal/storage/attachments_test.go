@@ -35,7 +35,7 @@ func asstRow(id string) MessageRow {
 func TestMigrationV5CreatesAttachments(t *testing.T) {
 	db := openTemp(t)
 	var v int
-	if err := db.inner.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&v); err != nil || v != 5 {
+	if err := db.inner.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&v); err != nil || v != currentVersion {
 		t.Fatalf("version %d %v", v, err)
 	}
 	if countAttachments(t, db) != 0 {
@@ -56,11 +56,18 @@ func TestMigrationV4toV5KeepsExistingData(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Roll the schema back to v4 so the next Open must run migration 5 on a
-	// database that already holds conversations.
+	// database that already holds conversations. The v6 image columns are
+	// dropped too so migration 6 can re-add them on reopen.
 	if _, err := db.inner.Exec(`DROP TABLE attachments`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.inner.Exec(`DELETE FROM schema_version WHERE version=5`); err != nil {
+	if _, err := db.inner.Exec(`ALTER TABLE messages DROP COLUMN image_mime`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.inner.Exec(`ALTER TABLE messages DROP COLUMN image_data`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.inner.Exec(`DELETE FROM schema_version WHERE version >= 5`); err != nil {
 		t.Fatal(err)
 	}
 	_ = db.Close()

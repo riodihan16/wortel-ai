@@ -124,7 +124,8 @@ func (s *Service) StageData(name, mime, b64 string) (attach.Meta, error) {
 func (s *Service) Unstage(id string) { s.staging.Remove(id) }
 
 // Attachment finds bytes for the asset route: staging first (not yet sent),
-// then the database (sent earlier).
+// then a stored attachment, then a message's generated image (same route, so
+// the WebView never sees provider bytes over IPC).
 func (s *Service) Attachment(id string) (string, []byte, bool) {
 	if it, ok := s.staging.Get(id); ok {
 		return it.Meta.Mime, it.Data, true
@@ -133,11 +134,13 @@ func (s *Service) Attachment(id string) (string, []byte, bool) {
 	if db == nil {
 		return "", nil, false
 	}
-	mime, data, err := db.AttachmentData(id)
-	if err != nil {
-		return "", nil, false
+	if mime, data, err := db.AttachmentData(id); err == nil {
+		return mime, data, true
 	}
-	return mime, data, true
+	if mime, data, err := db.MessageImage(id); err == nil && mime != "" {
+		return mime, data, true
+	}
+	return "", nil, false
 }
 
 func partsFromItems(items []attach.Item) []ai.Part {

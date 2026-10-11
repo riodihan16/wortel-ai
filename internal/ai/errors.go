@@ -63,6 +63,13 @@ func MapHTTPErrorWithBody(status int, h http.Header, body []byte) *PublicError {
 	return MapHTTPErrorWithHeaders(status, h)
 }
 
+// MapImageHTTPError maps an image-endpoint failure to a safe PublicError.
+// body is at most a few KB and is never logged or forwarded. Task 3 grows the
+// image-specific cases; for now it defers to the shared mapper.
+func MapImageHTTPError(status int, h http.Header, body []byte) *PublicError {
+	return MapHTTPErrorWithBody(status, h, body)
+}
+
 // retryAfter parses Retry-After seconds, 0 when absent/invalid.
 // HTTP-date form ignored on purpose: MVP shows manual retry.
 func retryAfter(h http.Header) int {

@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { runtimeMock } from "../../test/wails";
 import type { AttachmentMeta } from "../../types/chat";
 import type { AttachmentsApi } from "../../hooks/useAttachments";
+import type { ImageGenApi } from "../../hooks/useImageGen";
 import { ChatPanel } from "./ChatPanel";
 
 function meta(id: string, kind: AttachmentMeta["kind"] = "image"): AttachmentMeta {
@@ -23,7 +24,19 @@ function api(over: Partial<AttachmentsApi> = {}): AttachmentsApi {
   };
 }
 
-function renderPanel(over: { attach?: AttachmentsApi; draft?: string; busy?: boolean } = {}) {
+function imgGen(over: Partial<ImageGenApi> = {}): ImageGenApi {
+  return {
+    pending: false,
+    status: "idle",
+    error: null,
+    generate: vi.fn(async () => {}),
+    cancel: vi.fn(),
+    clearError: vi.fn(),
+    ...over,
+  };
+}
+
+function renderPanel(over: { attach?: AttachmentsApi; draft?: string; busy?: boolean; imageModel?: string | null } = {}) {
   const onSend = vi.fn();
   const attach = over.attach ?? api();
   const utils = render(
@@ -48,6 +61,8 @@ function renderPanel(over: { attach?: AttachmentsApi; draft?: string; busy?: boo
       onOpenSettings={() => {}}
       hasProvider
       attach={attach}
+      imageGen={imgGen()}
+      imageModel={over.imageModel ?? "img-model"}
     />
   );
   return { ...utils, onSend, attach };

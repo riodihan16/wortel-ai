@@ -13,6 +13,7 @@ import {PetSurface} from './components/pet/PetSurface';
 import {SettingsPanel} from './components/settings/SettingsPanel';
 import {useAttachments} from './hooks/useAttachments';
 import {useChat} from './hooks/useChat';
+import {useImageGen} from './hooks/useImageGen';
 import {usePetDrag} from './hooks/usePetDrag';
 import {usePetSignal} from './hooks/usePetSignal';
 import {useProviders} from './hooks/useProviders';
@@ -45,6 +46,7 @@ function App() {
     modeRef.current = mode;
     const chat = useChat();
     const provs = useProviders();
+    const imageGen = useImageGen();
 
     // M5: tray menu intents. Show -> chat mode, Settings -> settings mode.
     useEffect(() => {
@@ -215,7 +217,7 @@ function App() {
                 onHide={() => HideWindow()}
                 onQuit={Quit}
             />
-            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={chat.send} onCancel={chat.cancel} onRetry={chat.retry} onDismissError={chat.clearError} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} onOpenSettings={() => setMode('settings')} hasProvider={provs.activeProvider !== null} focusSignal={focusSignal} shortcutHint={shortcut.enabled && !hotkeyErr ? shortcut.combo : undefined} attach={attach} />
+            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={chat.send} onCancel={chat.cancel} onRetry={chat.retry} onDismissError={chat.clearError} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} onOpenSettings={() => setMode('settings')} hasProvider={provs.activeProvider !== null} focusSignal={focusSignal} shortcutHint={shortcut.enabled && !hotkeyErr ? shortcut.combo : undefined} attach={attach} imageGen={imageGen} imageModel={provs.activeProvider?.imageModel ?? null} />
         </div>
     );
 }

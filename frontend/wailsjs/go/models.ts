@@ -20,6 +20,7 @@ export namespace app {
 	    content: string;
 	    status: string;
 	    attachments: attach.Meta[];
+	    imageMime?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ChatMessage(source);
@@ -32,6 +33,7 @@ export namespace app {
 	        this.content = source["content"];
 	        this.status = source["status"];
 	        this.attachments = this.convertValues(source["attachments"], attach.Meta);
+	        this.imageMime = source["imageMime"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
