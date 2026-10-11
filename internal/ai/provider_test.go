@@ -129,3 +129,30 @@ func isTimeout(err error) bool {
 	var te interface{ Timeout() bool }
 	return errors.As(err, &te) && te.Timeout()
 }
+
+func TestErrorMapping413IsPayloadTooLarge(t *testing.T) {
+	srv := sseServer(t, 413, `{"error":{"message":"request entity too large"}}`, nil)
+	defer srv.Close()
+	var pub *PublicError
+	if err := streamErr(t, &OpenAICompatible{BaseURL: srv.URL}); !errors.As(err, &pub) || pub.Code != "payload_too_large" {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestError400NamingImagesIsUnsupportedInput(t *testing.T) {
+	srv := sseServer(t, 400, `{"error":{"message":"This model does not support image input"}}`, nil)
+	defer srv.Close()
+	var pub *PublicError
+	if err := streamErr(t, &OpenAICompatible{BaseURL: srv.URL}); !errors.As(err, &pub) || pub.Code != "unsupported_input" {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestError400WithoutModalityWordsStaysBadRequest(t *testing.T) {
+	srv := sseServer(t, 400, `{"error":{"message":"temperature must be <= 2; check your profile"}}`, nil)
+	defer srv.Close()
+	var pub *PublicError
+	if err := streamErr(t, &OpenAICompatible{BaseURL: srv.URL}); !errors.As(err, &pub) || pub.Code != "bad_request" {
+		t.Fatalf("got %v", err)
+	}
+}

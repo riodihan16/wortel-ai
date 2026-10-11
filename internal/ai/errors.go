@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 )
 
@@ -40,6 +41,25 @@ func MapHTTPErrorWithHeaders(status int, h http.Header) *PublicError {
 		}
 		return mk("provider_error", "Request ditolak provider.", false)
 	}
+}
+
+// attachmentWords marks a 400 that is about the input modality rather than
+// a generic parameter problem, so the UI can say "this model does not take
+// images" instead of "request rejected". Word-bounded: "profile" must not
+// match "file".
+var attachmentWords = regexp.MustCompile(`(?i)\b(image|images|image_url|file|files|vision|modal|multimodal|document|documents)\b`)
+
+// MapHTTPErrorWithBody is MapHTTPErrorWithHeaders plus the two attachment
+// cases: 413 (body too large) and a 400 whose message names images/files.
+// body is at most a few KB and is never logged or forwarded.
+func MapHTTPErrorWithBody(status int, h http.Header, body []byte) *PublicError {
+	switch {
+	case status == http.StatusRequestEntityTooLarge:
+		return &PublicError{Code: "payload_too_large", Message: "Lampiran terlalu besar untuk provider. Kurangi ukuran atau jumlah berkas.", StatusCode: status}
+	case status == http.StatusBadRequest && attachmentWords.Match(body):
+		return &PublicError{Code: "unsupported_input", Message: "Model ini tidak menerima gambar/berkas. Pilih model lain atau kirim teks saja.", StatusCode: status}
+	}
+	return MapHTTPErrorWithHeaders(status, h)
 }
 
 // retryAfter parses Retry-After seconds, 0 when absent/invalid.

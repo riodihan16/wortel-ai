@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -141,7 +142,9 @@ func (o *OpenAICompatible) StreamChat(ctx context.Context, req ChatRequest, onCh
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return MapHTTPErrorWithHeaders(resp.StatusCode, resp.Header)
+		// A few KB is enough to classify the error; never logged.
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return MapHTTPErrorWithBody(resp.StatusCode, resp.Header, body)
 	}
 	return ScanSSE(ctx, bufio.NewReader(resp.Body), func(c StreamChunk) error {
 		if c.Done || c.Text == "" {
