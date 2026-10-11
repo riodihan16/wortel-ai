@@ -67,6 +67,9 @@ func TestMigrationV4toV5KeepsExistingData(t *testing.T) {
 	if _, err := db.inner.Exec(`ALTER TABLE messages DROP COLUMN image_data`); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.inner.Exec(`ALTER TABLE provider_profiles DROP COLUMN active_image_model`); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.inner.Exec(`DELETE FROM schema_version WHERE version >= 5`); err != nil {
 		t.Fatal(err)
 	}

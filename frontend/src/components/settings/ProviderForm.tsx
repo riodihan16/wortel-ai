@@ -17,10 +17,11 @@ interface FormState {
   baseURL: string;
   models: ModelEntry[];
   activeModel: string;
+  imageModel: string;
   apiKey: string;
 }
 
-const EMPTY: FormState = { name: "", baseURL: "https://", models: [], activeModel: "", apiKey: "" };
+const EMPTY: FormState = { name: "", baseURL: "https://", models: [], activeModel: "", imageModel: "", apiKey: "" };
 
 function fromProfile(found: ProviderProfile): FormState {
   // Never fill apiKey: stored secret stays hidden, field means "replace".
@@ -30,6 +31,7 @@ function fromProfile(found: ProviderProfile): FormState {
     baseURL: found.baseURL,
     models: found.models.map((m) => ({ id: m.id, alias: m.alias })),
     activeModel: found.activeModel || found.model,
+    imageModel: found.imageModel ?? "",
     apiKey: "",
   };
 }
@@ -41,6 +43,7 @@ function toSave(form: FormState, id: string): SaveInput {
     baseURL: form.baseURL,
     models: form.models.map((m) => ({ id: m.id, alias: m.alias })),
     model: form.activeModel,
+    imageModel: form.imageModel,
     apiKey: form.apiKey,
     enabled: true,
   });
@@ -133,6 +136,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
       ...form,
       models,
       activeModel: form.activeModel === id ? (models[0]?.id ?? "") : form.activeModel,
+      imageModel: form.imageModel === id ? "" : form.imageModel,
     });
     onDirty?.();
   };
@@ -313,6 +317,15 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
                   />
                   <span className="model-pick__label" title={m.id}>{m.id}</span>
                 </label>
+                <label className="model-pick model-pick--image" title="Pakai model ini untuk membuat gambar">
+                  <input
+                    type="radio"
+                    name={`image-${editing || "new"}`}
+                    checked={form.imageModel === m.id}
+                    onChange={() => change({ imageModel: form.imageModel === m.id ? "" : m.id })}
+                  />
+                  <span className="model-pick__label">Gambar</span>
+                </label>
                 <input
                   className="input model-alias"
                   value={m.alias}
@@ -328,7 +341,7 @@ export function ProviderForm({ profile, test, testing, onSave, onTest, onSaved, 
           </div>
         )}
         <div className="field__hint">
-          Model yang dipilih dipakai untuk chat.
+          Model yang dipilih dipakai untuk chat; kolom "Gambar" menandai model untuk membuat gambar (opsional).
           {form.models.length > 0 && " Alias (opsional) diisi di barisnya, hanya nama tampilan."}
         </div>
       </div>

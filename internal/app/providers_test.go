@@ -195,3 +195,108 @@ func TestSwitchActiveKeepsHistory(t *testing.T) {
 	}
 	_ = first
 }
+
+func TestSaveInputImageModelPersisted(t *testing.T) {
+	ctx := context.Background()
+	p := testProviders(t)
+	saved, err := p.Save(ctx, SaveInput{
+		Name: "Kenari", BaseURL: "https://kenari.id/v1",
+		Models: []config.ModelEntry{{ID: "chat"}, {ID: "img"}}, Model: "chat",
+		ImageModel: "img", APIKey: "k1",
+	})
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	if saved.ImageModel != "img" {
+		t.Fatalf("image model not persisted: %+v", saved)
+	}
+	list, _ := p.List(ctx)
+	if len(list) != 1 || list[0].ImageModel != "img" {
+		t.Fatalf("list image model: %+v", list)
+	}
+}
+
+func TestResolveImageUsesActiveImageModel(t *testing.T) {
+	ctx := context.Background()
+	p := testProviders(t)
+	_, err := p.Save(ctx, SaveInput{
+		Name: "Kenari", BaseURL: "https://kenari.id/v1",
+		Models: []config.ModelEntry{{ID: "chat"}, {ID: "img"}}, Model: "chat",
+		ImageModel: "img", APIKey: "k1",
+	})
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	live, model, err := p.ResolveImage(ctx)
+	if err != nil || live == nil || model != "img" {
+		t.Fatalf("resolve image: %v %q", err, model)
+	}
+	if live.APIKey != "k1" {
+		t.Fatal("resolve image must inject stored key")
+	}
+}
+
+func TestResolveImageFallsBackToChatModelInList(t *testing.T) {
+	ctx := context.Background()
+	p := testProviders(t)
+	_, err := p.Save(ctx, SaveInput{
+		Name: "Kenari", BaseURL: "https://kenari.id/v1",
+		Models: []config.ModelEntry{{ID: "chat"}}, Model: "chat", APIKey: "k1",
+	})
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	l, model, err := p.ResolveImage(ctx)
+	if err != nil || l == nil || model != "chat" {
+		t.Fatalf("fallback resolve: %v %q", err, model)
+	}
+}
+
+func TestResolveImageNoModelErrors(t *testing.T) {
+	ctx := context.Background()
+	p := testProviders(t)
+	if _, _, err := p.ResolveImage(ctx); err == nil {
+		t.Fatal("expected error with no active provider")
+	}
+}
+
+func TestNormalizeImageModelRejectsUnknown(t *testing.T) {
+	ctx := context.Background()
+	p := testProviders(t)
+	saved, err := p.Save(ctx, SaveInput{
+		Name: "Kenari", BaseURL: "https://kenari.id/v1",
+		Models: []config.ModelEntry{{ID: "chat"}}, Model: "chat",
+		ImageModel: "not-in-list", APIKey: "k1",
+	})
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	// An image model not in the list must be dropped, not stored.
+	if saved.ImageModel != "" {
+		t.Fatalf("unknown image model kept: %+v", saved)
+	}
+	if err := p.SetActiveImageModel(saved.ID, "nope"); err == nil {
+		t.Fatal("expected SetActiveImageModel to reject unknown model")
+	}
+	if err := p.SetActiveImageModel(saved.ID, "chat"); err != nil {
+		t.Fatalf("set known image model: %v", err)
+	}
+}
+
+func TestResolveImageSecretNotLeakedInProfile(t *testing.T) {
+	ctx := context.Background()
+	p := testProviders(t)
+	saved, err := p.Save(ctx, SaveInput{
+		Name: "Kenari", BaseURL: "https://kenari.id/v1",
+		Models: []config.ModelEntry{{ID: "img"}}, Model: "img", ImageModel: "img", APIKey: "k-secret",
+	})
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	raw, _ := json.Marshal(saved)
+	if strings.Contains(string(raw), "k-secret") {
+		t.Fatal("secret leaked in profile JSON")
+	}
+}
+
+var _ = http.MethodGet

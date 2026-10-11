@@ -14,13 +14,16 @@ type ProviderRow struct {
 	BaseURL string
 	// Model is the legacy single-model column. Kept in sync with the first
 	// entry of Models so a v2 reader still works; Models is authoritative.
-	Model         string
-	Models        []config.ModelEntry
-	ActiveModel   string
-	CredentialRef string
-	Enabled       bool
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	Model       string
+	Models      []config.ModelEntry
+	ActiveModel string
+	// ActiveImageModel is the model used for image generation on this
+	// provider; empty means none configured.
+	ActiveImageModel string
+	CredentialRef    string
+	Enabled          bool
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // encodeModels marshals the model list for storage. Nil -> "[]".
@@ -68,14 +71,15 @@ func (d *DB) SaveProvider(p ProviderRow) error {
 		return err
 	}
 	_, err = d.inner.Exec(`INSERT INTO provider_profiles
-		(id, name, base_url, model, models, active_model, credential_ref, is_enabled, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		(id, name, base_url, model, models, active_model, active_image_model, credential_ref, is_enabled, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			name=excluded.name, base_url=excluded.base_url, model=excluded.model,
 			models=excluded.models, active_model=excluded.active_model,
+			active_image_model=excluded.active_image_model,
 			credential_ref=excluded.credential_ref, is_enabled=excluded.is_enabled,
 			updated_at=excluded.updated_at`,
-		p.ID, p.Name, p.BaseURL, legacy, modelsJSON, p.ActiveModel,
+		p.ID, p.Name, p.BaseURL, legacy, modelsJSON, p.ActiveModel, p.ActiveImageModel,
 		p.CredentialRef, boolToInt(p.Enabled),
 		p.CreatedAt.Format(time.RFC3339), now,
 	)
@@ -85,7 +89,7 @@ func (d *DB) SaveProvider(p ProviderRow) error {
 // ListProviders returns profiles ordered by creation.
 func (d *DB) ListProviders() ([]ProviderRow, error) {
 	rows, err := d.inner.Query(`SELECT id, name, base_url, model, models, active_model,
-		credential_ref, is_enabled, created_at, updated_at
+		active_image_model, credential_ref, is_enabled, created_at, updated_at
 		FROM provider_profiles ORDER BY created_at`)
 	if err != nil {
 		return nil, err
@@ -97,7 +101,7 @@ func (d *DB) ListProviders() ([]ProviderRow, error) {
 		var enabled int
 		var created, updated, modelsJSON string
 		if err := rows.Scan(&p.ID, &p.Name, &p.BaseURL, &p.Model, &modelsJSON,
-			&p.ActiveModel, &p.CredentialRef, &enabled, &created, &updated); err != nil {
+			&p.ActiveModel, &p.ActiveImageModel, &p.CredentialRef, &enabled, &created, &updated); err != nil {
 			return nil, err
 		}
 		p.Enabled = enabled != 0
@@ -149,6 +153,7 @@ func ToPublic(p ProviderRow, hasCredential bool) config.ProviderProfile {
 		Model:         active,
 		Models:        models,
 		ActiveModel:   active,
+		ImageModel:    p.ActiveImageModel,
 		CredentialRef: p.CredentialRef,
 		HasCredential: hasCredential,
 		Enabled:       p.Enabled,

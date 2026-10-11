@@ -435,6 +435,15 @@ func (a *App) SetActiveModel(id, model string) error {
 	return a.provs.SetActiveModel(id, model)
 }
 
+// SetActiveImageModel switches the image-generation model on a provider. The
+// model must already be in that provider's list; empty clears it.
+func (a *App) SetActiveImageModel(id, model string) error {
+	if a.provs == nil {
+		return errStorageUnavailable()
+	}
+	return a.provs.SetActiveImageModel(id, model)
+}
+
 // ActiveProvider returns the active provider's safe profile (models list,
 // active model), or null when no provider is active.
 //

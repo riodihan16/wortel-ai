@@ -44,6 +44,8 @@ export function SendMessage(arg1:string,arg2:string,arg3:Array<string>):Promise<
 
 export function SetActiveModel(arg1:string,arg2:string):Promise<void>;
 
+export function SetActiveImageModel(arg1:string,arg2:string):Promise<void>;
+
 export function SetActiveProvider(arg1:string):Promise<void>;
 
 export function SetAppearance(arg1:app.Appearance):Promise<void>;

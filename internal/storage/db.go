@@ -11,7 +11,7 @@ import (
 )
 
 // Current schema version. Bump when adding migrations.
-const currentVersion = 6
+const currentVersion = 7
 
 // DB wraps the SQLite handle.
 type DB struct {
@@ -193,5 +193,10 @@ var migrations = map[int][]string{
 	6: {
 		`ALTER TABLE messages ADD COLUMN image_mime TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE messages ADD COLUMN image_data BLOB`,
+	},
+	// v7: providers gain a dedicated image-generation model, kept separate
+	// from the chat active model. Empty = no image model configured.
+	7: {
+		`ALTER TABLE provider_profiles ADD COLUMN active_image_model TEXT NOT NULL DEFAULT ''`,
 	},
 }

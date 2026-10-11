@@ -27,6 +27,8 @@ export interface SaveInput {
   baseURL: string;
   models: ModelEntry[];
   model: string;
+  /** Image-generation model id; empty = none. Must be in `models`. */
+  imageModel?: string;
   apiKey: string;
   enabled?: boolean;
 }

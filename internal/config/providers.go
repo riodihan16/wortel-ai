@@ -20,11 +20,12 @@ type ModelEntry struct {
 // ProviderInput is user-supplied provider data from settings UI.
 // APIKey travels only on save/test, never persisted or returned.
 type ProviderInput struct {
-	Name    string
-	BaseURL string
-	Models  []ModelEntry
-	Model   string // active model; when empty the first of Models is used
-	APIKey  string
+	Name       string
+	BaseURL    string
+	Models     []ModelEntry
+	Model      string // active model; when empty the first of Models is used
+	ImageModel string // active image-generation model; empty = none configured
+	APIKey     string
 }
 
 // ProviderProfile is safe for frontend: no secret, only configured flag.
@@ -35,6 +36,7 @@ type ProviderProfile struct {
 	Model             string       `json:"model"`
 	Models            []ModelEntry `json:"models"`
 	ActiveModel       string       `json:"activeModel"`
+	ImageModel        string       `json:"imageModel"`
 	CredentialRef     string       `json:"credentialRef"`
 	HasCredential     bool         `json:"hasCredential"`
 	Enabled           bool         `json:"enabled"`

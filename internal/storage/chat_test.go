@@ -210,6 +210,9 @@ func TestMigrationV3toV4(t *testing.T) {
 	if _, err := db.inner.Exec(`ALTER TABLE messages DROP COLUMN image_data`); err != nil {
 		t.Fatalf("drop image_data: %v", err)
 	}
+	if _, err := db.inner.Exec(`ALTER TABLE provider_profiles DROP COLUMN active_image_model`); err != nil {
+		t.Fatalf("drop active_image_model: %v", err)
+	}
 	if _, err := db.inner.Exec(`DELETE FROM schema_version WHERE version >= 4`); err != nil {
 		t.Fatalf("downgrade: %v", err)
 	}

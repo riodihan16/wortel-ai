@@ -74,6 +74,7 @@ export namespace app {
 	    baseURL: string;
 	    models: config.ModelEntry[];
 	    model: string;
+	    imageModel: string;
 	    apiKey: string;
 	    enabled: boolean;
 	
@@ -88,6 +89,7 @@ export namespace app {
 	        this.baseURL = source["baseURL"];
 	        this.models = this.convertValues(source["models"], config.ModelEntry);
 	        this.model = source["model"];
+	        this.imageModel = source["imageModel"];
 	        this.apiKey = source["apiKey"];
 	        this.enabled = source["enabled"];
 	    }
@@ -199,6 +201,7 @@ export namespace config {
 	    model: string;
 	    models: ModelEntry[];
 	    activeModel: string;
+	    imageModel: string;
 	    credentialRef: string;
 	    hasCredential: boolean;
 	    enabled: boolean;
@@ -216,6 +219,7 @@ export namespace config {
 	        this.model = source["model"];
 	        this.models = this.convertValues(source["models"], ModelEntry);
 	        this.activeModel = source["activeModel"];
+	        this.imageModel = source["imageModel"];
 	        this.credentialRef = source["credentialRef"];
 	        this.hasCredential = source["hasCredential"];
 	        this.enabled = source["enabled"];

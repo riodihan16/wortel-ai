@@ -280,6 +280,18 @@
   overflow-wrap: anywhere;
 }
 
+/* The image picker shares the row: a narrower, secondary control. */
+.model-pick--image {
+  flex: 0 0 auto;
+  gap: var(--space-1);
+  color: var(--color-ink-2);
+  font-size: var(--text-xs);
+}
+
+.model-pick--image .model-pick__label {
+  flex: 0 0 auto;
+}
+
 .model-alias {
   flex: 0 1 110px;
   min-width: 0;

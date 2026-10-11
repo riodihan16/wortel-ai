@@ -69,13 +69,14 @@ func (p *Providers) List(ctx context.Context) ([]config.ProviderProfile, error) 
 
 // SaveInput carries the settings form. ID empty = create.
 type SaveInput struct {
-	ID      string              `json:"id"`
-	Name    string              `json:"name"`
-	BaseURL string              `json:"baseURL"`
-	Models  []config.ModelEntry `json:"models"`
-	Model   string              `json:"model"`
-	APIKey  string              `json:"apiKey"`
-	Enabled bool                `json:"enabled"`
+	ID         string              `json:"id"`
+	Name       string              `json:"name"`
+	BaseURL    string              `json:"baseURL"`
+	Models     []config.ModelEntry `json:"models"`
+	Model      string              `json:"model"`
+	ImageModel string              `json:"imageModel"`
+	APIKey     string              `json:"apiKey"`
+	Enabled    bool                `json:"enabled"`
 }
 
 // Save validates, writes credential to OS store, persists profile.
@@ -87,6 +88,12 @@ func (p *Providers) Save(ctx context.Context, in SaveInput) (config.ProviderProf
 		return config.ProviderProfile{}, err
 	}
 	_ = endpoint
+	// The image model must be one of the configured models; an unknown id is
+	// dropped rather than stored, so a typo cannot silently 404 at request time.
+	imageModel := strings.TrimSpace(in.ImageModel)
+	if imageModel != "" && !hasModel(models, imageModel) {
+		imageModel = ""
+	}
 	id := strings.TrimSpace(in.ID)
 	if id == "" {
 		id = uuid.NewString()
@@ -106,7 +113,8 @@ func (p *Providers) Save(ctx context.Context, in SaveInput) (config.ProviderProf
 		ID: id, Name: strings.TrimSpace(in.Name),
 		BaseURL: strings.TrimSpace(in.BaseURL),
 		Models:  models, ActiveModel: active, Model: active,
-		CredentialRef: ref, Enabled: true,
+		ActiveImageModel: imageModel,
+		CredentialRef:    ref, Enabled: true,
 	}
 	if err := p.db.SaveProvider(row); err != nil {
 		return config.ProviderProfile{}, errors.New("gagal menyimpan provider")
@@ -119,6 +127,15 @@ func (p *Providers) Save(ctx context.Context, in SaveInput) (config.ProviderProf
 	prof := storage.ToPublic(row, has)
 	prof.InsecureTransport = insecure
 	return prof, nil
+}
+
+func hasModel(models []config.ModelEntry, id string) bool {
+	for _, m := range models {
+		if m.ID == id {
+			return true
+		}
+	}
+	return false
 }
 
 // SetActiveModel switches the model used for chat on one provider. The model
@@ -154,6 +171,37 @@ func (p *Providers) SetActiveModel(id, model string) error {
 		}
 		r.ActiveModel = model
 		r.Model = model
+		return p.db.SaveProvider(r)
+	}
+	return errors.New("provider tidak ditemukan")
+}
+
+// SetActiveImageModel switches the image-generation model on one provider.
+// The model must be in the provider's list; empty clears the image model.
+func (p *Providers) SetActiveImageModel(id, model string) error {
+	id = strings.TrimSpace(id)
+	model = strings.TrimSpace(model)
+	if id == "" {
+		return errors.New("provider kosong")
+	}
+	rows, err := p.db.ListProviders()
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		if r.ID != id {
+			continue
+		}
+		if model != "" {
+			models := r.Models
+			if len(models) == 0 && r.Model != "" {
+				models = []config.ModelEntry{{ID: r.Model}}
+			}
+			if !hasModel(models, model) {
+				return errors.New("model tidak ada di daftar provider")
+			}
+		}
+		r.ActiveImageModel = model
 		return p.db.SaveProvider(r)
 	}
 	return errors.New("provider tidak ditemukan")
@@ -241,9 +289,58 @@ func (p *Providers) Resolve(ctx context.Context) (*ai.OpenAICompatible, string, 
 	return nil, "", ErrNoActiveProvider
 }
 
-// ActiveProfile returns the safe profile of the active provider (or false when
-// none is active). Used by the chat UI to render the model picker; carries no
-// secret.
+// ErrNoImageModel signals image generation attempted with no image model set.
+var ErrNoImageModel = errors.New("tidak ada model gambar aktif: set di Pengaturan")
+
+// ResolveImage builds a live provider client for image generation from the
+// active profile. The image model is the configured active_image_model; when
+// unset it falls back to the chat model only if that model is in the list,
+// otherwise a clear "no image model" error (no hardcoded ids). Secret stays
+// in backend memory only.
+func (p *Providers) ResolveImage(ctx context.Context) (*ai.OpenAICompatible, string, error) {
+	id := p.ActiveID()
+	if id == "" {
+		return nil, "", ErrNoActiveProvider
+	}
+	rows, err := p.db.ListProviders()
+	if err != nil {
+		return nil, "", err
+	}
+	for _, r := range rows {
+		if r.ID != id {
+			continue
+		}
+		model := strings.TrimSpace(r.ActiveImageModel)
+		if model == "" {
+			chat := r.ActiveModel
+			if chat == "" {
+				chat = r.Model
+			}
+			models := r.Models
+			if len(models) == 0 && r.Model != "" {
+				models = []config.ModelEntry{{ID: r.Model}}
+			}
+			if chat != "" && hasModel(models, chat) {
+				model = chat
+			}
+		}
+		if model == "" {
+			return nil, "", ErrNoImageModel
+		}
+		secret, err := p.creds.Get(ctx, r.CredentialRef)
+		if err != nil {
+			return nil, "", errors.New("credential provider tidak tersedia: isi ulang API key")
+		}
+		key := string(secret)
+		defer func() {
+			for i := range secret {
+				secret[i] = 0
+			}
+		}()
+		return &ai.OpenAICompatible{BaseURL: r.BaseURL, APIKey: key, Client: p.http}, model, nil
+	}
+	return nil, "", ErrNoActiveProvider
+}
 func (p *Providers) ActiveProfile(ctx context.Context) (config.ProviderProfile, bool) {
 	id := p.ActiveID()
 	if id == "" {

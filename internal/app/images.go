@@ -41,9 +41,6 @@ func (s *Service) GenerateImage(ctx context.Context, conversationID, prompt, mod
 	if conversationID == "" {
 		return "", errors.New("empty conversation")
 	}
-	if strings.TrimSpace(model) == "" {
-		return "", errors.New("model gambar kosong")
-	}
 	if s.db() == nil {
 		return "", errNoDB
 	}
@@ -70,10 +67,13 @@ func (s *Service) GenerateImage(ctx context.Context, conversationID, prompt, mod
 			s.emitImage(ImageEvent{Type: "failed", RequestID: requestID, ConversationID: conversationID, Prompt: prompt, Error: pub})
 		}
 		db := s.db()
-		live, _, resolveErr := s.resolve(genCtx)
+		live, model2, resolveErr := s.resolveImage(genCtx)
 		if resolveErr != nil {
 			fail(&ai.PublicError{Code: "no_provider", Message: resolveErr.Error()})
 			return
+		}
+		if model2 != "" {
+			model = model2
 		}
 		// The conversation row must exist for the message FK; a fresh chat
 		// that never sent text would otherwise fail the insert.

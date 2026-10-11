@@ -4,6 +4,7 @@ import {
   DeleteProvider,
   ListProviders,
   SaveProvider,
+  SetActiveImageModel,
   SetActiveModel,
   SetActiveProvider,
   TestProvider,
@@ -105,6 +106,21 @@ export function useProviders() {
     [refresh]
   );
 
+  // setImageModel switches the image-generation model on a provider. Empty
+  // clears it. Refreshes so the chat header + prompt bar stay consistent.
+  const setImageModel = useCallback(
+    async (id: string, model: string) => {
+      setError(null);
+      try {
+        await SetActiveImageModel(id, model);
+        await refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Gagal mengganti model gambar.");
+      }
+    },
+    [refresh]
+  );
+
   const runTest = useCallback(async (in_: SaveInput) => {
     const seq = ++testSeq.current;
     setTesting(true);
@@ -128,5 +144,5 @@ export function useProviders() {
     setTesting(false);
   }, []);
 
-  return { providers, activeId, activeProvider, loading, error, test, testing, save, remove, activate, setModel, runTest, clearTest, refresh };
+  return { providers, activeId, activeProvider, loading, error, test, testing, save, remove, activate, setModel, setImageModel, runTest, clearTest, refresh };
 }

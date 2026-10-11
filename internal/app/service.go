@@ -79,6 +79,23 @@ func (s *Service) resolve(ctx context.Context) (ai.Provider, string, error) {
 	return live, model, nil
 }
 
+// resolveImage picks the live provider + configured image model. Falls back
+// to the mock-free chat provider only when no provider manager is wired (dev/
+// tests): the image model then comes from the caller.
+func (s *Service) resolveImage(ctx context.Context) (ai.Provider, string, error) {
+	s.mu.Lock()
+	p := s.provs
+	s.mu.Unlock()
+	if p == nil {
+		return s.provider, "", nil
+	}
+	live, model, err := p.ResolveImage(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	return live, model, nil
+}
+
 func NewRuntimeService(ctx context.Context, provider ai.Provider) *Service {
 	svc := NewService(provider, func(ev string, p ai.ChatEvent) {
 		runtime.EventsEmit(ctx, ev, p)
