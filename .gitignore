@@ -11,3 +11,17 @@ logs/
 .impeccable
 
 .superpowers/
+
+# Editor / OS junk
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Stray root npm files (the app's Node project lives in frontend/)
+/package.json
+/package-lock.json
+
+# Personal reference (not part of the repo)
+kenari-dokumentasi-knowledge.md
