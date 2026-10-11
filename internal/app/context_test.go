@@ -87,6 +87,38 @@ func TestBuildContextPlaceholderWithEmptyText(t *testing.T) {
 	}
 }
 
+func TestBuildContextRespectsByteBudgetAcrossWindow(t *testing.T) {
+	sized := func(id string, size int64) storage.AttachmentRow {
+		a := imgRow(id)
+		a.Size = size
+		return a
+	}
+	// Oldest first, as RecentContext returns them: 7, 7, 12 MiB. The two
+	// newest fit in MaxMessageBytes (19 MiB); the third would make 26.
+	rows := []storage.ContextRow{
+		{ID: "u1", Role: "user", Content: "satu", Attachments: []storage.AttachmentRow{sized("a1", 7<<20)}},
+		{ID: "m1", Role: "assistant", Content: "ok"},
+		{ID: "u2", Role: "user", Content: "dua", Attachments: []storage.AttachmentRow{sized("a2", 7<<20)}},
+		{ID: "m2", Role: "assistant", Content: "ok"},
+		{ID: "u3", Role: "user", Content: "tiga", Attachments: []storage.AttachmentRow{sized("a3", 12<<20)}},
+	}
+	var loaded []string
+	load := func(id string) (string, []byte, error) {
+		loaded = append(loaded, id)
+		return "image/png", []byte{1}, nil
+	}
+	msgs := buildContext(rows, AttachmentTurns, load)
+	if len(loaded) != 2 || loaded[0] != "a2" || loaded[1] != "a3" {
+		t.Fatalf("loaded %v, want [a2 a3]", loaded)
+	}
+	if len(msgs[0].Parts) != 0 || msgs[0].Content != "satu\n[gambar: a1.png]" {
+		t.Fatalf("over-budget turn should be a placeholder: %+v", msgs[0])
+	}
+	if len(msgs[2].Parts) != 1 || len(msgs[4].Parts) != 1 {
+		t.Fatalf("newest two turns should be full: %+v %+v", msgs[2], msgs[4])
+	}
+}
+
 func TestBuildContextLoadsBytesOnlyInsideWindow(t *testing.T) {
 	var rows []storage.ContextRow
 	for i := 1; i <= 5; i++ {
