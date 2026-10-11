@@ -1,0 +1,185 @@
+---
+last_mapped_commit: b55c8e5bb1c4199b24162ca36f0c612ef255a01c
+last_mapped_at: 2026-10-11
+---
+# Codebase Structure
+
+**Analysis Date:** 2026-10-11
+
+## Directory Layout
+
+```text
+companion/
+├── main.go                     # Wails entry: window options, asset embed, bind App
+├── app.go                      # Wails facade: bound methods, lifecycle, OS wiring (package main)
+├── fatal_windows.go / _other.go / _test.go   # fatal dialog per platform
+├── toggle_test.go              # test for App.toggleFor decision table (package main)
+├── go.mod / go.sum             # module "companion", Go 1.25, Wails v2.16.0
+├── wails.json                  # Wails build config + exe metadata
+├── internal/                   # All backend packages (not importable outside module)
+│   ├── app/                    # Orchestration: service, providers, history, attachments, settings
+│   ├── ai/                     # OpenAI-compatible client, SSE parser, errors, types, parts
+│   ├── attach/                 # File validation + in-memory staging
+│   ├── autostart/              # Per-user Run key (opt-in)
+│   ├── config/                 # Provider input validation, model normalization
+│   ├── credentials/            # Secret store interface + OS (keyring) + map (test) impls
+│   ├── hotkey/                 # Global shortcut parse + register
+│   ├── storage/                # SQLite open/migrate + repositories
+│   ├── tray/                   # Tray icon/menu intent mapping
+│   └── window/                 # Window sizing/placement math + Win32 glue
+├── frontend/                   # Vite + React 19 + TS frontend
+│   ├── index.html / vite.config.ts / vitest.config.ts / tsconfig*.json
+│   ├── wailsjs/                # GENERATED bindings + runtime (do not edit)
+│   └── src/                    # App code (see below)
+├── build/                      # Wails build assets (icon, manifest, info.json) + bin/companion.exe
+├── scripts/                    # Dev/ops PowerShell + Python helpers
+├── docs/                       # 01–09 planning/technical docs (Indonesian)
+├── .github/workflows/          # ci.yml (gate), release.yml (tag v*)
+├── .planning/                  # GSD planning state + codebase map
+└── .editorconfig / .gitattributes / .gitignore
+```
+
+## Directory Purposes
+
+**`internal/app`:**
+- Purpose: All application orchestration; the only package that composes AI + storage + settings.
+- Contains: `service.go` (streaming/cancel), `providers.go` (profiles/credentials/settings), `history.go` (read models), `context.go` (request builder), `attachments.go` + `attachment_handler.go` (staging + asset route), `appearance.go`, `shortcut.go`.
+- Key files: `internal/app/service.go`, `internal/app/providers.go`, `internal/app/context.go`.
+
+**`internal/ai`:**
+- Purpose: Provider network contract, isolated from storage and React.
+- Contains: `provider.go` (interface, `OpenAICompatible`, `MockProvider`, `NormalizeBaseURL`), `sse.go` (`ScanSSE`), `errors.go` (HTTP→`PublicError`), `http.go` (`SafeClient`), `types.go` (`ChatEvent`, `PublicError`), `parts.go` (multimodal parts).
+- Key files: `internal/ai/provider.go`, `internal/ai/sse.go`, `internal/ai/errors.go`.
+
+**`internal/storage`:**
+- Purpose: SQLite persistence and schema migrations.
+- Contains: `db.go` (open + `migrations` map), `chat.go` (conversations/messages/context), `providers.go` (profiles + settings), `attachments.go` (BLOB storage).
+- Key files: `internal/storage/db.go`, `internal/storage/chat.go`.
+
+**`internal/attach`:**
+- Purpose: Accept/validate/stage user files before send; no network or DB access.
+- Contains: `validate.go` (size limits, mime/kind sniffing, `CleanName`), `staging.go` (in-memory `Staging` with per-message caps).
+- Key files: `internal/attach/validate.go`, `internal/attach/staging.go`.
+
+**`internal/config`:**
+- Purpose: Provider input validation and model normalization (`MaxModels`, alias caps).
+- Key files: `internal/config/providers.go`, `internal/config/errors.go`.
+
+**`internal/credentials`:**
+- Purpose: Secret persistence behind `Store`.
+- Contains: `store.go` (interface + `ErrNotFound`), `osstore.go` (`OSStore` via `go-keyring`), `mapstore.go` (test double), `errors.go`.
+- Key files: `internal/credentials/store.go`, `internal/credentials/osstore.go`.
+
+**`internal/hotkey` / `internal/tray` / `internal/autostart` / `internal/window`:**
+- Purpose: Platform integration. Each has a pure core (testable anywhere) plus `_windows.go` adapter and `_other.go` stub.
+- Key files: `internal/window/place.go`, `internal/hotkey/combo.go`, `internal/tray/tray.go`, `internal/autostart/autostart.go`.
+
+**`frontend/src`:**
+- Purpose: React UI — one window switching between pet, chat, and settings.
+- Key files: `frontend/src/App.tsx` (mode state machine + window sizing), `frontend/src/main.tsx` (root mount).
+
+**`frontend/wailsjs`:**
+- Purpose: Auto-generated Wails bindings and runtime. **Do not edit** — regenerated by `wails dev`/`wails build`.
+- Key files: `frontend/wailsjs/go/main/App.d.ts`, `frontend/wailsjs/go/models.ts`, `frontend/wailsjs/runtime/runtime.d.ts`.
+
+## Key File Locations
+
+**Entry Points:**
+- `main.go`: Wails `Run` with frameless/transparent window options; embeds `frontend/dist`.
+- `app.go`: `App` struct + ~35 bound methods; `startup`/`shutdown`.
+- `frontend/src/main.tsx`: React root; cancels default file-drop navigation.
+- `frontend/src/App.tsx`: pet/chat/settings mode switch, drag/click, settings hydration.
+
+**Configuration:**
+- `wails.json`: build name, output filename, exe metadata (`info`).
+- `go.mod`: pinned Wails v2.16.0, `modernc.org/sqlite`, `zalando/go-keyring`.
+- `frontend/package.json`: React 19.1.0, TS 5.6.3, Vite 7.3.7, Vitest, react-markdown stack.
+- `frontend/vite.config.ts`, `frontend/vitest.config.ts`, `frontend/tsconfig.json`.
+- `.github/workflows/ci.yml`: gofmt/vet/test/race + frontend typecheck/test/build gates.
+
+**Core Logic:**
+- `internal/app/service.go`: generation lifecycle, cancel map, event emission.
+- `internal/ai/provider.go`: `OpenAICompatible.StreamChat` request path.
+- `internal/ai/sse.go`: SSE frame parser.
+- `internal/app/providers.go`: provider CRUD, credential wiring, `Resolve`, `Test`.
+- `internal/storage/db.go`: connection + migration runner.
+- `frontend/src/hooks/useChat.ts`: streaming state + event matching.
+- `frontend/src/hooks/useProviders.ts`: settings list + test state.
+
+**Testing:**
+- Backend tests co-located: `internal/**/*_test.go` (e.g. `internal/ai/sse_test.go`, `internal/app/service_test.go`, `internal/storage/db_test.go`, `internal/app/providers_test.go`).
+- `internal/storage/testhelper_test.go`: shared DB test setup.
+- Root: `toggle_test.go`, `fatal_windows_test.go`.
+- Frontend tests co-located: `frontend/src/**/*.test.ts(x)` (e.g. `frontend/src/hooks/useChat.test.ts`, `frontend/src/components/chat/SafeMarkdown.test.tsx`).
+- Frontend Wails mock: `frontend/src/test/wails.ts`.
+
+## Naming Conventions
+
+**Go files:**
+- Lowercase, no separators: `service.go`, `providers.go`, `attachment_handler.go` (snake within a compound word is acceptable here).
+- Platform variants: `X.go` (core), `X_windows.go`, `X_other.go`; tests `X_test.go`.
+
+**Go packages:**
+- Short, lowercase, one concept per package (`ai`, `attach`, `app`, `storage`). Module path is `companion`, imported as `companion/internal/...`.
+
+**TS/TSX files:**
+- React components: `PascalCase.tsx` (e.g. `ChatPanel.tsx`, `SafeMarkdown.tsx`).
+- Hooks: `useSomething.ts` (e.g. `useChat.ts`, `usePetDrag.ts`).
+- Plain modules: `camelCase.ts` (e.g. `formatSize.ts`, `menuKeys.ts`).
+- Types: `camelCase.ts` in `frontend/src/types/` (`chat.ts`, `provider.ts`).
+- Tests: `X.test.ts(x)` co-located next to the file under test.
+
+**Directories:**
+- Backend: single lowercase word (`internal/ai`, `internal/attach`).
+- Frontend: lowercase feature folders — `components/{chat,pet,settings,ui}`, `hooks/`, `lib/`, `styles/`, `types/`, `assets/`.
+
+## Where to Add New Code
+
+**New Feature (backend):**
+- Domain logic: add a file under `internal/app/` (e.g. `internal/app/<feature>.go`) as methods on `Service` or `Providers`.
+- Expose to frontend: add a thin bound method in `app.go` that validates preconditions and delegates.
+- If it needs a new provider capability: extend `internal/ai` and keep it storage-free.
+- If it needs persistence: add a repository method in `internal/storage/` and a migration in the `migrations` map in `internal/storage/db.go` (bump `currentVersion`).
+
+**New Feature (frontend):**
+- Component: `frontend/src/components/<area>/ComponentName.tsx`.
+- Stateful flow: `frontend/src/hooks/useSomething.ts`; bind to backend via `frontend/wailsjs/go/main/App`.
+- Shared types mirroring backend payloads: `frontend/src/types/<area>.ts`.
+- Pure helpers: `frontend/src/lib/`.
+- Styling: add a stylesheet under `frontend/src/styles/` and import from `frontend/src/styles/index.css`; use OKLCH tokens in `frontend/src/styles/tokens.css`.
+
+**New Platform Integration (Windows):**
+- Add a package under `internal/<name>/` with a pure core file, a `_windows.go` adapter (`//go:build windows`), and an `_other.go` stub. Wire it from `app.go`.
+
+**New Component/Module (frontend):**
+- Implementation: `frontend/src/components/<area>/`. Keep request/state logic out of components — put it in a hook.
+
+**Utilities:**
+- Shared Go helpers: keep package-local (there is no generic `internal/util`); prefer small focused packages.
+- Shared frontend helpers: `frontend/src/lib/`.
+
+## Special Directories
+
+**`frontend/wailsjs`:**
+- Purpose: Wails-generated JS/TS bindings and runtime.
+- Generated: Yes (by the Wails CLI).
+- Committed: Yes (referenced by imports; regenerated on bind changes).
+
+**`build`:**
+- Purpose: Wails build assets and output.
+- Generated: Partly — `build/bin/companion.exe` is build output; `build/windows/*` are committed source assets.
+- Committed: Source assets yes; `build/bin/` output is gitignored.
+
+**`.planning`:**
+- Purpose: GSD planning state and this codebase map.
+- Generated: Yes (by GSD workflows).
+- Committed: Yes.
+
+**`node_modules` / `package-lock.json` (root):**
+- Purpose: Root `package.json` only declares an opencode plugin devDependency; it is unrelated to the app frontend, whose deps live in `frontend/package.json`.
+- Generated: Yes.
+- Committed: `node_modules` no; lockfile present.
+
+---
+
+*Structure analysis: 2026-10-11*
