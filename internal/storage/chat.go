@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"companion/internal/ai"
 )
 
 // ConversationRow maps the conversations table.
@@ -41,13 +39,18 @@ func (d *DB) EnsureConversation(id, title string) error {
 	return err
 }
 
-// AppendMessage inserts one message with complete metadata.
-func (d *DB) AppendMessage(m MessageRow) error {
+// execer is satisfied by *sql.DB and *sql.Tx, so one insert serves both the
+// single-row path and the transactional user-turn path.
+type execer interface {
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
+func insertMessage(ex execer, m MessageRow) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	if m.CreatedAt.IsZero() {
 		m.CreatedAt = time.Now().UTC()
 	}
-	_, err := d.inner.Exec(`INSERT INTO messages
+	_, err := ex.Exec(`INSERT INTO messages
 		(id, conversation_id, role, content, status, provider_id, model, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		m.ID, m.ConversationID, m.Role, m.Content, m.Status,
@@ -55,6 +58,9 @@ func (d *DB) AppendMessage(m MessageRow) error {
 		m.CreatedAt.Format(time.RFC3339), now)
 	return err
 }
+
+// AppendMessage inserts one message with complete metadata.
+func (d *DB) AppendMessage(m MessageRow) error { return insertMessage(d.inner, m) }
 
 // UpdateMessage sets content + status after stream ends.
 func (d *DB) UpdateMessage(id, content, status string) error {
@@ -122,36 +128,58 @@ func (d *DB) PrepareRetry(conversationID, text string) (bool, error) {
 	}
 }
 
-// RecentMessages returns the last N messages oldest-first for context.
-func (d *DB) RecentMessages(conversationID string, n int) ([]ai.Message, error) {
+// ContextRow is one message for building the provider request: text plus
+// attachment metadata. Bytes are loaded separately, only when needed.
+type ContextRow struct {
+	ID          string
+	Role        string
+	Content     string
+	Attachments []AttachmentRow
+}
+
+// RecentContext returns the last N messages oldest-first with attachment
+// metadata. The empty assistant row created for the reply in flight is left
+// out: sending {"role":"assistant","content":""} confuses stricter providers.
+func (d *DB) RecentContext(conversationID string, n int) ([]ContextRow, error) {
 	if n <= 0 {
 		n = 20
 	}
-	rows, err := d.inner.Query(`SELECT role, content FROM messages
+	rows, err := d.inner.Query(`SELECT id, role, content FROM messages
 		WHERE conversation_id=? AND status IN ('complete','streaming')
-		ORDER BY created_at DESC LIMIT ?`, conversationID, n)
+		AND NOT (role='assistant' AND content='')
+		ORDER BY created_at DESC, rowid DESC LIMIT ?`, conversationID, n)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var rev []ai.Message
+	var rev []ContextRow
 	for rows.Next() {
-		var role, content string
-		if err := rows.Scan(&role, &content); err != nil {
+		var r ContextRow
+		if err := rows.Scan(&r.ID, &r.Role, &r.Content); err != nil {
+			rows.Close()
 			return nil, err
 		}
-		if role != "user" && role != "assistant" && role != "system" {
+		if r.Role != "user" && r.Role != "assistant" && r.Role != "system" {
 			continue
 		}
-		rev = append(rev, ai.Message{Role: role, Content: content})
+		rev = append(rev, r)
 	}
 	if err := rows.Err(); err != nil {
+		rows.Close()
 		return nil, err
 	}
-	// Reverse to oldest-first.
-	out := make([]ai.Message, 0, len(rev))
+	rows.Close()
+	out := make([]ContextRow, 0, len(rev))
+	ids := make([]string, 0, len(rev))
 	for i := len(rev) - 1; i >= 0; i-- {
 		out = append(out, rev[i])
+		ids = append(ids, rev[i].ID)
+	}
+	atts, err := d.AttachmentsFor(ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range out {
+		out[i].Attachments = atts[out[i].ID]
 	}
 	return out, nil
 }

@@ -27,7 +27,7 @@ func TestChatHistoryRoundTrip(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("append asst: %v", err)
 	}
-	msgs, err := db.RecentMessages("c1", 20)
+	msgs, err := db.RecentContext("c1", 20)
 	if err != nil || len(msgs) != 2 {
 		t.Fatalf("recent: %+v %v", msgs, err)
 	}
@@ -117,6 +117,7 @@ func TestMigrationV2toV3(t *testing.T) {
 			is_enabled, created_at, updated_at FROM provider_profiles;
 		DROP TABLE provider_profiles;
 		ALTER TABLE pp_v2 RENAME TO provider_profiles;
+        DROP TABLE attachments;
         DELETE FROM schema_version WHERE version >= 3;
 	`); err != nil {
 		t.Fatalf("downgrade: %v", err)
@@ -197,8 +198,11 @@ func TestMigrationV3toV4(t *testing.T) {
         ('obj','Obj','https://o.id/v1','x','[{"id":"x","alias":"Ex"}]','x','ref-obj',1,?,?)`, now, now, now, now); err != nil {
 		t.Fatalf("seed v3 rows: %v", err)
 	}
-	// Downgrade the schema stamp so reopen runs v4 only.
-	if _, err := db.inner.Exec(`DELETE FROM schema_version WHERE version = 4`); err != nil {
+	// Downgrade the schema to v3 so reopen runs v4 (and v5, on a fresh table).
+	if _, err := db.inner.Exec(`DROP TABLE attachments`); err != nil {
+		t.Fatalf("drop attachments: %v", err)
+	}
+	if _, err := db.inner.Exec(`DELETE FROM schema_version WHERE version >= 4`); err != nil {
 		t.Fatalf("downgrade: %v", err)
 	}
 	_ = db.Close()

@@ -36,7 +36,7 @@ func TestUseAfterCloseDoesNotPanic(t *testing.T) {
 	if err := db.Close(); err != nil {
 		t.Fatalf("close: %v", err)
 	}
-	if _, err := db.RecentMessages("c1", 5); err == nil {
+	if _, err := db.RecentContext("c1", 5); err == nil {
 		t.Fatal("expected error on closed handle")
 	}
 	if err := db.AppendMessage(MessageRow{ID: "m1", ConversationID: "c1", Role: "user", Content: "x", Status: "complete"}); err == nil {

@@ -11,7 +11,7 @@ import (
 )
 
 // Current schema version. Bump when adding migrations.
-const currentVersion = 4
+const currentVersion = 5
 
 // DB wraps the SQLite handle.
 type DB struct {
@@ -168,5 +168,22 @@ var migrations = map[int][]string{
             SET models = (SELECT json_group_array(json_object('id', value, 'alias', ''))
                 FROM json_each(provider_profiles.models))
             WHERE json_valid(models) AND models <> '[]' AND json_type(models, '$[0]') = 'text'`,
+	},
+	// v5: attachments (images, PDFs, text files) stored as BLOBs next to the
+	// user message they belong to. Cascade from messages, so deleting a
+	// conversation frees them; metadata reads never select `data`.
+	5: {
+		`CREATE TABLE attachments (
+			id TEXT PRIMARY KEY,
+			message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+			kind TEXT NOT NULL,
+			mime TEXT NOT NULL,
+			name TEXT NOT NULL,
+			size INTEGER NOT NULL,
+			data BLOB NOT NULL,
+			position INTEGER NOT NULL,
+			created_at TEXT NOT NULL
+		)`,
+		`CREATE INDEX idx_attachments_msg ON attachments(message_id, position)`,
 	},
 }
