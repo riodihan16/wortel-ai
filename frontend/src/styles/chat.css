@@ -521,3 +521,104 @@
 .conv-menu__list:focus {
     outline: none;
 }
+
+/* ---- attachments: drop zone, pending row, composer clip, chips ----
+   The custom property marks the whole panel (children inherit it) as the
+   Wails file-drop target; the overlay never takes pointer events so the
+   drop still lands on the panel. */
+#chat-main {
+    --wails-drop-target: drop;
+    position: relative;
+}
+
+#chat-drop {
+    position: absolute;
+    inset: var(--space-2);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    border: 2px dashed var(--color-ink-3);
+    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    pointer-events: none;
+}
+
+#chat-pending {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    flex-shrink: 0;
+    padding-top: var(--space-1);
+}
+
+.pending-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+}
+
+.pending-item__thumb {
+    display: block;
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border: 1px solid var(--color-rule-strong);
+    border-radius: var(--radius-sm);
+}
+
+.pending-item__remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: var(--color-paper-3);
+    border: 1px solid var(--color-rule-strong);
+}
+
+.att-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: 28px;
+    max-width: 100%;
+    padding: 0 var(--space-3) 0 var(--space-2);
+    border: 1px solid var(--color-rule-strong);
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-2);
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+}
+
+.pending-item .att-chip {
+    padding-right: var(--space-5);
+}
+
+.att-chip__name {
+    max-width: 18ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.att-chip__size {
+    color: var(--color-ink-3);
+}
+
+#btn-attach {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+#btn-attach:focus-visible,
+.pending-item__remove:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}

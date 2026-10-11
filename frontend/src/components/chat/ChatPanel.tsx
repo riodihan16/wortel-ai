@@ -6,8 +6,11 @@
 // exclusive, Escape cancels either; no window-level Escape. Delete asks inline,
 // never through window.confirm: WebView2 draws that natively, outside the theme.
 import { useEffect, useRef, useState } from "react";
-import type { JSX, KeyboardEvent, ReactNode } from "react";
-import type { ChatMessage, ChatStatus } from "../../types/chat";
+import type { ClipboardEvent, DragEvent, JSX, KeyboardEvent, ReactNode } from "react";
+import { OnFileDrop, OnFileDropOff } from "../../../wailsjs/runtime/runtime";
+import type { AttachmentMeta, ChatMessage, ChatStatus } from "../../types/chat";
+import type { AttachmentsApi } from "../../hooks/useAttachments";
+import { formatSize } from "../../lib/formatSize";
 import type { ConversationItem } from "../../hooks/useChat";
 import { ConversationPicker } from "./ConversationPicker";
 import { MessageItem } from "./MessageItem";
@@ -16,6 +19,8 @@ import {
   IconAlert,
   IconArrowUp,
   IconChevronDown,
+  IconFile,
+  IconPaperclip,
   IconPencil,
   IconPlus,
   IconStop,
@@ -33,7 +38,7 @@ interface Props {
   busy: boolean;
   conversations: ConversationItem[];
   conversationId: string;
-  onSend: (text: string) => void;
+  onSend: (text: string, attachments: AttachmentMeta[]) => void;
   onCancel: () => void;
   onRetry: () => void;
   onDismissError: () => void;
@@ -50,6 +55,8 @@ interface Props {
   focusSignal?: number;
   /** Active global shortcut, taught once in the empty state. */
   shortcutHint?: string;
+  /** Pending attachments; owned by App so they survive pet mode. */
+  attach: AttachmentsApi;
 }
 
 // Footer status speaks only while work is in flight; outcomes (failed,
@@ -82,6 +89,7 @@ export function ChatPanel({
   hasProvider,
   focusSignal = 0,
   shortcutHint,
+  attach,
 }: Props): JSX.Element {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -89,6 +97,39 @@ export function ChatPanel({
   const deleteBtnRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+
+  // Drop zone depth: dragenter/dragleave fire for every child, so a counter
+  // keeps the overlay steady until the pointer really leaves the panel.
+  const [dragDepth, setDragDepth] = useState(0);
+  const stageRef = useRef(attach.stagePaths);
+  stageRef.current = attach.stagePaths;
+
+  // Dropped files arrive as paths from the Wails runtime, only while the
+  // chat panel is mounted: the pet and Settings never take a drop.
+  useEffect(() => {
+    OnFileDrop((_x, _y, paths) => {
+      setDragDepth(0);
+      void stageRef.current(paths);
+    }, true);
+    return () => OnFileDropOff();
+  }, []);
+
+  const hasFiles = (e: DragEvent<HTMLDivElement>) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
+  const onDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    if (hasFiles(e)) setDragDepth((d) => d + 1);
+  };
+  const onDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    if (hasFiles(e)) setDragDepth((d) => Math.max(0, d - 1));
+  };
+  const onDrop = () => setDragDepth(0);
+
+  // Pasted images go to staging; pasted text keeps the browser default.
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+    e.preventDefault();
+    void attach.stageFiles(files);
+  };
 
   // Follow the reply only while the user is at the bottom; reading earlier
   // text during a stream must not be yanked away. A new conversation and the
@@ -141,10 +182,12 @@ export function ChatPanel({
     composerRef.current?.focus();
   }, [focusSignal]);
 
+  const hasContent = draft.trim() !== "" || attach.pending.length > 0;
   const submit = () => {
-    if (!draft.trim() || busy || !hasProvider) return;
-    onSend(draft);
+    if (!hasContent || busy || !hasProvider) return;
+    onSend(draft, attach.pending);
     onDraftChange("");
+    attach.reset();
   };
 
   const keyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -197,7 +240,13 @@ export function ChatPanel({
   const sendFailed = status === "error" && last?.role === "user";
 
   return (
-    <div id="chat-main">
+    <div id="chat-main" onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>
+      {dragDepth > 0 && (
+        <div id="chat-drop" role="status" aria-live="polite">
+          <IconPaperclip size={20} />
+          <span>Lepas untuk melampirkan</span>
+        </div>
+      )}
       <div id="conv-bar">
         <ConversationPicker
           conversations={conversations}
@@ -314,6 +363,7 @@ export function ChatPanel({
             >
               Ringkas catatan ini jadi 3 poin
             </button>
+            <p className="chat-empty__tip">Tempel atau seret gambar/PDF ke sini.</p>
             {shortcutHint && (
               <p className="chat-empty__tip">
                 Tip: <kbd className="kbd">{shortcutHint}</kbd> membuka Wortel dari mana saja.
@@ -351,13 +401,61 @@ export function ChatPanel({
           </button>
         </div>
       )}
+      {attach.error && (
+        <div id="attach-error" className="banner banner--error" role="alert">
+          <IconAlert size={15} />
+          <span className="banner__text">{attach.error}</span>
+          <button type="button" className="icon-btn" onClick={attach.clearError} aria-label="Tutup pesan lampiran" title="Tutup">
+            <IconX size={14} />
+          </button>
+        </div>
+      )}
+      {attach.pending.length > 0 && (
+        <div id="chat-pending" role="list" aria-label="Lampiran menunggu">
+          {attach.pending.map((a) => (
+            <div key={a.id} role="listitem" className="pending-item">
+              {a.kind === "image" ? (
+                <img className="pending-item__thumb" src={`/attachments/${a.id}`} alt={a.name} />
+              ) : (
+                <span className="att-chip">
+                  <IconFile size={14} />
+                  <span className="att-chip__name">{a.name}</span>
+                  <span className="att-chip__size">{formatSize(a.size)}</span>
+                </span>
+              )}
+              <button
+                type="button"
+                className="icon-btn pending-item__remove"
+                onClick={() => void attach.remove(a.id)}
+                aria-label={`Hapus lampiran ${a.name}`}
+                title="Hapus lampiran"
+                disabled={busy}
+              >
+                <IconX size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <div id="chat-composer">
+        <button
+          type="button"
+          id="btn-attach"
+          className="btn btn--icon"
+          onClick={() => void attach.pick()}
+          disabled={busy || !hasProvider}
+          aria-label="Lampirkan berkas"
+          title="Lampirkan gambar, PDF, atau teks"
+        >
+          <IconPaperclip size={15} />
+        </button>
         <textarea
           ref={composerRef}
           className="textarea"
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={keyDown}
+          onPaste={onPaste}
           placeholder={hasProvider ? "Tulis pesan… (Enter kirim, Shift+Enter baris baru)" : "Hubungkan provider dulu untuk mulai chat"}
           rows={2}
           aria-label="Tulis pesan"
@@ -371,7 +469,7 @@ export function ChatPanel({
             if (busy) onCancel();
             else submit();
           }}
-          disabled={busy ? false : !hasProvider || !draft.trim()}
+          disabled={busy ? false : !hasProvider || !hasContent}
           aria-label={busy ? "Hentikan balasan" : "Kirim pesan"}
           title={busy ? "Hentikan balasan (Esc)" : "Kirim pesan (Enter)"}
         >

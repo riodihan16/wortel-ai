@@ -11,6 +11,7 @@ import {ChatPanel} from './components/chat/ChatPanel';
 import {ModelPicker} from './components/chat/ModelPicker';
 import {PetSurface} from './components/pet/PetSurface';
 import {SettingsPanel} from './components/settings/SettingsPanel';
+import {useAttachments} from './hooks/useAttachments';
 import {useChat} from './hooks/useChat';
 import {usePetDrag} from './hooks/usePetDrag';
 import {usePetSignal} from './hooks/usePetSignal';
@@ -108,6 +109,9 @@ function App() {
     // Draft lives here, not in ChatPanel: switching to pet mode unmounts the
     // panel, and the draft must survive that (FR-003).
     const [draft, setDraft] = useState<string>("");
+    // Pending attachments live next to the draft for the same reason: pet
+    // mode unmounts the panel and the list must survive it.
+    const attach = useAttachments();
     const [version, setVersion] = useState<string>("");
 
     useEffect(() => {
@@ -211,7 +215,7 @@ function App() {
                 onHide={() => HideWindow()}
                 onQuit={Quit}
             />
-            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={chat.send} onCancel={chat.cancel} onRetry={chat.retry} onDismissError={chat.clearError} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} onOpenSettings={() => setMode('settings')} hasProvider={provs.activeProvider !== null} focusSignal={focusSignal} shortcutHint={shortcut.enabled && !hotkeyErr ? shortcut.combo : undefined} />
+            <ChatPanel messages={chat.messages} error={chat.error} busy={chat.busy} conversations={chat.conversations} conversationId={chat.conversationId} onSend={chat.send} onCancel={chat.cancel} onRetry={chat.retry} onDismissError={chat.clearError} onNew={chat.newConversation} onSwitch={chat.switchConversation} onRename={chat.renameConversation} onDelete={chat.deleteConversation} draft={draft} onDraftChange={setDraft} modelPicker={<ModelPicker provider={provs.activeProvider} busy={chat.busy} onModelChange={provs.setModel} />} status={chat.status} onOpenSettings={() => setMode('settings')} hasProvider={provs.activeProvider !== null} focusSignal={focusSignal} shortcutHint={shortcut.enabled && !hotkeyErr ? shortcut.combo : undefined} attach={attach} />
         </div>
     );
 }
