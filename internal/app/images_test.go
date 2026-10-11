@@ -2,11 +2,17 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+
+	"companion/internal/ai"
+	"companion/internal/credentials"
+	"companion/internal/storage"
 )
 
 // imageSink collects emitted ImageEvents.
@@ -163,4 +169,112 @@ func TestAttachmentHandlerServesMessageImage(t *testing.T) {
 	if rec.Body.Len() != len(pngBytes) {
 		t.Fatalf("body %d bytes", rec.Body.Len())
 	}
+}
+
+// serviceNoProvider wires storage but saves no provider, so image generation
+// resolves to "no active provider".
+func serviceNoProvider(t *testing.T) (*Service, *imageSink) {
+	t.Helper()
+	db, err := storage.Open(filepath.Join(t.TempDir(), "np.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	p := NewProviders(db, credentials.NewMapStore())
+	svc := NewService(&ai.MockProvider{}, func(string, ai.ChatEvent) {})
+	svc.SetProviders(p)
+	sink := &imageSink{}
+	svc.SetImageEmitter(sink.emit)
+	return svc, sink
+}
+
+func TestGenerateRejectsWhenNoProvider(t *testing.T) {
+	svc, sink := serviceNoProvider(t)
+	if _, err := svc.GenerateImage(context.Background(), "c1", "panda", "img"); err != nil {
+		t.Fatalf("generate returned sync err: %v", err)
+	}
+	var term ImageEvent
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		for _, e := range sink.snapshot() {
+			if e.Type == "failed" {
+				term = e
+			}
+		}
+		if term.Type == "failed" {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if term.Type != "failed" || term.Error == nil || term.Error.Code != "no_provider" {
+		t.Fatalf("expected no_provider failure, got %+v", sink.snapshot())
+	}
+	// No half-written image row.
+	if _, _, err := svc.db().MessageImage(term.MessageID); err == nil && term.MessageID != "" {
+		t.Fatal("unexpected image row after failure")
+	}
+}
+
+func TestCancelAllStopsImageGenerations(t *testing.T) {
+	block := make(chan struct{})
+	svc, _ := serviceWith(t, func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-block:
+		case <-r.Context().Done():
+		}
+	})
+	var sink imageSink
+	svc.SetImageEmitter(sink.emit)
+	for _, c := range []string{"c1", "c2"} {
+		if _, err := svc.GenerateImage(context.Background(), c, "x", "img"); err != nil {
+			t.Fatalf("generate %s: %v", c, err)
+		}
+	}
+	svc.CancelAll() // must not return until image goroutines finish
+	svc.mu.Lock()
+	n := len(svc.imageActive)
+	svc.mu.Unlock()
+	if n != 0 {
+		t.Fatalf("imageActive leaked after CancelAll: %d", n)
+	}
+	if sink.has("cancelled") == false {
+		t.Fatalf("expected cancelled events, got %+v", sink.snapshot())
+	}
+	close(block)
+}
+
+func TestDeleteConversationCascadesImages(t *testing.T) {
+	svc, _ := serviceWith(t, b64ImageServer(t))
+	var sink imageSink
+	svc.SetImageEmitter(sink.emit)
+	if _, err := svc.GenerateImage(context.Background(), "c1", "panda", "img"); err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	done := waitImageDone(t, svc, &sink)
+	if _, _, err := svc.db().MessageImage(done.MessageID); err != nil {
+		t.Fatalf("image should exist: %v", err)
+	}
+	if err := svc.DeleteConversation("c1"); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	if _, _, err := svc.db().MessageImage(done.MessageID); err == nil {
+		t.Fatal("image row survived conversation delete")
+	}
+}
+
+func TestGenerateImageTooLargePayload(t *testing.T) {
+	svc, _ := serviceWith(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		_, _ = w.Write([]byte(`{"error":"too large"}`))
+	})
+	var sink imageSink
+	svc.SetImageEmitter(sink.emit)
+	if _, err := svc.GenerateImage(context.Background(), "c1", "panda", "img"); err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	done := waitImageDone(t, svc, &sink)
+	if done.Type != "failed" || done.Error == nil || done.Error.Code != "payload_too_large" {
+		t.Fatalf("got %+v", done)
+	}
+	_ = errors.Is
 }
