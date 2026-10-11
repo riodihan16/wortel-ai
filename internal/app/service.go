@@ -158,10 +158,6 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 			return
 		}
 		live, model, resolveErr := s.resolve(genCtx)
-		if resolveErr != nil {
-			fail(&ai.PublicError{Code: "no_provider", Message: resolveErr.Error()})
-			return
-		}
 		userMsgID := uuid.NewString()
 		current := ai.Message{Role: "user", Content: text, Parts: partsFromItems(items)}
 		if db != nil {
@@ -176,6 +172,15 @@ func (s *Service) generate(ctx context.Context, conversationID, text string, ret
 				user := storage.MessageRow{ID: userMsgID, ConversationID: conversationID, Role: "user", Content: text, Status: "complete", Model: model}
 				_ = db.AppendUserTurn(user, attachmentRows(userMsgID, items), assistant)
 			}
+		}
+		if resolveErr != nil {
+			// The turn (and its attachments) is already stored, so a retry
+			// can reuse it once a provider is configured.
+			if db != nil {
+				_ = db.UpdateMessage(messageID, "", "failed")
+			}
+			fail(&ai.PublicError{Code: "no_provider", Message: resolveErr.Error()})
+			return
 		}
 		msgs := []ai.Message{current}
 		if db != nil {

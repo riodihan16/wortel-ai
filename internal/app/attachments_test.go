@@ -238,3 +238,119 @@ func TestUnstageAndLookup(t *testing.T) {
 		t.Fatal("stored attachment not found via DB")
 	}
 }
+
+func TestResolveFailureKeepsAttachmentsForRetry(t *testing.T) {
+	var sink eventSink
+	svc := NewService(&ai.MockProvider{}, sink.emit)
+	svc.SetProviders(testProviders(t))
+	m, err := svc.StageData("foto.png", "image/png", pngB64())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SendMessage(context.Background(), "c1", "x", []string{m.ID}); err != nil {
+		t.Fatal(err)
+	}
+	waitDone(t, svc, &sink, 1)
+	evs := sink.snapshot()
+	last := evs[len(evs)-1]
+	if last.Type != "failed" || last.Error == nil || last.Error.Code != "no_provider" {
+		t.Fatalf("last event: %+v", last)
+	}
+	hist := svc.History("c1", 10)
+	if len(hist) != 2 || hist[0].Role != "user" || len(hist[0].Attachments) != 1 || hist[0].Attachments[0].Name != "foto.png" || hist[1].Role != "assistant" || hist[1].Status != "failed" {
+		t.Fatalf("history: %+v", hist)
+	}
+	if _, _, ok := svc.Attachment(m.ID); !ok {
+		t.Fatal("attachment lost after resolve failure")
+	}
+}
+
+func TestStagePathsRollsBackOnCapError(t *testing.T) {
+	svc, _ := serviceWith(t, func(w http.ResponseWriter, _ *http.Request) { sseOK(w) })
+	for i := 0; i < 3; i++ {
+		if _, err := svc.StageData("s.png", "image/png", pngB64()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	dir := t.TempDir()
+	var paths []string
+	for _, n := range []string{"a.png", "b.png"} {
+		p := filepath.Join(dir, n)
+		_ = os.WriteFile(p, pngBytes, 0o644)
+		paths = append(paths, p)
+	}
+	if _, err := svc.StagePaths(paths); !errors.Is(err, attach.ErrTooMany) {
+		t.Fatalf("got %v", err)
+	}
+	if svc.staging.Len() != 3 {
+		t.Fatalf("staging len %d, want 3", svc.staging.Len())
+	}
+}
+
+func TestRetryEmptyTextResendsAttachmentOnlyTurn(t *testing.T) {
+	var mu sync.Mutex
+	var bodies []string
+	fail := true
+	svc, sink := serviceWith(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		bodies = append(bodies, string(b))
+		f := fail
+		fail = false
+		mu.Unlock()
+		if f {
+			w.WriteHeader(500)
+			return
+		}
+		sseOK(w)
+	})
+	m, _ := svc.StageData("foto.png", "image/png", pngB64())
+	if _, err := svc.SendMessage(context.Background(), "c1", "", []string{m.ID}); err != nil {
+		t.Fatal(err)
+	}
+	waitDone(t, svc, sink, 1)
+	if _, err := svc.RetryMessage(context.Background(), "c1", ""); err != nil {
+		t.Fatal(err)
+	}
+	waitDone(t, svc, sink, 2)
+	mu.Lock()
+	defer mu.Unlock()
+	if len(bodies) != 2 || !strings.Contains(bodies[1], `"type":"image_url"`) {
+		t.Fatalf("retry body lost the image: %v", bodies)
+	}
+	users := 0
+	for _, h := range svc.History("c1", 10) {
+		if h.Role == "user" {
+			users++
+		}
+	}
+	if users != 1 {
+		t.Fatalf("user rows: %d", users)
+	}
+}
+
+func TestRetryEmptyTextWithNothingToReuseFails(t *testing.T) {
+	svc, sink := serviceWith(t, func(w http.ResponseWriter, _ *http.Request) { sseOK(w) })
+	if _, err := svc.SendMessage(context.Background(), "c1", "halo", nil); err != nil {
+		t.Fatal(err)
+	}
+	waitDone(t, svc, sink, 1)
+	if _, err := svc.RetryMessage(context.Background(), "c1", ""); err != nil {
+		t.Fatalf("retry should be accepted synchronously: %v", err)
+	}
+	waitDone(t, svc, sink, 2)
+	evs := sink.snapshot()
+	last := evs[len(evs)-1]
+	if last.Type != "failed" || last.Error == nil || last.Error.Code != "empty" {
+		t.Fatalf("last event: %+v", last)
+	}
+	users := 0
+	for _, h := range svc.History("c1", 10) {
+		if h.Role == "user" {
+			users++
+		}
+	}
+	if users != 1 {
+		t.Fatalf("user rows: %d", users)
+	}
+}
