@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"context"
+	"database/sql"
 	"path/filepath"
 	"testing"
 )
@@ -41,5 +43,32 @@ func TestUseAfterCloseDoesNotPanic(t *testing.T) {
 	}
 	if err := db.AppendMessage(MessageRow{ID: "m1", ConversationID: "c1", Role: "user", Content: "x", Status: "complete"}); err == nil {
 		t.Fatal("expected write error on closed handle")
+	}
+}
+
+// TestForeignKeysOnEveryConnection: the FK pragma is per connection, so it
+// must come from the DSN, not from a one-off Exec on the pool.
+func TestForeignKeysOnEveryConnection(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "with space", "fk.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	c1, err := db.inner.Conn(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c1.Close()
+	c2, err := db.inner.Conn(ctx) // forces a second physical connection while c1 is held
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c2.Close()
+	for i, c := range []*sql.Conn{c1, c2} {
+		var on int
+		if err := c.QueryRowContext(ctx, `PRAGMA foreign_keys`).Scan(&on); err != nil || on != 1 {
+			t.Fatalf("conn %d: foreign_keys=%d err=%v", i, on, err)
+		}
 	}
 }
