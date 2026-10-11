@@ -118,6 +118,35 @@ func TestGenerateImageOneActivePerConversation(t *testing.T) {
 	close(block)
 }
 
+func TestGenerateImageLongTimeout(t *testing.T) {
+	// The image generation budget must be far longer than the chat client's
+	// short timeout (Kenari docs §22.4); assert the named constant.
+	if imageTimeout < 240*time.Second {
+		t.Fatalf("imageTimeout %v too short for image generation", imageTimeout)
+	}
+}
+
+func TestGenerateImageURLResponseStoredLocally(t *testing.T) {
+	imgSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(pngBytes)
+	}))
+	t.Cleanup(imgSrv.Close)
+	svc, _ := serviceWith(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"url":"` + imgSrv.URL + `/i.png"}]}`))
+	})
+	var sink imageSink
+	svc.SetImageEmitter(sink.emit)
+	if _, err := svc.GenerateImage(context.Background(), "c1", "panda", "img"); err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	done := waitImageDone(t, svc, &sink)
+	if done.Type != "completed" || done.Mime != "image/png" {
+		t.Fatalf("terminal %+v", done)
+	}
+}
+
 func TestAttachmentHandlerServesMessageImage(t *testing.T) {
 	svc, _ := serviceWith(t, b64ImageServer(t))
 	var sink imageSink

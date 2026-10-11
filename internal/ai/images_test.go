@@ -100,6 +100,78 @@ func TestGenerateImageRejectsCredsInURL(t *testing.T) {
 	}
 }
 
+func TestGenerateImageFetchesRemoteURL(t *testing.T) {
+	imgSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(smallPNG)
+	}))
+	defer imgSrv.Close()
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"url":"` + imgSrv.URL + `/img.png"}]}`))
+	}))
+	defer apiSrv.Close()
+	mime, data, err := (&OpenAICompatible{BaseURL: apiSrv.URL}).GenerateImage(context.Background(), ImageRequest{Model: "img", Prompt: "x"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if mime != "image/png" || len(data) != len(smallPNG) {
+		t.Fatalf("mime %q len %d", mime, len(data))
+	}
+}
+
+func TestGenerateImagePassesThroughDataURL(t *testing.T) {
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"url":"data:image/png;base64,` + b64PNG() + `"}]}`))
+	}))
+	defer apiSrv.Close()
+	mime, data, err := (&OpenAICompatible{BaseURL: apiSrv.URL}).GenerateImage(context.Background(), ImageRequest{Model: "img", Prompt: "x"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if mime != "image/png" || len(data) != len(smallPNG) {
+		t.Fatalf("mime %q len %d", mime, len(data))
+	}
+}
+
+func TestGenerateImageRejectsUnsupportedMime(t *testing.T) {
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"b64_json":"` + b64Of("not an image at all") + `"}]}`))
+	}))
+	defer apiSrv.Close()
+	var pub *PublicError
+	_, _, err := (&OpenAICompatible{BaseURL: apiSrv.URL}).GenerateImage(context.Background(), ImageRequest{Model: "img", Prompt: "x"})
+	if !errors.As(err, &pub) || pub.Code != "unsupported_image" {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestGenerateImageURLCrossHostDropsAuth(t *testing.T) {
+	var imgAuth string
+	imgSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		imgAuth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(smallPNG)
+	}))
+	defer imgSrv.Close()
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"url":"` + imgSrv.URL + `/i.png"}]}`))
+	}))
+	defer apiSrv.Close()
+	_, _, err := (&OpenAICompatible{BaseURL: apiSrv.URL, APIKey: "kn-secret"}).GenerateImage(context.Background(), ImageRequest{Model: "img", Prompt: "x"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if imgAuth != "" {
+		t.Fatalf("image host saw Authorization %q", imgAuth)
+	}
+}
+
+func b64Of(s string) string { return base64.StdEncoding.EncodeToString([]byte(s)) }
+
 // keep net/http and time imports used in later tasks without churn.
 var _ = time.Second
 var _ = strings.TrimSpace

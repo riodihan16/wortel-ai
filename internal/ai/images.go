@@ -16,6 +16,10 @@ import (
 // misbehaving endpoint cannot stream an unbounded body into memory.
 const maxImageJSONBytes = 64 << 20
 
+// maxImageFetchBytes bounds a fetched image from a remote URL (the response
+// may be a url item instead of inline base64).
+const maxImageFetchBytes = 25 << 20
+
 // ImageRequest is one image-generation request. Size/N are model-dependent;
 // callers pass only what the configured model accepts (Kenari docs §10.5).
 type ImageRequest struct {
@@ -98,12 +102,14 @@ func (o *OpenAICompatible) GenerateImage(ctx context.Context, req ImageRequest) 
 	if err := json.NewDecoder(io.LimitReader(resp.Body, maxImageJSONBytes)).Decode(&out); err != nil {
 		return "", nil, &PublicError{Code: "bad_response", Message: "Provider mengembalikan respons gambar yang tidak dikenali."}
 	}
-	return decodeImageResult(out, req)
+	return o.decodeImageResult(ctx, out)
 }
 
 // decodeImageResult turns one response item into mime + bytes. b64_json is
-// decoded in place; a url/data-url item is fetched by fetchImageURL.
-func decodeImageResult(out imageResponse, req ImageRequest) (string, []byte, error) {
+// decoded in place; a url/data-url item is fetched by fetchImageURL. The
+// follow-up fetch never carries the provider API key (a fresh client, and
+// SafeClient drops Authorization on cross-host redirects).
+func (o *OpenAICompatible) decodeImageResult(ctx context.Context, out imageResponse) (string, []byte, error) {
 	if len(out.Data) == 0 {
 		return "", nil, &PublicError{Code: "empty_image", Message: "Provider tidak mengembalikan gambar."}
 	}
@@ -116,9 +122,68 @@ func decodeImageResult(out imageResponse, req ImageRequest) (string, []byte, err
 		return sniffImage(data)
 	}
 	if item.URL != nil && *item.URL != "" {
-		return "", nil, &PublicError{Code: "url_unsupported", Message: "Provider mengembalikan URL gambar; belum didukung."}
+		return o.fetchImageURL(ctx, *item.URL)
 	}
 	return "", nil, &PublicError{Code: "empty_image", Message: "Provider tidak mengembalikan gambar."}
+}
+
+// fetchImageURL returns the bytes behind a url or data-url item. Bounded to
+// maxImageFetchBytes and validated to png/jpeg/webp.
+func (o *OpenAICompatible) fetchImageURL(ctx context.Context, raw string) (string, []byte, error) {
+	if strings.HasPrefix(raw, "data:") {
+		data, err := decodeDataURL(raw)
+		if err != nil {
+			return "", nil, &PublicError{Code: "bad_response", Message: "Data URL gambar dari provider tidak valid."}
+		}
+		return sniffImage(data)
+	}
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return "", nil, &PublicError{Code: "bad_response", Message: "URL gambar dari provider tidak valid."}
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return "", nil, &PublicError{Code: "bad_response", Message: "URL gambar dari provider tidak valid."}
+	}
+	// Fresh client: the provider key must not travel to the image host.
+	resp, err := SafeClient().Do(req)
+	if err != nil {
+		return "", nil, toNetError(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", nil, &PublicError{Code: "image_fetch_failed", Message: "Gagal mengunduh gambar dari provider.", StatusCode: resp.StatusCode}
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxImageFetchBytes+1))
+	if err != nil {
+		return "", nil, toNetError(err)
+	}
+	if int64(len(data)) > maxImageFetchBytes {
+		return "", nil, &PublicError{Code: "payload_too_large", Message: "Gambar dari provider terlalu besar."}
+	}
+	return sniffImage(data)
+}
+
+// decodeDataURL parses data:[<mediatype>][;base64],<data>. Only base64
+// payloads are accepted; a non-base64 data URL is rejected.
+func decodeDataURL(raw string) ([]byte, error) {
+	comma := strings.IndexByte(raw, ',')
+	if comma < 0 {
+		return nil, fmt.Errorf("malformed data url")
+	}
+	meta := raw[len("data:"):comma]
+	if !strings.Contains(meta, "base64") {
+		return nil, fmt.Errorf("unsupported data url encoding")
+	}
+	payload := raw[comma+1:]
+	data, err := base64.StdEncoding.DecodeString(payload)
+	if err != nil {
+		data, err = base64.RawStdEncoding.DecodeString(payload)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return data, nil
 }
 
 // sniffImage validates the declared content type and returns it with the
