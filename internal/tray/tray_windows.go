@@ -4,6 +4,7 @@ package tray
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -29,6 +30,7 @@ var (
 	pDispatchMessage  = user32.NewProc("DispatchMessageW")
 	pPostMessage      = user32.NewProc("PostMessageW")
 	pLoadIcon         = user32.NewProc("LoadIconW")
+	pDestroyIcon      = user32.NewProc("DestroyIcon")
 	pLoadCursor       = user32.NewProc("LoadCursorW")
 	pCreatePopupMenu  = user32.NewProc("CreatePopupMenu")
 	pAppendMenu       = user32.NewProc("AppendMenuW")
@@ -41,6 +43,7 @@ var (
 	pPostQuitMessage  = user32.NewProc("PostQuitMessage")
 
 	pShellNotifyIcon = shell32.NewProc("Shell_NotifyIconW")
+	pExtractIconEx   = shell32.NewProc("ExtractIconExW")
 	pGetModuleHandle = kernel32.NewProc("GetModuleHandleW")
 )
 
@@ -119,19 +122,20 @@ type msg struct {
 }
 
 var (
-	mu       sync.Mutex
-	running  bool
-	hwnd     windows.Handle
-	hMenu    windows.Handle
-	hInst    windows.Handle
-	nid      notifyIconData
-	cb       Callbacks
-	done     chan struct{}
-	ready    chan error
-	taskMsg  uint32
-	wndProc  uintptr
-	classBuf *uint16
-	lastErr  string
+	mu        sync.Mutex
+	running   bool
+	hwnd      windows.Handle
+	hMenu     windows.Handle
+	hInst     windows.Handle
+	nid       notifyIconData
+	ownedIcon windows.Handle // icon we extracted (and must DestroyIcon); 0 when stock
+	cb        Callbacks
+	done      chan struct{}
+	ready     chan error
+	taskMsg   uint32
+	wndProc   uintptr
+	classBuf  *uint16
+	lastErr   string
 )
 
 func setErr(err error) {
@@ -250,11 +254,13 @@ func initTray() error {
 	}
 	title, _ := windows.UTF16PtrFromString("Wortel AI")
 	cur, _, _ := pLoadCursor.Call(0, uintptr(idcArrow))
-	icon, _, _ := pLoadIcon.Call(0, uintptr(idiApp))
+	icon := loadAppIcon()
 
 	wcx := wndClassEx{
 		wndProc:   wndProc,
 		instance:  hInst,
+		icon:      icon,
+		iconSm:    icon,
 		cursor:    windows.Handle(cur),
 		className: classBuf,
 	}
@@ -302,7 +308,7 @@ func initTray() error {
 		id:              1,
 		flags:           nifMessage | nifIcon | nifTip,
 		callbackMessage: wmTray,
-		icon:            windows.Handle(icon),
+		icon:            icon,
 		tip:             tipArr,
 	}
 	nid.size = uint32(unsafe.Sizeof(nid))
@@ -315,8 +321,32 @@ func initTray() error {
 	return nil
 }
 
+// loadAppIcon returns the tray icon: the small icon embedded in this exe
+// (the carrot from build/windows/icon.ico). The old code asked for the stock
+// IDI_APPLICATION icon, which is the generic Windows placeholder, not ours.
+// Falls back to that stock icon only when the exe has no icon (e.g. a test
+// binary), so the tray entry is never blank.
+func loadAppIcon() windows.Handle {
+	if exe, err := os.Executable(); err == nil {
+		if p, err := windows.UTF16PtrFromString(exe); err == nil {
+			var small windows.Handle
+			n, _, _ := pExtractIconEx.Call(uintptr(unsafe.Pointer(p)), 0, 0, uintptr(unsafe.Pointer(&small)), 1)
+			if n > 0 && small != 0 {
+				ownedIcon = small
+				return small
+			}
+		}
+	}
+	h, _, _ := pLoadIcon.Call(0, uintptr(idiApp))
+	return windows.Handle(h)
+}
+
 func cleanup() {
 	_, _, _ = pShellNotifyIcon.Call(uintptr(nimDelete), uintptr(unsafe.Pointer(&nid)))
+	if ownedIcon != 0 {
+		_, _, _ = pDestroyIcon.Call(uintptr(ownedIcon))
+		ownedIcon = 0
+	}
 	if hMenu != 0 {
 		_, _, _ = pDestroyMenu.Call(uintptr(hMenu))
 		hMenu = 0
