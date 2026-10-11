@@ -1,69 +1,65 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { ImagePromptBar } from "./ImagePromptBar";
+import { ComposerPlusMenu } from "./ImagePromptBar";
 
-function setup(over: Partial<Parameters<typeof ImagePromptBar>[0]> = {}) {
-  const onGenerate = vi.fn();
-  const onCancel = vi.fn();
-  const onDismissError = vi.fn();
-  const onOpenSettings = vi.fn();
+function setup(over: Partial<Parameters<typeof ComposerPlusMenu>[0]> = {}) {
+  const onUpload = vi.fn();
+  const onToggleImage = vi.fn();
   const props = {
-    pending: false,
-    error: null as string | null,
-    imageModel: "img-model" as string | null,
-    chatBusy: false,
-    onGenerate,
-    onCancel,
-    onDismissError,
-    onOpenSettings,
+    attachDisabled: false,
+    imageActive: false,
+    hasImageModel: true,
+    onUpload,
+    onToggleImage,
     ...over,
   };
-  const utils = render(<ImagePromptBar {...props} />);
-  return { ...utils, onGenerate, onCancel, onDismissError, onOpenSettings };
+  const utils = render(<ComposerPlusMenu {...props} />);
+  return { ...utils, onUpload, onToggleImage };
 }
 
 afterEach(() => cleanup());
 
-describe("ImagePromptBar", () => {
-  it("disables generate without an image model and points to Settings", () => {
-    setup({ imageModel: null });
-    const btn = screen.getByRole("button", { name: "Buat gambar" });
-    expect((btn as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(/Belum ada model gambar/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Atur di Pengaturan" })).toBeTruthy();
-  });
-
-  it("generates on Enter when a model is set", () => {
-    const { onGenerate } = setup();
-    const ta = screen.getByLabelText("Prompt gambar");
-    fireEvent.change(ta, { target: { value: "a red panda" } });
-    fireEvent.keyDown(ta, { key: "Enter" });
-    expect(onGenerate).toHaveBeenCalledWith("a red panda");
-  });
-
-  it("shows a distinct drawing state with cancel while pending", () => {
-    const { onCancel } = setup({ pending: true });
-    expect(screen.getByText("Wortel sedang menggambar…")).toBeTruthy();
-    const stop = screen.getByRole("button", { name: "Hentikan pembuatan gambar" });
-    fireEvent.click(stop);
-    expect(onCancel).toHaveBeenCalled();
-  });
-
-  it("cancels on Escape while pending", () => {
-    const { onCancel } = setup({ pending: true });
-    fireEvent.keyDown(screen.getByLabelText("Prompt gambar"), { key: "Escape" });
-    expect(onCancel).toHaveBeenCalled();
-  });
-
-  it("shows the PAYG billing note when a model is configured", () => {
+describe("ComposerPlusMenu", () => {
+  it("opens a menu with Upload file and Buat gambar", () => {
     setup();
-    expect(screen.getByText(/saldo PAYG, bukan paket chat/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" }));
+    expect(screen.getByRole("menuitem", { name: /Upload file/ })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /Buat gambar/ })).toBeTruthy();
   });
 
-  it("renders and dismisses an error", () => {
-    const { onDismissError } = setup({ error: "Saldo PAYG tidak cukup." });
-    expect(screen.getByText("Saldo PAYG tidak cukup.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Tutup pesan gambar" }));
-    expect(onDismissError).toHaveBeenCalled();
+  it("calls onUpload from the Upload file item", () => {
+    const { onUpload } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Upload file/ }));
+    expect(onUpload).toHaveBeenCalled();
+  });
+
+  it("calls onToggleImage from the Buat gambar item", () => {
+    const { onToggleImage } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Buat gambar/ }));
+    expect(onToggleImage).toHaveBeenCalled();
+  });
+
+  it("marks image mode active with a check", () => {
+    setup({ imageActive: true });
+    fireEvent.click(screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" }));
+    const item = screen.getByRole("menuitem", { name: /Buat gambar/ });
+    expect(item.className).toContain("menu-option--on");
+  });
+
+  it("disables Upload file when attachment picking is unavailable", () => {
+    setup({ attachDisabled: true });
+    fireEvent.click(screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" }));
+    expect((screen.getByRole("menuitem", { name: /Upload file/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("closes on Escape and returns focus to the trigger", () => {
+    setup();
+    const trigger = screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" });
+    fireEvent.click(trigger);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("menuitem", { name: /Upload file/ })).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 });

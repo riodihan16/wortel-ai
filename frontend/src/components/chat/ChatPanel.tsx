@@ -15,13 +15,14 @@ import { formatSize } from "../../lib/formatSize";
 import type { ConversationItem } from "../../hooks/useChat";
 import { ConversationPicker } from "./ConversationPicker";
 import { MessageItem } from "./MessageItem";
-import { ImagePromptBar } from "./ImagePromptBar";
+import { ComposerPlusMenu } from "./ImagePromptBar";
 import { Carrot } from "../ui/Carrot";
 import {
   IconAlert,
   IconArrowUp,
   IconChevronDown,
   IconFile,
+  IconModel,
   IconPaperclip,
   IconPencil,
   IconPlus,
@@ -109,6 +110,10 @@ export function ChatPanel({
   // Drop zone depth: dragenter/dragleave fire for every child, so a counter
   // keeps the overlay steady until the pointer really leaves the panel.
   const [dragDepth, setDragDepth] = useState(0);
+  // One textarea serves both chat and image prompts; this picks the target.
+  // Image mode owns neither the draft nor the pending attachments (those stay
+  // chat-only), so on send it clears the draft and never attaches files.
+  const [imageMode, setImageMode] = useState(false);
   const stageRef = useRef(attach.stagePaths);
   stageRef.current = attach.stagePaths;
 
@@ -211,15 +216,54 @@ export function ChatPanel({
     attach.reset();
   };
 
+  // Image mode reuses the same draft: Enter hands the text to image generation
+  // instead of chat, and never carries the pending attachments.
+  const canGenerate = imageMode && draft.trim() !== "" && !!imageModel && !imageGen.pending;
+  const submitImage = () => {
+    if (!canGenerate) return;
+    void imageGen.generate(conversationId, draft, imageModel ?? "");
+    onDraftChange("");
+  };
+
+  const sendDisabled = imageMode
+    ? imageGen.pending
+      ? false
+      : !canGenerate
+    : busy
+      ? false
+      : !hasProvider || !hasContent;
+  const sendLabel = imageMode
+    ? imageGen.pending
+      ? "Hentikan pembuatan gambar"
+      : "Buat gambar"
+    : busy
+      ? "Hentikan balasan"
+      : "Kirim pesan";
+  const sendTitle = imageMode
+    ? imageGen.pending
+      ? "Hentikan (Esc)"
+      : "Buat gambar (Enter)"
+    : busy
+      ? "Hentikan balasan (Esc)"
+      : "Kirim pesan (Enter)";
+
   const keyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Escape" && busy) {
-      e.preventDefault();
-      onCancel();
-      return;
+    if (e.key === "Escape") {
+      if (imageMode && imageGen.pending) {
+        e.preventDefault();
+        imageGen.cancel();
+        return;
+      }
+      if (!imageMode && busy) {
+        e.preventDefault();
+        onCancel();
+        return;
+      }
     }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      submit();
+      if (imageMode) submitImage();
+      else submit();
     }
   };
 
@@ -458,28 +502,19 @@ export function ChatPanel({
           ))}
         </div>
       )}
-      <ImagePromptBar
-        pending={imageGen.pending}
-        error={imageGen.error}
-        imageModel={imageModel}
-        chatBusy={busy}
-        onGenerate={(p) => void imageGen.generate(conversationId, p, imageModel ?? "")}
-        onCancel={imageGen.cancel}
-        onDismissError={imageGen.clearError}
-        onOpenSettings={onOpenSettings}
-      />
-      <div id="chat-composer">
-        <button
-          type="button"
-          id="btn-attach"
-          className="btn btn--icon"
-          onClick={() => void attach.pick()}
-          disabled={busy || !hasProvider}
-          aria-label="Lampirkan berkas"
-          title="Lampirkan gambar, PDF, atau teks"
-        >
-          <IconPaperclip size={15} />
-        </button>
+      {!imageMode && (
+        <div id="chat-model-row">
+          <div id="chat-model-row__picker">{modelPicker}</div>
+        </div>
+      )}
+      <div id="chat-composer" className={imageMode ? "chat-composer--image" : ""}>
+        <ComposerPlusMenu
+          attachDisabled={busy || !hasProvider || imageMode}
+          imageActive={imageMode}
+          hasImageModel={!!imageModel}
+          onUpload={() => void attach.pick()}
+          onToggleImage={() => setImageMode((v) => !v)}
+        />
         <textarea
           ref={composerRef}
           className="textarea"
@@ -487,28 +522,67 @@ export function ChatPanel({
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={keyDown}
           onPaste={onPaste}
-          placeholder={hasProvider ? "Tulis pesan… (Enter kirim, Shift+Enter baris baru)" : "Hubungkan provider dulu untuk mulai chat"}
+          placeholder={
+            imageMode
+              ? imageModel
+                ? "Deskripsikan gambar… (Enter buat)"
+                : "Pilih model gambar di Pengaturan dulu"
+              : hasProvider
+                ? "Tulis pesan… (Enter kirim, Shift+Enter baris baru)"
+                : "Hubungkan provider dulu untuk mulai chat"
+          }
           rows={2}
-          aria-label="Tulis pesan"
-          disabled={!hasProvider}
+          aria-label={imageMode ? "Prompt gambar" : "Tulis pesan"}
+          disabled={!hasProvider || (imageMode && !imageModel)}
         />
         <button
           type="button"
           id="btn-send"
-          className={busy ? "btn btn--icon btn--stop" : "btn btn--icon btn--primary"}
+          className={imageMode || busy ? "btn btn--icon btn--stop" : "btn btn--icon btn--primary"}
           onClick={() => {
+            if (imageMode) {
+              if (imageGen.pending) imageGen.cancel();
+              else submitImage();
+              return;
+            }
             if (busy) onCancel();
             else submit();
           }}
-          disabled={busy ? false : !hasProvider || !hasContent}
-          aria-label={busy ? "Hentikan balasan" : "Kirim pesan"}
-          title={busy ? "Hentikan balasan (Esc)" : "Kirim pesan (Enter)"}
+          disabled={sendDisabled}
+          aria-label={sendLabel}
+          title={sendTitle}
         >
-          {busy ? <IconStop size={14} /> : <IconArrowUp size={14} />}
+          {imageMode ? imageGen.pending ? <IconStop size={14} /> : <IconModel size={15} /> : busy ? <IconStop size={14} /> : <IconArrowUp size={14} />}
         </button>
       </div>
+      {imageMode && (imageGen.pending || !imageModel || imageGen.error) && (
+        <div id="create-image-status">
+          {imageGen.pending && (
+            <span className="create-image-status__line" role="status" aria-live="polite">
+              <span className="image-prompt__spinner" aria-hidden="true" />
+              Wortel sedang menggambar… (Esc untuk hentikan)
+            </span>
+          )}
+          {!imageModel && (
+            <span className="create-image-status__line">
+              Belum ada model gambar.
+              <button type="button" className="btn btn--sm btn--ghost" onClick={onOpenSettings}>
+                Atur di Pengaturan
+              </button>
+            </span>
+          )}
+          {imageGen.error && (
+            <div className="banner banner--error" role="alert">
+              <IconAlert size={14} />
+              <span className="banner__text">{imageGen.error}</span>
+              <button type="button" className="icon-btn" onClick={imageGen.clearError} aria-label="Tutup pesan gambar" title="Tutup">
+                <IconX size={13} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       <div id="chat-footer">
-        <div id="chat-footer-model">{modelPicker}</div>
         <span id="chat-state" role="status">
           {label && (
             <>

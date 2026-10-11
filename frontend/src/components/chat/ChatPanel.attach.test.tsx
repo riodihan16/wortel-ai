@@ -36,9 +36,19 @@ function imgGen(over: Partial<ImageGenApi> = {}): ImageGenApi {
   };
 }
 
-function renderPanel(over: { attach?: AttachmentsApi; draft?: string; busy?: boolean; imageModel?: string | null } = {}) {
+function renderPanel(
+  over: {
+    attach?: AttachmentsApi;
+    draft?: string;
+    busy?: boolean;
+    imageModel?: string | null;
+    imageGen?: ImageGenApi;
+    onDraftChange?: (v: string) => void;
+  } = {}
+) {
   const onSend = vi.fn();
   const attach = over.attach ?? api();
+  const imageGen = over.imageGen ?? imgGen();
   const utils = render(
     <ChatPanel
       messages={[]}
@@ -56,31 +66,33 @@ function renderPanel(over: { attach?: AttachmentsApi; draft?: string; busy?: boo
       onRename={() => {}}
       onDelete={() => {}}
       draft={over.draft ?? ""}
-      onDraftChange={() => {}}
+      onDraftChange={over.onDraftChange ?? (() => {})}
       modelPicker={null}
       onOpenSettings={() => {}}
       hasProvider
       attach={attach}
-      imageGen={imgGen()}
+      imageGen={imageGen}
       imageModel={over.imageModel ?? "img-model"}
     />
   );
-  return { ...utils, onSend, attach };
+  return { ...utils, onSend, attach, imageGen };
 }
 
 beforeEach(() => runtimeMock.reset());
 afterEach(() => cleanup());
 
 describe("ChatPanel attachments", () => {
-  it("has a clip button that opens the picker", () => {
+  it("opens the picker from the + menu Upload file item", () => {
     const { attach } = renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: "Lampirkan berkas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Upload file/ }));
     expect(attach.pick).toHaveBeenCalled();
   });
 
-  it("disables the clip button while busy", () => {
+  it("disables Upload file while busy", () => {
     renderPanel({ busy: true });
-    expect((screen.getByRole("button", { name: "Lampirkan berkas" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" }));
+    expect((screen.getByRole("menuitem", { name: /Upload file/ }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("shows pending items as thumbnail or chip with a remove button", () => {
@@ -167,5 +179,47 @@ describe("ChatPanel attachments", () => {
     const { container } = renderPanel();
     fireEvent.dragEnter(container.querySelector("#chat-main")!, { dataTransfer: { types: ["text/plain"] } });
     expect(container.querySelector("#chat-drop")).toBeNull();
+  });
+});
+
+describe("ChatPanel create-image mode (single composer)", () => {
+  const enterImageMode = () => {
+    fireEvent.click(screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Buat gambar/ }));
+  };
+
+  it("sends the draft to image generation on Enter after enabling the mode", () => {
+    const imageGen = imgGen();
+    const { onSend } = renderPanel({ draft: "a red panda", imageGen });
+    enterImageMode();
+    fireEvent.keyDown(screen.getByLabelText("Prompt gambar"), { key: "Enter" });
+    expect(imageGen.generate).toHaveBeenCalledWith("c1", "a red panda", "img-model");
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it("clears the draft after an image prompt is sent", () => {
+    const onDraftChange = vi.fn();
+    const imageGen = imgGen();
+    renderPanel({ draft: "a cat", imageGen, onDraftChange });
+    enterImageMode();
+    fireEvent.keyDown(screen.getByLabelText("Prompt gambar"), { key: "Enter" });
+    expect(onDraftChange).toHaveBeenCalledWith("");
+  });
+
+  it("cancels a pending image generation on Escape and via the stop button", () => {
+    const imageGen = imgGen({ pending: true });
+    renderPanel({ imageGen });
+    enterImageMode();
+    fireEvent.keyDown(screen.getByLabelText("Prompt gambar"), { key: "Escape" });
+    expect(imageGen.cancel).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Hentikan pembuatan gambar" }));
+    expect(imageGen.cancel).toHaveBeenCalledTimes(2);
+  });
+
+  it("disables Upload file in image mode", () => {
+    renderPanel();
+    enterImageMode();
+    fireEvent.click(screen.getByRole("button", { name: "Tambah lampiran atau buat gambar" }));
+    expect((screen.getByRole("menuitem", { name: /Upload file/ }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
