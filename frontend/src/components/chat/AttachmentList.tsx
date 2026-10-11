@@ -22,7 +22,7 @@ export function AttachmentList({ items }: { items: AttachmentMeta[] }): JSX.Elem
             aria-label={a.name}
             title={open === a.id ? "Perkecil" : "Perbesar"}
           >
-            <img src={`/attachments/${a.id}`} alt={a.name} />
+            <img src={`/attachments/${a.id}`} alt={a.name} loading="lazy" decoding="async" />
           </button>
         ) : (
           <span key={a.id} className="att-chip">

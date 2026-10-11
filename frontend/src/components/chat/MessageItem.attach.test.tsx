@@ -22,6 +22,13 @@ describe("MessageItem attachments", () => {
     expect(screen.getByRole("group", { name: "Lampiran: 2 berkas" })).toBeTruthy();
   });
 
+  it("loads transcript images lazily and decodes them off the main thread", () => {
+    render(<MessageItem message={user({ attachments: [img] })} isLast busy={false} onRetry={() => {}} />);
+    const el = screen.getByRole("img", { name: "foto.png" });
+    expect(el.getAttribute("loading")).toBe("lazy");
+    expect(el.getAttribute("decoding")).toBe("async");
+  });
+
   it("toggles a thumbnail to full size", () => {
     render(<MessageItem message={user({ attachments: [img] })} isLast busy={false} onRetry={() => {}} />);
     const btn = screen.getByRole("button", { name: "foto.png" });
