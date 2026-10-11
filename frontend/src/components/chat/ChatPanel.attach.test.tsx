@@ -127,4 +127,18 @@ describe("ChatPanel attachments", () => {
     fireEvent.click(screen.getByRole("button", { name: "Tutup pesan lampiran" }));
     expect(attach.clearError).toHaveBeenCalled();
   });
+
+  it("shows the drop overlay for a file drag and hides it on a window drop", () => {
+    const { container } = renderPanel();
+    fireEvent.dragEnter(container.querySelector("#chat-main")!, { dataTransfer: { types: ["Files"] } });
+    expect(container.querySelector("#chat-drop")).not.toBeNull();
+    fireEvent.drop(window, { dataTransfer: { types: ["Files"] } });
+    expect(container.querySelector("#chat-drop")).toBeNull();
+  });
+
+  it("ignores a text drag", () => {
+    const { container } = renderPanel();
+    fireEvent.dragEnter(container.querySelector("#chat-main")!, { dataTransfer: { types: ["text/plain"] } });
+    expect(container.querySelector("#chat-drop")).toBeNull();
+  });
 });

@@ -111,7 +111,16 @@ export function ChatPanel({
       setDragDepth(0);
       void stageRef.current(paths);
     }, true);
-    return () => OnFileDropOff();
+    // A drop or an aborted drag anywhere ends the overlay, even when the
+    // dragleave for a re-rendered child never reached the panel.
+    const clear = () => setDragDepth(0);
+    window.addEventListener("drop", clear);
+    window.addEventListener("dragend", clear);
+    return () => {
+      window.removeEventListener("drop", clear);
+      window.removeEventListener("dragend", clear);
+      OnFileDropOff();
+    };
   }, []);
 
   const hasFiles = (e: DragEvent<HTMLDivElement>) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
