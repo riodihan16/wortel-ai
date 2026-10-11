@@ -84,10 +84,13 @@ karakter (docs 06 §2, ditunda), state `thinking`/`speaking` visual pada karakte
 |---|---|---|---|
 | `App.tsx` | Router mode + drag region + state appearance/shortcut/autostart | 197 | Struktur markup ya, logika tidak |
 | `components/chat/ChatPanel.tsx` | Conv bar, list, error, composer, footer | 178 | Ya |
+| `components/chat/ImagePromptBar.tsx` | Prompt gambar + model gambar, state menggambar, cancel, error | — | Ya |
+| `components/chat/MessageItem.tsx` | Turn transcript; merender gambar hasil pembuatan via `/attachments/{id}` | — | Ya |
 | `components/chat/ModelPicker.tsx` | Dropdown model (button + list) | 76 | Ya |
 | `components/chat/SafeMarkdown.tsx` | Renderer markdown tersanitasi | 55 | Style saja (`.md`), logika tidak |
 | `components/settings/SettingsPanel.tsx` | 5 grup settings + CRUD provider | 258 | Ya |
 | `hooks/useChat.ts` | Reducer streaming/persist | — | **Tidak** |
+| `hooks/useImageGen.ts` | State pembuatan gambar (pending/error/cancel) + event `image:event` | — | **Tidak** |
 | `hooks/useProviders.ts` | CRUD provider | — | **Tidak** |
 
 ---

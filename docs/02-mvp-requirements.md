@@ -157,6 +157,21 @@ Pengguna dapat melampirkan gambar (png/jpeg/webp), PDF, dan berkas teks (txt/md/
 - Provider yang menolak gambar/berkas menghasilkan pesan "Model ini tidak menerima gambar/berkas", bukan error generik.
 - Berkas hanya dibaca dari aksi eksplisit pengguna; path penuh dan isi berkas tidak masuk log.
 
+### FR-013 — Pembuatan gambar (P1)
+
+Pengguna dapat membuat gambar dari sebuah prompt memakai model gambar yang dikonfigurasi pada provider aktif; hasilnya tersimpan lokal dan tampil di dalam percakapan (ditambahkan 2026-10-11; lihat ADR-055).
+
+**Kriteria penerimaan**
+- Model gambar dipilih di Pengaturan (kolom "Gambar" pada daftar model provider); tidak ada ID model yang di-hardcode. Model yang tidak ada di daftar ditolak/dibuang.
+- Prompt dikirim ke `POST /v1/images/generations` dari backend Go dengan timeout panjang (5 menit) dan pembatalan via context.
+- Kedua bentuk respons provider ditangani: `b64_json` didekode lokal, `url`/data URL diunduh backend (dibatasi ukurannya, hanya png/jpeg/webp) — WebView tidak pernah mengambil URL provider atau menerima base64 lewat IPC.
+- Hasil disimpan lokal sebagai pesan asisten (kolom `image_mime`/`image_data` di `messages`) dan disajikan lewat route `/attachments/{id}`; bertahan setelah restart.
+- Model gambar di chat tidak pernah mengirim ulang gambar asisten ke model chat (gambar hanya pada baris asisten), sehingga tidak ditagih ulang.
+- Prompt bar menampilkan state menggambar yang berbeda, tombol hentikan (dan Escape), serta pesan error inline yang aman.
+- 402/400/429/413/503 dan MIME tak didukung dipetakan ke pesan Indonesia yang spesifik; tidak ada retry otomatis (reservasi biaya mungkin sudah terjadi).
+- Biaya pembuatan gambar selalu dari saldo PAYG, **bukan** paket chat; UI menyatakan hal ini.
+- Menghapus percakapan menghapus gambar hasilnya; CancelAll saat shutdown menghentikan pembuatan yang berjalan.
+
 ## 3. Non-functional requirements
 
 ### NFR-001 — Performa idle (P0)

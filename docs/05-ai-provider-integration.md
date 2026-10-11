@@ -156,11 +156,32 @@ Jika provider hanya mendukung Chat Completions, test boleh mengirim prompt sanga
 | 5xx | Gangguan provider; izinkan retry manual. |
 | 413 | Lampiran terlalu besar untuk provider; minta pengguna mengurangi ukuran/jumlah. |
 | 400 yang menyebut image/file/vision/modal/modality/input_image/document | Model tidak menerima gambar/berkas; sarankan model lain atau kirim teks saja. |
+| 402 (pembuatan gambar) | Saldo PAYG tidak cukup; sarankan isi saldo atau pilih model gambar lain. |
+| 400 yang menyebut model (pembuatan gambar) | Model gambar tidak dikenali; sarankan pilih model gambar lain di Pengaturan. |
+| MIME gambar tak didukung | Hanya png/jpeg/webp diterima dari provider. |
 | TLS/DNS/network | Periksa koneksi, URL, sertifikat, proxy, atau firewall. |
 | SSE malformed | Tandai protocol error, simpan teks parsial, jangan crash. |
 | Cancel | Tampilkan status dibatalkan, bukan error generik. |
 
 Jangan mengulang otomatis request setelah stream mulai menghasilkan token. Retry dapat membuat biaya ganda atau menghasilkan jawaban duplikat.
+
+## 8b. Pembuatan gambar (image generation)
+
+Endpoint non-streaming terpisah dari chat:
+
+```http
+POST {base}/images/generations
+```
+
+Request memuat `model` (model gambar yang dikonfigurasi pengguna, bukan model chat), `prompt`, dan parameter keluaran yang didukung model (`size`, `n`). Tidak ada ID model yang di-hardcode; model dipilih dari daftar model provider di Pengaturan.
+
+- **Timeout panjang:** pembuatan gambar lambat, jadi request memakai budget 5 menit (`imageTimeout`), bukan timeout pendek client chat.
+- **Bentuk respons:** provider dapat mengembalikan `data[].b64_json` (didekode lokal) atau `data[].url` (URL http(s) atau data URL). Keduanya ditangani; URL http(s) diunduh **oleh backend Go** dengan ukuran dibatasi (25 MB), MIME divalidasi png/jpeg/webp, dan tanpa membawa API key ke host gambar. WebView tidak pernah mengambil URL provider maupun menerima base64 lewat IPC.
+- **Penyajian hasil:** hasil disimpan lokal (bytes pada pesan asisten) dan disajikan ke WebView lewat route `/attachments/{id}`, sama seperti lampiran.
+- **Billing (docs Kenari §12.4):** pembuatan gambar **selalu** dari saldo PAYG, tidak pernah ditanggung paket chat; reservasi biaya dapat terjadi dan **tidak** ada retry otomatis.
+- **Error:** 402 → `insufficient_balance`, 400 menyebut model → `model_not_found`, 429/413/503 mengikuti mapper umum, MIME tak didukung → `unsupported_image`.
+
+Referensi: https://kenari.id/docs/images
 
 ## 9. Batas fitur MVP
 
@@ -171,6 +192,7 @@ Dukung:
 - Satu request chat aktif per conversation.
 - Pembatalan request.
 - Multimodal/image input dan upload file (gambar, PDF, teks; ADR-054).
+- Pembuatan gambar dari prompt ke model gambar provider (ADR-055).
 
 Tidak wajib pada MVP:
 - Tool/function calling.

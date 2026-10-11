@@ -50,6 +50,7 @@ Kolom kandidat:
 - `provider_id` nullable untuk jejak provider/model.
 - `model` nullable.
 - `sequence` INTEGER untuk urutan eksplisit bila dibutuhkan.
+- `image_mime` TEXT NOT NULL DEFAULT '' dan `image_data` BLOB (migrasi v6) — gambar hasil pembuatan yang dimiliki pesan asisten. Bukan secret; disajikan ke WebView lewat route `/attachments/{id}`, tidak pernah di-log. Kolom `active_image_model` pada `provider_profiles` (migrasi v7) adalah konfigurasi nonrahasia.
 
 Tambahkan indeks pada `messages(conversation_id, created_at)` atau kombinasi yang sesuai query nyata. Aktifkan foreign keys dan gunakan transaksi.
 

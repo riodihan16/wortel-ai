@@ -26,12 +26,12 @@ export function DeleteProvider(arg1) {
   return window['go']['main']['App']['DeleteProvider'](arg1);
 }
 
-export function GetAppearance() {
-  return window['go']['main']['App']['GetAppearance']();
-}
-
 export function GenerateImage(arg1, arg2, arg3) {
   return window['go']['main']['App']['GenerateImage'](arg1, arg2, arg3);
+}
+
+export function GetAppearance() {
+  return window['go']['main']['App']['GetAppearance']();
 }
 
 export function GetShortcut() {
@@ -78,12 +78,12 @@ export function SendMessage(arg1, arg2, arg3) {
   return window['go']['main']['App']['SendMessage'](arg1, arg2, arg3);
 }
 
-export function SetActiveModel(arg1, arg2) {
-  return window['go']['main']['App']['SetActiveModel'](arg1, arg2);
-}
-
 export function SetActiveImageModel(arg1, arg2) {
   return window['go']['main']['App']['SetActiveImageModel'](arg1, arg2);
+}
+
+export function SetActiveModel(arg1, arg2) {
+  return window['go']['main']['App']['SetActiveModel'](arg1, arg2);
 }
 
 export function SetActiveProvider(arg1) {

@@ -16,9 +16,9 @@ export function DeleteConversation(arg1:string):Promise<void>;
 
 export function DeleteProvider(arg1:string):Promise<void>;
 
-export function GetAppearance():Promise<app.Appearance>;
-
 export function GenerateImage(arg1:string,arg2:string,arg3:string):Promise<string>;
+
+export function GetAppearance():Promise<app.Appearance>;
 
 export function GetShortcut():Promise<app.Shortcut>;
 
@@ -42,9 +42,9 @@ export function SaveProvider(arg1:app.SaveInput):Promise<config.ProviderProfile>
 
 export function SendMessage(arg1:string,arg2:string,arg3:Array<string>):Promise<string>;
 
-export function SetActiveModel(arg1:string,arg2:string):Promise<void>;
-
 export function SetActiveImageModel(arg1:string,arg2:string):Promise<void>;
+
+export function SetActiveModel(arg1:string,arg2:string):Promise<void>;
 
 export function SetActiveProvider(arg1:string):Promise<void>;
 
